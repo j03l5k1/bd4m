@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  CalendarDays,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Clock3,
-  CloudSun,
-  Droplets,
-  MapPin,
-  Wind,
-} from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, CloudSun, Droplets, MapPin, Wind } from "lucide-react";
 import styles from "../briars.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
 import type { Game, Weather, LadderPayload } from "../page";
@@ -53,12 +42,7 @@ function formatDayDateFromSource(dateStr: string) {
 }
 function formatLongDateFromSource(dateStr: string) {
   const d = parseSourceDate(dateStr);
-  return d.toLocaleDateString("en-AU", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  return d.toLocaleDateString("en-AU", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 }
 function formatTimeFromSource(timeStr: string) {
   const [hour24 = 0, minute = 0] = timeStr.split(":").map(Number);
@@ -81,13 +65,68 @@ function formatCountdown(ms: number) {
 function Logo({ url }: { url?: string }) {
   return (
     <div className={styles.logo}>
-      {url ? (
-        <img className={styles.logoImg} src={url} alt="" />
-      ) : (
-        <span className={styles.logoFallback}>—</span>
-      )}
+      {url ? <img className={styles.logoImg} src={url} alt="" /> : <span className={styles.logoFallback}>—</span>}
     </div>
   );
+}
+
+/** ✅ Ladder → stats (matches your LadderTable header assumptions) */
+function toNum(s: string) {
+  const n = Number(String(s ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+function norm(s: string) {
+  return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+function baseTeam(s: string) {
+  // "Macquarie Uni 2" => "macquarie uni"
+  return norm(s).replace(/\s+\d+$/, "");
+}
+function findTeamRow(ladder: LadderPayload | undefined, teamLabel: string) {
+  if (!ladder?.rows?.length) return null;
+  const want = norm(teamLabel);
+  const wantBase = baseTeam(teamLabel);
+
+  return (
+    ladder.rows.find((r) => {
+      const teamCell = r.cols?.[0] || r.team || "";
+      return norm(teamCell) === want || baseTeam(teamCell) === wantBase;
+    }) || null
+  );
+}
+
+function getTeamStatsFromLadder(ladder: LadderPayload | undefined, teamLabel: string) {
+  if (!ladder?.rows?.length) return null;
+
+  const headers = ladder.headers || [];
+  const row = findTeamRow(ladder, teamLabel);
+  if (!row?.cols?.length) return null;
+
+  const h = headers.map((x) => String(x || "").toLowerCase());
+  const cols = row.cols;
+
+  const gamesIdx = h.findIndex((x) => x === "games" || x.includes("played") || x === "gp");
+  const winIdx = h.findIndex((x) => x === "win" || x === "wins" || x === "w");
+  const drawIdx = h.findIndex((x) => x === "draw" || x === "draws" || x === "d");
+  const lossIdx = h.findIndex((x) => x === "loss" || x === "losses" || x === "l");
+  const gfIdx = h.findIndex((x) => x === "gf" || x.includes("goals for") || x === "for");
+  const gaIdx = h.findIndex((x) => x === "ga" || x.includes("goals against") || x === "against");
+  const gdIdx = h.findIndex((x) => x === "gd" || x.includes("diff"));
+  const ptsIdx = h.findIndex((x) => x.includes("point") || x === "pts" || x === "p");
+
+  const played = gamesIdx >= 0 ? toNum(cols[gamesIdx]) : 0;
+  const wins = winIdx >= 0 ? toNum(cols[winIdx]) : 0;
+  const draws = drawIdx >= 0 ? toNum(cols[drawIdx]) : 0;
+  const losses = lossIdx >= 0 ? toNum(cols[lossIdx]) : 0;
+  const gf = gfIdx >= 0 ? toNum(cols[gfIdx]) : 0;
+  const ga = gaIdx >= 0 ? toNum(cols[gaIdx]) : 0;
+  const gd = gdIdx >= 0 ? toNum(cols[gdIdx]) : gf - ga;
+  const points = ptsIdx >= 0 ? toNum(cols[ptsIdx]) : 0;
+
+  // position = row order in ladder
+  const position = ladder.rows.findIndex((r) => (r.cols?.[0] || r.team || "") === (row.cols?.[0] || row.team || "")) + 1;
+
+  return { team: teamLabel, position, played, wins, draws, losses, gf, ga, gd, points };
 }
 
 export default function HeroMatch({
@@ -120,12 +159,9 @@ export default function HeroMatch({
   isActiveUpcoming: boolean;
 
   onToast: (msg: string) => void;
-
-  ladder?: LadderPayload; // ✅ ADD
+  ladder?: LadderPayload;
 }) {
-  const heroCountdown = formatCountdown(
-    new Date(activeGame.kickoffISO).getTime() - now.getTime()
-  );
+  const heroCountdown = formatCountdown(new Date(activeGame.kickoffISO).getTime() - now.getTime());
 
   const canPrev = activeIndex > 0;
   const canNext = activeIndex < gamesSorted.length - 1;
@@ -136,37 +172,24 @@ export default function HeroMatch({
     setActiveIndex(safe);
   }
 
+  const teamAStats = getTeamStatsFromLadder(ladder, activeGame.home);
+  const teamBStats = getTeamStatsFromLadder(ladder, activeGame.away);
+
   return (
     <section className={`${styles.card} ${styles.heroCard}`}>
       <div className={styles.cardPad}>
         <div className={styles.heroTop}>
           <div className={styles.heroLabels}>
-            <span className={`${styles.pill} ${styles.pillGold}`}>
-              {activeGame.roundLabel || "Round"}
-            </span>
-            <span className={`${styles.pill} ${styles.pillBlue}`}>
-              {heroCountdown}
-            </span>
-            {!isActiveUpcoming ? (
-              <span className={`${styles.pill} ${styles.pillSoft}`}>Final</span>
-            ) : null}
+            <span className={`${styles.pill} ${styles.pillGold}`}>{activeGame.roundLabel || "Round"}</span>
+            <span className={`${styles.pill} ${styles.pillBlue}`}>{heroCountdown}</span>
+            {!isActiveUpcoming ? <span className={`${styles.pill} ${styles.pillSoft}`}>Final</span> : null}
           </div>
 
           <div className={styles.heroNav}>
-            <button
-              className={`${styles.btn} ${styles.btnSoft}`}
-              type="button"
-              disabled={!canPrev}
-              onClick={() => selectIndex(activeIndex - 1)}
-            >
+            <button className={`${styles.btn} ${styles.btnSoft}`} type="button" disabled={!canPrev} onClick={() => selectIndex(activeIndex - 1)}>
               <ChevronLeft size={16} /> Prior
             </button>
-            <button
-              className={`${styles.btn} ${styles.btnSoft}`}
-              type="button"
-              disabled={!canNext}
-              onClick={() => selectIndex(activeIndex + 1)}
-            >
+            <button className={`${styles.btn} ${styles.btnSoft}`} type="button" disabled={!canNext} onClick={() => selectIndex(activeIndex + 1)}>
               Next <ChevronRight size={16} />
             </button>
           </div>
@@ -174,45 +197,27 @@ export default function HeroMatch({
 
         <div className={styles.fixtureTabsWrap}>
           <div className={styles.fixtureTabs}>
-            {(showAllFixtureTabs ? upcomingGames : upcomingGames.slice(0, 6)).map(
-              (g) => {
-                const isActive =
-                  makeSourceKey(g) === makeSourceKey(activeGame);
-                return (
-                  <button
-                    key={makeSourceKey(g)}
-                    type="button"
-                    onClick={() => {
-                      setUserPinnedSelection(true);
-                      const idx = gamesSorted.findIndex(
-                        (x) => makeSourceKey(x) === makeSourceKey(g)
-                      );
-                      if (idx >= 0) setActiveIndex(idx);
-                    }}
-                    className={`${styles.fixtureTab} ${
-                      isActive ? styles.fixtureTabActive : ""
-                    }`}
-                  >
-                    <span className={styles.fixtureTabTop}>
-                      {g.roundLabel || "Round"}
-                    </span>
-                    <span className={styles.fixtureTabBottom}>
-                      {formatDayDateFromSource(g.date)}
-                    </span>
-                  </button>
-                );
-              }
-            )}
+            {(showAllFixtureTabs ? upcomingGames : upcomingGames.slice(0, 6)).map((g) => {
+              const isActive = makeSourceKey(g) === makeSourceKey(activeGame);
+              return (
+                <button
+                  key={makeSourceKey(g)}
+                  type="button"
+                  onClick={() => {
+                    setUserPinnedSelection(true);
+                    const idx = gamesSorted.findIndex((x) => makeSourceKey(x) === makeSourceKey(g));
+                    if (idx >= 0) setActiveIndex(idx);
+                  }}
+                  className={`${styles.fixtureTab} ${isActive ? styles.fixtureTabActive : ""}`}
+                >
+                  <span className={styles.fixtureTabTop}>{g.roundLabel || "Round"}</span>
+                  <span className={styles.fixtureTabBottom}>{formatDayDateFromSource(g.date)}</span>
+                </button>
+              );
+            })}
 
             {upcomingGames.length > 6 ? (
-              <button
-                className={styles.fixtureMore}
-                type="button"
-                onClick={() => {
-                  setUserPinnedSelection(true);
-                  setShowAllFixtureTabs(!showAllFixtureTabs);
-                }}
-              >
+              <button className={styles.fixtureMore} type="button" onClick={() => { setUserPinnedSelection(true); setShowAllFixtureTabs(!showAllFixtureTabs); }}>
                 {showAllFixtureTabs ? (
                   <>
                     Less <ChevronUp size={15} />
@@ -231,9 +236,7 @@ export default function HeroMatch({
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.home)]} />
             <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>
-                {shortTeamName(activeGame.home)}
-              </div>
+              <div className={styles.teamNameLg}>{shortTeamName(activeGame.home)}</div>
               <div className={styles.teamSub}>Home</div>
             </div>
           </div>
@@ -243,16 +246,12 @@ export default function HeroMatch({
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.away)]} />
             <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>
-                {shortTeamName(activeGame.away)}
-              </div>
+              <div className={styles.teamNameLg}>{shortTeamName(activeGame.away)}</div>
               <div className={styles.teamSub}>Away</div>
             </div>
           </div>
 
-          {!isActiveUpcoming && activeGame.score ? (
-            <div className={styles.resultPill}>Result: {activeGame.score}</div>
-          ) : null}
+          {!isActiveUpcoming && activeGame.score ? <div className={styles.resultPill}>Result: {activeGame.score}</div> : null}
         </div>
 
         <div className={styles.metaStrip}>
@@ -284,9 +283,14 @@ export default function HeroMatch({
           </div>
         ) : null}
 
-        {/* ✅ Head-to-head now gets ladder */}
         <div className={styles.heroSection}>
-          <HeadToHead teamA={activeGame.home} teamB={activeGame.away} ladder={ladder} />
+          <HeadToHead
+            allGames={gamesSorted}
+            teamA={activeGame.home}
+            teamB={activeGame.away}
+            teamAStats={teamAStats}
+            teamBStats={teamBStats}
+          />
         </div>
 
         <div className={styles.heroSection}>

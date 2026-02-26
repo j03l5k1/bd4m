@@ -202,15 +202,9 @@ export default function BriarsPage() {
 
   return (
     <div className={styles.shell}>
-      <HeaderBar
-        data={data}
-        toast={toast}
-        pinOk={pinOk}
-        onLogout={logout}
-        onDownloadCalendar={() => downloadICS(data.games)}
-      />
+      <HeaderBar data={data} toast={toast} pinOk={pinOk} onLogout={logout} onDownloadCalendar={() => downloadICS(data.games)} />
 
-            <HeroMatch
+      <HeroMatch
         activeGame={activeGame}
         gamesSorted={gamesSorted}
         activeIndex={activeIndex}
@@ -223,7 +217,7 @@ export default function BriarsPage() {
         weather={weather}
         isActiveUpcoming={isActiveUpcoming}
         onToast={(m) => flash(m)}
-        ladder={data.ladder}   // ✅ ADD THIS
+        ladder={data.ladder} // ✅ THIS WAS MISSING IN YOUR ZIP
       />
 
       <LadderTable ladder={data.ladder} />

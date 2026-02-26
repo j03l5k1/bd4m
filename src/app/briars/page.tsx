@@ -327,6 +327,34 @@ export default function BriarsPage() {
     })();
   }, []);
 
+  useEffect(() => {
+  (async () => {
+    const n = playerName.trim();
+    if (!n) return;
+
+    const next: Record<string, "yes" | "no" | "maybe"> = {};
+    const targets = upcoming.slice(0, 30);
+
+    for (const g of targets) {
+      const key = makeSourceKey(g);
+      try {
+        const res = await fetch(
+          `/api/availability/my-status?source_key=${encodeURIComponent(key)}&playerName=${encodeURIComponent(n)}`,
+          { cache: "no-store" }
+        );
+        const json = await res.json();
+        if (json?.ok && json?.status) {
+          next[key] = json.status;
+        }
+      } catch {
+        //
+      }
+    }
+
+    setMyStatusByKey(next);
+  })();
+}, [playerName, upcoming.length]);
+
   const { upcoming, past, nextGame } = useMemo(() => {
     const games = data?.games ?? [];
     const u: Game[] = [];

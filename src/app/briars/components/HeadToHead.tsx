@@ -1,45 +1,109 @@
 "use client";
 
 import styles from "../briars.module.css";
-import type { Game } from "../page";
+import type { LadderPayload } from "../page";
 
-type TeamStats = {
-  team?: string;
-  position?: number; // optional (1st, 2nd, etc)
-  played?: number;
-  wins?: number;
-  draws?: number;
-  losses?: number;
-  gf?: number;
-  ga?: number;
-  gd?: number;
-  points?: number;
+function norm(s: string) {
+  return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function cleanHeader(s: string) {
+  // "Goals For" -> "goalsfor", "GF" -> "gf"
+  return norm(s).replace(/[^a-z0-9]/g, "");
+}
+
+function toNum(s: string | undefined) {
+  const n = Number(String(s ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function idx(headers: string[], wants: string[]) {
+  const H = (headers || []).map(cleanHeader);
+  for (let i = 0; i < H.length; i++) {
+    if (wants.some((w) => H[i] === w || H[i].includes(w))) return i;
+  }
+  return -1;
+}
+
+type Parsed = {
+  played: number | null;
+  wins: number | null;
+  draws: number | null;
+  losses: number | null;
+  gf: number | null;
+  ga: number | null;
+  gd: number | null;
+  points: number | null;
+  position: number | null;
 };
 
-function n(v: any): number {
-  if (v === 0) return 0;
-  if (v === null || v === undefined) return 0;
-  const num = typeof v === "number" ? v : Number(String(v).trim());
-  return Number.isFinite(num) ? num : 0;
+function parseTeamFromLadder(ladder: LadderPayload | undefined, teamLabel: string): Parsed | null {
+  if (!ladder?.rows?.length) return null;
+
+  const headers = ladder.headers || [];
+  const rows = ladder.rows || [];
+
+  const rowIndex = rows.findIndex((r) => norm(r.cols?.[0] || r.team || "") === norm(teamLabel));
+  if (rowIndex < 0) return null;
+
+  const row = rows[rowIndex];
+  const c = row.cols || [];
+
+  // Column indices
+  const iTeam = idx(headers, ["team"]);
+  const iGames = idx(headers, ["games", "played", "gp"]);
+  const iWin = idx(headers, ["win", "wins", "w"]);
+  const iDraw = idx(headers, ["draw", "draws", "d"]);
+  const iLoss = idx(headers, ["loss", "losses", "l"]);
+  const iPts = idx(headers, ["pts", "points", "point", "p"]);
+  const iGF = idx(headers, ["gf", "goalsfor", "for"]);
+  const iGA = idx(headers, ["ga", "goalsagainst", "against"]);
+  const iGD = idx(headers, ["gd", "goaldiff", "diff"]);
+
+  // If the ladder has an explicit position column (sometimes "Pos" or "#"), we *could* parse it,
+  // but simplest + stable is: position = row order (1-indexed).
+  const position = rowIndex + 1;
+
+  const played = iGames >= 0 ? toNum(c[iGames]) : null;
+  const wins = iWin >= 0 ? toNum(c[iWin]) : null;
+  const draws = iDraw >= 0 ? toNum(c[iDraw]) : null;
+  const losses = iLoss >= 0 ? toNum(c[iLoss]) : null;
+  const points = iPts >= 0 ? toNum(c[iPts]) : null;
+
+  const gf = iGF >= 0 ? toNum(c[iGF]) : null;
+  const ga = iGA >= 0 ? toNum(c[iGA]) : null;
+
+  const gdRaw = iGD >= 0 ? toNum(c[iGD]) : null;
+  const gd = gdRaw !== null ? gdRaw : gf !== null && ga !== null ? gf - ga : null;
+
+  return { played, wins, draws, losses, gf, ga, gd, points, position };
 }
 
 function clamp(x: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, x));
 }
 
-function pct(a: number, b: number) {
-  const total = a + b;
-  if (total <= 0) return 50;
-  return clamp((a / total) * 100, 0, 100);
+function barShare(a: number | null, b: number | null, lowerIsBetter?: boolean) {
+  if (a === null || b === null) return { aPct: 50, bPct: 50, has: false };
+
+  let A = a;
+  let B = b;
+
+  if (lowerIsBetter) {
+    const max = Math.max(A, B);
+    A = max - A;
+    B = max - B;
+  }
+
+  const total = A + B;
+  if (total <= 0) return { aPct: 50, bPct: 50, has: true };
+
+  const aPct = clamp((A / total) * 100, 0, 100);
+  return { aPct, bPct: 100 - aPct, has: true };
 }
 
-function fmtPct(v: number) {
-  if (!Number.isFinite(v)) return "—";
-  return `${Math.round(v)}%`;
-}
-
-function fmtPos(v: number) {
-  if (!v) return "—";
+function fmtPos(v: number | null) {
+  if (v === null) return "—";
   const mod100 = v % 100;
   const mod10 = v % 10;
   let suf = "th";
@@ -51,105 +115,33 @@ function fmtPos(v: number) {
   return `${v}${suf}`;
 }
 
-type Row = {
-  key: string;
-  label: string;
-  a: number;
-  b: number;
-  lowerIsBetter?: boolean;
-  format?: (v: number) => string;
-};
-
 export default function HeadToHead({
   teamA,
   teamB,
-  teamAStats,
-  teamBStats,
-  allGames, // kept for compatibility with your current usage
+  ladder,
 }: {
   teamA: string;
   teamB: string;
-  teamAStats?: TeamStats | null;
-  teamBStats?: TeamStats | null;
-  allGames: Game[];
+  ladder?: LadderPayload;
 }) {
-  const hasStats = !!teamAStats && !!teamBStats;
+  const a = parseTeamFromLadder(ladder, teamA);
+  const b = parseTeamFromLadder(ladder, teamB);
 
-  const aPos = n(teamAStats?.position);
-  const bPos = n(teamBStats?.position);
+  const hasStats = !!a && !!b;
 
-  const aPlayed = n(teamAStats?.played);
-  const bPlayed = n(teamBStats?.played);
-
-  const aW = n(teamAStats?.wins);
-  const bW = n(teamBStats?.wins);
-
-  const aD = n(teamAStats?.draws);
-  const bD = n(teamBStats?.draws);
-
-  const aL = n(teamAStats?.losses);
-  const bL = n(teamBStats?.losses);
-
-  const aGF = n(teamAStats?.gf);
-  const bGF = n(teamBStats?.gf);
-
-  const aGA = n(teamAStats?.ga);
-  const bGA = n(teamBStats?.ga);
-
-  const aGD =
-    teamAStats?.gd !== undefined && teamAStats?.gd !== null
-      ? n(teamAStats?.gd)
-      : aGF - aGA;
-  const bGD =
-    teamBStats?.gd !== undefined && teamBStats?.gd !== null
-      ? n(teamBStats?.gd)
-      : bGF - bGA;
-
-  const aPts = n(teamAStats?.points);
-  const bPts = n(teamBStats?.points);
-
-  const aWinRate = aPlayed ? (aW / aPlayed) * 100 : 0;
-  const bWinRate = bPlayed ? (bW / bPlayed) * 100 : 0;
-
-  // Build rows. We include Position only if provided (non-zero).
-  const rows: Row[] = [
-    ...(aPos && bPos
-      ? [
-          {
-            key: "pos",
-            label: "League position",
-            a: aPos,
-            b: bPos,
-            lowerIsBetter: true,
-            format: (v) => fmtPos(v),
-          } as Row,
-        ]
-      : []),
-    { key: "played", label: "Played", a: aPlayed, b: bPlayed },
-    { key: "wins", label: "Wins", a: aW, b: bW },
-    { key: "winrate", label: "Win rate", a: aWinRate, b: bWinRate, format: (v) => fmtPct(v) },
-    { key: "gf", label: "Goals for", a: aGF, b: bGF },
-    { key: "ga", label: "Goals against", a: aGA, b: bGA, lowerIsBetter: true },
-    { key: "gd", label: "Goal diff", a: aGD, b: bGD },
-    { key: "pts", label: "Points", a: aPts, b: bPts },
-  ];
-
-  function barPercents(row: Row) {
-    // For lower-is-better metrics (GA, Losses, Position), invert values.
-    let a = row.a;
-    let b = row.b;
-
-    if (row.lowerIsBetter) {
-      const max = Math.max(a, b);
-      // invert so "better (lower)" becomes higher value
-      a = max - a;
-      b = max - b;
-    }
-
-    const aPct = pct(a, b);
-    const bPct = 100 - aPct;
-    return { aPct, bPct };
-  }
+  const rows = hasStats
+    ? [
+        { label: "League position", a: a.position, b: b.position, lowerIsBetter: true, format: fmtPos },
+        { label: "Played", a: a.played, b: b.played },
+        { label: "Wins", a: a.wins, b: b.wins },
+        { label: "Draws", a: a.draws, b: b.draws },
+        { label: "Losses", a: a.losses, b: b.losses, lowerIsBetter: true },
+        { label: "Goals for", a: a.gf, b: b.gf },
+        { label: "Goals against", a: a.ga, b: b.ga, lowerIsBetter: true },
+        { label: "Goal diff", a: a.gd, b: b.gd },
+        { label: "Points", a: a.points, b: b.points },
+      ]
+    : [];
 
   return (
     <details className={styles.details}>
@@ -162,9 +154,7 @@ export default function HeadToHead({
 
       <div className={styles.detailsBody}>
         {!hasStats ? (
-          <div className={styles.h2hEmpty}>
-            Stats not available for one or both teams.
-          </div>
+          <div className={styles.h2hEmpty}>Couldn’t find both teams in the ladder yet.</div>
         ) : (
           <div className={styles.h2hCompare}>
             <div className={styles.h2hCompareHeader}>
@@ -175,34 +165,23 @@ export default function HeadToHead({
 
             <div className={styles.h2hCompareRows}>
               {rows.map((r) => {
-                const { aPct, bPct } = barPercents(r);
-                const format = r.format ?? ((v: number) => String(v));
+                const share = barShare(r.a, r.b, (r as any).lowerIsBetter);
+                const format = (r as any).format as ((v: any) => string) | undefined;
+                const leftText = format ? format(r.a) : r.a === null ? "—" : String(r.a);
+                const rightText = format ? format(r.b) : r.b === null ? "—" : String(r.b);
+
                 return (
-                  <div key={r.key} className={styles.h2hCompareRow}>
+                  <div key={r.label} className={styles.h2hCompareRow}>
                     <div className={styles.h2hCompareBar}>
                       <div className={styles.h2hCompareTrack} />
-                      <div
-                        className={styles.h2hCompareFillA}
-                        style={{ width: `${aPct}%` }}
-                      />
-                      <div
-                        className={styles.h2hCompareFillB}
-                        style={{ width: `${bPct}%` }}
-                      />
+                      <div className={styles.h2hCompareFillA} style={{ width: `${share.aPct}%` }} />
+                      <div className={styles.h2hCompareFillB} style={{ width: `${share.bPct}%` }} />
                     </div>
 
                     <div className={styles.h2hCompareRowInner}>
-                      <div className={styles.h2hCompareValA}>
-                        {format(r.a)}
-                      </div>
-
-                      <div className={styles.h2hCompareLabel}>
-                        {r.label}
-                      </div>
-
-                      <div className={styles.h2hCompareValB}>
-                        {format(r.b)}
-                      </div>
+                      <div className={styles.h2hCompareValA}>{leftText}</div>
+                      <div className={styles.h2hCompareLabel}>{r.label.toUpperCase()}</div>
+                      <div className={styles.h2hCompareValB}>{rightText}</div>
                     </div>
                   </div>
                 );

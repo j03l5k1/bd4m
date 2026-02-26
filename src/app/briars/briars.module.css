@@ -199,6 +199,7 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .teamRight {
@@ -210,6 +211,7 @@
   font-size: 18px;
   font-weight: 950;
   letter-spacing: -0.2px;
+  line-height: 1.1;
 }
 
 .mid {
@@ -267,6 +269,7 @@
 
 .availabilityTitle {
   font-weight: 950;
+  font-size: 16px;
 }
 
 .statusLine {
@@ -309,6 +312,7 @@
   color: var(--muted);
   font-weight: 850;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 .logo {
@@ -436,6 +440,46 @@
   gap: 8px;
 }
 
+.details {
+  margin-top: 14px;
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.04);
+  overflow: hidden;
+}
+
+.summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-weight: 950;
+  color: var(--text);
+  user-select: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summaryRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.details[open] .summary {
+  border-bottom: 1px solid var(--stroke);
+  background: rgba(17, 24, 39, 0.02);
+}
+
 .ladderWrap {
   overflow-x: auto;
   margin-top: 12px;
@@ -514,5 +558,10 @@
 
   .availabilityNamesGrid {
     grid-template-columns: 1fr;
+  }
+
+  .summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

@@ -729,11 +729,6 @@ export default function BriarsPage() {
           </div>
         )}
       </div>
-
-      <div style={{ marginTop: 12, color: "var(--muted2)", fontSize: 12 }}>
-        Logos sourced from SMHA Legends club images. :contentReference[oaicite:1]{index=1}
-      </div>
-    </div>
   );
 
   return (

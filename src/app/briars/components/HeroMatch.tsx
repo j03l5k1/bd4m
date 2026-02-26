@@ -4,6 +4,7 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3
 import styles from "../briars.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
 import type { Game, Weather } from "../page";
+import HeadToHead from "./HeadToHead";
 
 const CLUB_LOGOS: Record<string, string> = {
   briars: "https://smhockey.com.au/wireframe/assets/images/briars_logo.jpg",

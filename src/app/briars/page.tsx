@@ -210,7 +210,7 @@ export default function BriarsPage() {
         onDownloadCalendar={() => downloadICS(data.games)}
       />
 
-      <HeroMatch
+            <HeroMatch
         activeGame={activeGame}
         gamesSorted={gamesSorted}
         activeIndex={activeIndex}
@@ -223,7 +223,7 @@ export default function BriarsPage() {
         weather={weather}
         isActiveUpcoming={isActiveUpcoming}
         onToast={(m) => flash(m)}
-        ladder={data.ladder}
+        ladder={data.ladder}   // ✅ ADD THIS
       />
 
       <LadderTable ladder={data.ladder} />

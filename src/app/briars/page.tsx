@@ -119,6 +119,10 @@ function formatTime(iso: string) {
   return `${twelveHour}:${mins} pm`;
 }
 
+function shortTeamName(team: string) {
+  return team.trim().split(/\s+/)[0] || team;
+}
+
 function num(x: string | undefined) {
   if (!x) return 0;
   const n = Number(String(x).replace(/[^\d.-]/g, ""));
@@ -764,7 +768,7 @@ export default function BriarsPage() {
                         <div className={styles.team}>
                           <Logo url={homeLogo} />
                           <div>
-                            <div className={styles.teamName}>{nextGame.home}</div>
+                            <div className={styles.teamName}>{shortTeamName(nextGame.home)}</div>
                             <div className={styles.subMini}>Home</div>
                           </div>
                         </div>
@@ -776,7 +780,7 @@ export default function BriarsPage() {
 
                         <div className={`${styles.team} ${styles.teamRight}`}>
                           <div>
-                            <div className={styles.teamName}>{nextGame.away}</div>
+                            <div className={styles.teamName}>{shortTeamName(nextGame.away)}</div>
                             <div className={styles.subMini}>Away</div>
                           </div>
                           <Logo url={awayLogo} />

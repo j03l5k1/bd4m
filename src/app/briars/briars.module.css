@@ -1,4 +1,3 @@
-/* Layout */
 .shell {
   max-width: 1120px;
   margin: 0 auto;
@@ -39,17 +38,26 @@
   align-items: center;
 }
 
-/* Primitives */
+.toast {
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 1) 0%, rgba(219, 234, 254, 1) 100%);
+  color: rgba(30, 64, 175, 0.92);
+  font-weight: 950;
+  font-size: 13px;
+}
+
 .card {
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgba(17,24,39,0.05);
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
   backdrop-filter: blur(10px);
 }
 
 .nextGameCard {
-  box-shadow: 0 14px 36px rgba(17,24,39,0.07);
+  box-shadow: 0 14px 36px rgba(17, 24, 39, 0.07);
 }
 
 .cardPad {
@@ -64,7 +72,7 @@
   border-radius: 999px;
   border: 1px solid var(--stroke);
   background: var(--card2);
-  color: rgba(17,24,39,0.72);
+  color: rgba(17, 24, 39, 0.72);
   font-size: 13px;
   font-weight: 900;
   white-space: nowrap;
@@ -72,41 +80,32 @@
 }
 
 .pillSubtle {
-  background: rgba(17,24,39,0.02);
-  color: rgba(17,24,39,0.62);
+  background: rgba(17, 24, 39, 0.02);
+  color: rgba(17, 24, 39, 0.62);
 }
 
 .pillGold {
-  background: linear-gradient(180deg, rgba(255,244,214,1) 0%, rgba(255,238,190,1) 100%);
-  border-color: rgba(234,179,8,0.28);
-  color: rgba(120,53,15,0.92);
+  background: linear-gradient(180deg, rgba(255, 244, 214, 1) 0%, rgba(255, 238, 190, 1) 100%);
+  border-color: rgba(234, 179, 8, 0.28);
+  color: rgba(120, 53, 15, 0.92);
 }
 
 .pillBlue {
-  background: linear-gradient(180deg, rgba(239,246,255,1) 0%, rgba(219,234,254,1) 100%);
-  border-color: rgba(59,130,246,0.18);
-  color: rgba(30,64,175,0.92);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 1) 0%, rgba(219, 234, 254, 1) 100%);
+  border-color: rgba(59, 130, 246, 0.18);
+  color: rgba(30, 64, 175, 0.92);
 }
 
 .pillGreen {
-  background: linear-gradient(180deg, rgba(236,253,245,1) 0%, rgba(209,250,229,1) 100%);
-  border-color: rgba(16,185,129,0.18);
-  color: rgba(6,95,70,0.92);
+  background: linear-gradient(180deg, rgba(236, 253, 245, 1) 0%, rgba(209, 250, 229, 1) 100%);
+  border-color: rgba(16, 185, 129, 0.18);
+  color: rgba(6, 95, 70, 0.92);
 }
 
 .pillMap {
-  background: linear-gradient(180deg, rgba(240,253,250,1) 0%, rgba(204,251,241,1) 100%);
-  border-color: rgba(13,148,136,0.18);
-  color: rgba(15,118,110,0.95);
-}
-
-.pillClickable {
-  cursor: pointer;
-}
-
-.pillClickable:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(17,24,39,0.08);
+  background: linear-gradient(180deg, rgba(240, 253, 250, 1) 0%, rgba(204, 251, 241, 1) 100%);
+  border-color: rgba(13, 148, 136, 0.18);
+  color: rgba(15, 118, 110, 0.95);
 }
 
 .btn {
@@ -128,9 +127,9 @@
 }
 
 .btnSoft {
-  background: rgba(17,24,39,0.03);
+  background: rgba(17, 24, 39, 0.03);
   border: 1px solid var(--stroke);
-  color: rgba(17,24,39,0.88);
+  color: rgba(17, 24, 39, 0.88);
 }
 
 .btn:hover {
@@ -141,7 +140,6 @@
   transform: translateY(1px);
 }
 
-/* Inputs */
 .label {
   font-size: 13px;
   font-weight: 950;
@@ -156,7 +154,7 @@
   border: 1px solid var(--stroke2);
   background: white;
   outline: none;
-  box-shadow: 0 4px 18px rgba(17,24,39,0.06);
+  box-shadow: 0 4px 18px rgba(17, 24, 39, 0.06);
   font-weight: 850;
   color: var(--text);
 }
@@ -168,7 +166,6 @@
   font-weight: 850;
 }
 
-/* Login block */
 .loginGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -182,7 +179,6 @@
   align-items: center;
 }
 
-/* Next game */
 .rowTop {
   display: flex;
   justify-content: space-between;
@@ -218,7 +214,7 @@
 
 .mid {
   text-align: center;
-  color: rgba(17,24,39,0.65);
+  color: rgba(17, 24, 39, 0.65);
   font-weight: 950;
 }
 
@@ -241,41 +237,47 @@
   margin-top: 16px;
 }
 
+.weatherRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
 .divider {
   height: 1px;
   background: var(--stroke);
   margin: 16px 0;
 }
 
-/* Availability block */
-.details {
+.availabilityBox {
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(17,24,39,0.018) 0%, rgba(17,24,39,0.028) 100%);
-  border-radius: var(--radius2);
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.018) 0%, rgba(17, 24, 39, 0.028) 100%);
+  border-radius: 16px;
   padding: 14px;
-  margin-top: 4px;
 }
 
-.summary {
-  cursor: pointer;
-  list-style: none;
+.availabilityTop {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.availabilityTitle {
   font-weight: 950;
 }
 
-.summary::-webkit-details-marker {
-  display: none;
+.statusLine {
+  margin-top: 10px;
+  color: var(--muted);
+  font-weight: 850;
 }
 
-.summaryRight {
-  color: rgba(17,24,39,0.55);
-  font-weight: 900;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.statusStrong {
+  color: var(--text);
+  font-weight: 950;
 }
 
 .btnRow {
@@ -285,7 +287,30 @@
   margin-top: 16px;
 }
 
-/* Logos */
+.availabilityNamesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--stroke);
+}
+
+.nameCol {
+  min-width: 0;
+}
+
+.nameColTitle {
+  font-weight: 950;
+  margin-bottom: 6px;
+}
+
+.nameColBody {
+  color: var(--muted);
+  font-weight: 850;
+  line-height: 1.5;
+}
+
 .logo {
   width: 54px;
   height: 54px;
@@ -296,7 +321,7 @@
   place-items: center;
   overflow: hidden;
   flex: 0 0 auto;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .logoImg {
@@ -307,11 +332,10 @@
 }
 
 .logoFallback {
-  color: rgba(17,24,39,0.35);
+  color: rgba(17, 24, 39, 0.35);
   font-weight: 950;
 }
 
-/* Sections */
 .sectionTop {
   display: flex;
   justify-content: space-between;
@@ -333,14 +357,19 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
-  background: rgba(17,24,39,0.02);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 1) 0%, rgba(219, 234, 254, 1) 100%);
   cursor: pointer;
   font-weight: 950;
-  color: rgba(17,24,39,0.74);
+  color: rgba(30, 64, 175, 0.92);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Upcoming cards grid */
+.pillBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08);
+}
+
 .grid {
   display: grid;
   gap: 14px;
@@ -352,7 +381,7 @@
   background: white;
   border-radius: 18px;
   padding: 16px;
-  box-shadow: 0 6px 24px rgba(17,24,39,0.055);
+  box-shadow: 0 6px 24px rgba(17, 24, 39, 0.055);
 }
 
 .gTop {
@@ -375,7 +404,7 @@
 }
 
 .gNames {
-  margin-left: 2px;
+  margin-top: 12px;
 }
 
 .gTitle {
@@ -395,8 +424,8 @@
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 14px;
-  margin-bottom: 14px; /* more room before availability box */
-  color: rgba(17,24,39,0.70);
+  margin-bottom: 14px;
+  color: rgba(17, 24, 39, 0.7);
   font-weight: 900;
   font-size: 13px;
 }
@@ -407,18 +436,9 @@
   gap: 8px;
 }
 
-.gMetaLink {
-  text-decoration: none;
-  color: rgba(15,118,110,0.92);
-}
-
-.gMetaLink:hover {
-  text-decoration: underline;
-}
-
-/* Ladder */
 .ladderWrap {
   overflow-x: auto;
+  margin-top: 12px;
 }
 
 .ladder {
@@ -430,10 +450,10 @@
 .ladderTh,
 .ladderTd {
   padding: 12px 14px;
-  border-bottom: 1px solid rgba(17,24,39,0.08);
+  border-bottom: 1px solid rgba(17, 24, 39, 0.08);
   text-align: left;
   font-weight: 900;
-  color: rgba(17,24,39,0.84);
+  color: rgba(17, 24, 39, 0.84);
   white-space: nowrap;
 }
 
@@ -441,35 +461,30 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: rgba(17,24,39,0.55);
+  color: rgba(17, 24, 39, 0.55);
   cursor: pointer;
   user-select: none;
-  background: rgba(17,24,39,0.015);
+  background: rgba(17, 24, 39, 0.015);
   position: sticky;
   top: 0;
 }
 
 .ladderThActive {
-  color: rgba(17,24,39,0.92);
+  color: rgba(17, 24, 39, 0.92);
 }
 
 .ladderBriars td {
-  background: rgba(37,99,235,0.04);
+  background: rgba(37, 99, 235, 0.04);
 }
 
-/* Past results */
 .pastGrid {
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 1fr;
 }
 
-/* Responsive */
 @media (max-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
+  .grid,
   .pastGrid {
     grid-template-columns: 1fr;
   }
@@ -483,78 +498,21 @@
 
 @media (max-width: 740px) {
   .vsGrid {
-    grid-template-columns: 1fr auto 1fr;
-    gap: 10px;
-    align-items: center;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .team,
+  .teamRight {
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .mid {
-    display: block;
+    text-align: left;
   }
 
-  .team {
-    min-width: 0;
-    gap: 8px;
-  }
-
-  .teamRight {
-    justify-content: flex-end;
-    text-align: right;
-    flex-direction: row;
-  }
-
-  .teamName {
-    font-size: 16px;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .logo {
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
-  }
-
-  .logoImg {
-    padding: 6px;
-  }
-
-  .subMini {
-    font-size: 12px;
-  }
-
-  .vs {
-    font-size: 12px;
-    letter-spacing: 1.5px;
-  }
-}
-
-@media (max-width: 560px) {
-  .shell {
-    padding: 14px;
-  }
-
-  .cardPad {
-    padding: 15px;
-  }
-
-  .gcard {
-    padding: 14px;
-  }
-
-  .gTitle {
-    max-width: 220px;
-  }
-
-  .gMeta {
-    gap: 12px;
-    margin-top: 12px;
-    margin-bottom: 14px;
-  }
-
-  .btnRow {
-    margin-top: 14px;
+  .availabilityNamesGrid {
+    grid-template-columns: 1fr;
   }
 }

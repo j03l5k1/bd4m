@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const runtime = "nodejs";
+
 function clean(s: string) {
   return String(s || "").replace(/\s+/g, " ").trim();
 }
@@ -33,7 +35,7 @@ function buildLegacyIsoCandidates(kickoffISO: string) {
 
     candidates.add(new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`).toISOString());
 
-    // legacy timezone offsets that may exist in old source_key strings
+    // legacy timezone offsets (Sydney DST / old transforms)
     candidates.add(new Date(d.getTime() + 10 * 60 * 60 * 1000).toISOString());
     candidates.add(new Date(d.getTime() + 11 * 60 * 60 * 1000).toISOString());
     candidates.add(new Date(d.getTime() - 10 * 60 * 60 * 1000).toISOString());
@@ -44,7 +46,8 @@ function buildLegacyIsoCandidates(kickoffISO: string) {
 }
 
 async function findMatchingGameIds(source_key: string) {
-  const sb = supabaseAdmin();
+  // ✅ supabaseAdmin is now a client, not a function
+  const sb = supabaseAdmin;
 
   const exact = await sb.from("games").select("id").eq("source_key", source_key);
   if (exact.error) throw new Error(exact.error.message);
@@ -68,7 +71,7 @@ async function findMatchingGameIds(source_key: string) {
 }
 
 export async function GET(req: Request) {
-  const sb = supabaseAdmin();
+  const sb = supabaseAdmin;
 
   const { searchParams } = new URL(req.url);
   const source_key = searchParams.get("source_key");
@@ -119,9 +122,6 @@ export async function GET(req: Request) {
       status: rows?.[0]?.status ?? null,
     });
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message || "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: e?.message || "Server error" }, { status: 500 });
   }
 }

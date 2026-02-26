@@ -12,6 +12,11 @@ type Game = {
   kickoffISO: string;
 };
 
+type LadderRow = {
+  team: string;
+  cols: string[]; // keep generic: we render headers+cells
+};
+
 function clean(s: string) {
   return s.replace(/\s+/g, " ").trim();
 }
@@ -25,16 +30,13 @@ function parseKickoffISO(date: string, time: string) {
 export async function GET() {
   const url = "https://smhockey.com.au/legends";
 
-  // Cache scrape for 12 hours (twice a day refresh effectively)
-  const res = await fetch(url, { next: { revalidate: 43200 } });
-
-  if (!res.ok) {
-    return NextResponse.json({ ok: false, error: "Failed to fetch source" }, { status: 502 });
-  }
+  const res = await fetch(url, { next: { revalidate: 43200 } }); // ~twice/day
+  if (!res.ok) return NextResponse.json({ ok: false, error: "Failed to fetch source" }, { status: 502 });
 
   const html = await res.text();
   const $ = cheerio.load(html);
 
+  // --- Fixtures ---
   let currentRound = "";
   const games: Game[] = [];
 
@@ -72,11 +74,54 @@ export async function GET() {
 
   games.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
 
+  // --- Ladder ---
+  // Find the first table that looks like a ladder: has headers including "Team" and "Pts" (common)
+  let ladderHeaders: string[] = [];
+  const ladderRows: LadderRow[] = [];
+
+  $("table").each((_, table) => {
+    const headers = $(table)
+      .find("tr")
+      .first()
+      .find("th,td")
+      .map((_, cell) => clean($(cell).text()))
+      .get()
+      .filter(Boolean);
+
+    const looksLikeLadder =
+      headers.some((h) => /^team$/i.test(h)) &&
+      headers.some((h) => /pts|points/i.test(h));
+
+    if (!looksLikeLadder) return;
+
+    ladderHeaders = headers;
+
+    $(table)
+      .find("tr")
+      .slice(1)
+      .each((_, tr) => {
+        const cells = $(tr)
+          .find("td,th")
+          .map((_, cell) => clean($(cell).text()))
+          .get()
+          .filter((x) => x !== "");
+
+        if (cells.length < 2) return;
+        ladderRows.push({ team: cells[0], cols: cells });
+      });
+
+    return false; // break after first match
+  });
+
   return NextResponse.json({
     ok: true,
     team: "Briars",
     source: url,
     refreshedAt: new Date().toISOString(),
     games,
+    ladder: {
+      headers: ladderHeaders,
+      rows: ladderRows,
+    },
   });
 }

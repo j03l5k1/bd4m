@@ -14,29 +14,68 @@ type Game = {
 
 type LadderRow = {
   team: string;
-  cols: string[]; // keep generic: we render headers+cells
+  cols: string[];
 };
 
 function clean(s: string) {
   return s.replace(/\s+/g, " ").trim();
 }
 
+function getTimeZoneOffsetMinutes(date: Date, timeZone: string) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const parts = dtf.formatToParts(date);
+  const map: Record<string, string> = {};
+
+  for (const part of parts) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+
+  const asUTC = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second)
+  );
+
+  return Math.round((asUTC - date.getTime()) / 60000);
+}
+
 function parseKickoffISO(date: string, time: string) {
-  const [dd, mm, yyyy] = date.split("/");
-  const t = time && time.length >= 5 ? time : "00:00:00";
-  return new Date(`${yyyy}-${mm}-${dd}T${t}`).toISOString();
+  const [dd, mm, yyyy] = date.split("/").map(Number);
+  const [hh = 0, min = 0, sec = 0] = (time || "00:00:00").split(":").map(Number);
+
+  // Treat scraped values as local Australia/Sydney time.
+  const utcGuess = Date.UTC(yyyy, (mm || 1) - 1, dd || 1, hh, min, sec);
+  const guessDate = new Date(utcGuess);
+  const offsetMinutes = getTimeZoneOffsetMinutes(guessDate, "Australia/Sydney");
+  const actualUtcMs = utcGuess - offsetMinutes * 60_000;
+
+  return new Date(actualUtcMs).toISOString();
 }
 
 export async function GET() {
   const url = "https://smhockey.com.au/legends";
 
-  const res = await fetch(url, { next: { revalidate: 43200 } }); // ~twice/day
-  if (!res.ok) return NextResponse.json({ ok: false, error: "Failed to fetch source" }, { status: 502 });
+  const res = await fetch(url, { next: { revalidate: 43200 } });
+  if (!res.ok) {
+    return NextResponse.json({ ok: false, error: "Failed to fetch source" }, { status: 502 });
+  }
 
   const html = await res.text();
   const $ = cheerio.load(html);
 
-  // --- Fixtures ---
   let currentRound = "";
   const games: Game[] = [];
 
@@ -53,7 +92,7 @@ export async function GET() {
 
     const home = clean($(tds[1]).text());
     const away = clean($(tds[2]).text());
-    const time = clean($(tds[3]).text());
+    const time = clean($(tds[3]).text()) || "00:00:00";
     const venue = clean($(tds[4]).text());
     const score = clean($(tds[5]).text()) || "-";
 
@@ -74,8 +113,6 @@ export async function GET() {
 
   games.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
 
-  // --- Ladder ---
-  // Find the first table that looks like a ladder: has headers including "Team" and "Pts" (common)
   let ladderHeaders: string[] = [];
   const ladderRows: LadderRow[] = [];
 
@@ -110,7 +147,7 @@ export async function GET() {
         ladderRows.push({ team: cells[0], cols: cells });
       });
 
-    return false; // break after first match
+    return false;
   });
 
   return NextResponse.json({

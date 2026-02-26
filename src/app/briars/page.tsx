@@ -293,6 +293,23 @@ export default function BriarsPage() {
   }, []);
 
   useEffect(() => {
+  (async () => {
+    const next: Record<string, Counts> = {};
+    for (const g of upcoming.slice(0, 30)) {
+      const key = makeSourceKey(g);
+      try {
+        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
+        const json = await res.json();
+        if (json?.ok) next[key] = json.counts;
+      } catch {
+        //
+      }
+    }
+    setCountsByKey(next);
+  })();
+}, [upcoming.length]);
+
+  useEffect(() => {
     setPinOk(localStorage.getItem(LS_PIN_OK) === "1");
     setPlayerName(localStorage.getItem(LS_PLAYER_NAME) || "");
   }, []);
@@ -1109,12 +1126,6 @@ export default function BriarsPage() {
                   </div>
 
                   <AvailabilityBlock g={g} />
-
-                  <div style={{ marginTop: 12 }}>
-                    <Pill tone="gold">
-                      <Users size={15} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
-                    </Pill>
-                  </div>
                 </div>
               );
             })}

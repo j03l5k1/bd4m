@@ -111,23 +111,10 @@ function mergeNames(a?: Partial<NamesByStatus>, b?: Partial<NamesByStatus>): Nam
 }
 
 function mergeCounts(a?: Partial<Counts>, b?: Partial<Counts>): Counts {
-  const names = mergeNames(
-    {
-      yes: new Array(a?.yes || 0).fill("x"),
-      maybe: new Array(a?.maybe || 0).fill("x"),
-      no: new Array(a?.no || 0).fill("x"),
-    },
-    {
-      yes: new Array(b?.yes || 0).fill("y"),
-      maybe: new Array(b?.maybe || 0).fill("y"),
-      no: new Array(b?.no || 0).fill("y"),
-    }
-  );
-
   return {
-    yes: names.yes.length,
-    maybe: names.maybe.length,
-    no: names.no.length,
+    yes: (a?.yes || 0) + (b?.yes || 0),
+    maybe: (a?.maybe || 0) + (b?.maybe || 0),
+    no: (a?.no || 0) + (b?.no || 0),
   };
 }
 
@@ -138,15 +125,6 @@ function statusFromNames(names: NamesByStatus, playerName: string): "yes" | "may
   if (names.maybe.some((n) => normaliseName(n) === needle)) return "maybe";
   if (names.no.some((n) => normaliseName(n) === needle)) return "no";
   return undefined;
-}
-
-function formatCountdown(ms: number) {
-  if (ms <= 0) return "Started";
-  const totalMins = Math.floor(ms / 60000);
-  const days = Math.floor(totalMins / (60 * 24));
-  const hours = Math.floor((totalMins - days * 60 * 24) / 60);
-  const mins = totalMins - days * 60 * 24 - hours * 60;
-  return `${days}d ${hours}h ${mins}m`;
 }
 
 function parseSourceDate(dateStr: string) {
@@ -182,6 +160,10 @@ function shortTeamName(team: string) {
   return team.trim().split(/\s+/)[0] || team;
 }
 
+function normaliseTeamName(team: string) {
+  return team.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 function num(x: string | undefined) {
   if (!x) return 0;
   const n = Number(String(x).replace(/[^\d.-]/g, ""));
@@ -204,18 +186,79 @@ function rankEmoji(rank?: number) {
   return "";
 }
 
-function normaliseTeamName(team: string) {
-  return team.toLowerCase().replace(/\s+/g, " ").trim();
+function formatCountdown(ms: number) {
+  if (ms <= 0) return "Started";
+  const totalMins = Math.floor(ms / 60000);
+  const days = Math.floor(totalMins / (60 * 24));
+  const hours = Math.floor((totalMins - days * 60 * 24) / 60);
+  const mins = totalMins - days * 60 * 24 - hours * 60;
+  return `${days}d ${hours}h ${mins}m`;
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toICSUTC(dt: Date) {
+  return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}T${pad(
+    dt.getUTCHours()
+  )}${pad(dt.getUTCMinutes())}${pad(dt.getUTCSeconds())}Z`;
+}
+
+function escapeICS(s: string) {
+  return s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+}
+
+function buildAllGamesICS(games: Game[]) {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Briars Fixtures//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+  ];
+
+  for (const g of games) {
+    const start = new Date(g.kickoffISO);
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    const uid = `${makeSourceKey(g).replace(/[^\w]/g, "")}@briarsfixtures`;
+
+    lines.push("BEGIN:VEVENT");
+    lines.push(`UID:${uid}`);
+    lines.push(`DTSTAMP:${toICSUTC(new Date())}`);
+    lines.push(`DTSTART:${toICSUTC(start)}`);
+    lines.push(`DTEND:${toICSUTC(end)}`);
+    lines.push(`SUMMARY:${escapeICS(`${g.home} vs ${g.away}`)}`);
+    lines.push(`DESCRIPTION:${escapeICS(`${g.roundLabel} • ${g.home} vs ${g.away}`)}`);
+    lines.push(`LOCATION:${escapeICS(g.venue)}`);
+    lines.push("END:VEVENT");
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+function downloadICS(games: Game[]) {
+  const text = buildAllGamesICS(games);
+  const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "briars-fixtures.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function Pill({
   children,
-  subtle,
   tone = "default",
+  active = false,
 }: {
   children: React.ReactNode;
-  subtle?: boolean;
-  tone?: "default" | "gold" | "blue" | "green" | "map";
+  tone?: "default" | "gold" | "blue" | "green" | "map" | "soft";
+  active?: boolean;
 }) {
   const toneClass =
     tone === "gold"
@@ -226,29 +269,31 @@ function Pill({
       ? styles.pillGreen
       : tone === "map"
       ? styles.pillMap
+      : tone === "soft"
+      ? styles.pillSoft
       : "";
 
-  return (
-    <span className={`${styles.pill} ${subtle ? styles.pillSubtle : ""} ${toneClass}`}>
-      {children}
-    </span>
-  );
+  return <span className={`${styles.pill} ${toneClass} ${active ? styles.pillActive : ""}`}>{children}</span>;
 }
 
 function Button({
   children,
   onClick,
   kind = "primary",
+  active = false,
   disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   kind?: "primary" | "soft";
+  active?: boolean;
   disabled?: boolean;
 }) {
   return (
     <button
-      className={`${styles.btn} ${kind === "primary" ? styles.btnPrimary : styles.btnSoft}`}
+      className={`${styles.btn} ${kind === "primary" ? styles.btnPrimary : styles.btnSoft} ${
+        active ? styles.btnActive : ""
+      }`}
       onClick={onClick}
       disabled={disabled}
       type="button"
@@ -282,13 +327,14 @@ export default function BriarsPage() {
   const [playerName, setPlayerName] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
-  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [activeUpcomingIndex, setActiveUpcomingIndex] = useState(0);
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [showAllFixtureTabs, setShowAllFixtureTabs] = useState(false);
   const [ladderSortKey, setLadderSortKey] = useState("PTS");
   const [ladderSortDir, setLadderSortDir] = useState<"asc" | "desc">("desc");
-  const [weather, setWeather] = useState<Weather | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30_000);
+    const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
   }, []);
 
@@ -310,7 +356,7 @@ export default function BriarsPage() {
     })();
   }, []);
 
-  const { upcoming, past, nextGame } = useMemo(() => {
+  const { upcoming, past } = useMemo(() => {
     const games = data?.games ?? [];
     const u: Game[] = [];
     const p: Game[] = [];
@@ -324,8 +370,15 @@ export default function BriarsPage() {
     u.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
     p.sort((a, b) => new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime());
 
-    return { upcoming: u, past: p, nextGame: u[0] || null };
+    return { upcoming: u, past: p };
   }, [data, now]);
+
+  const activeGame = upcoming[activeUpcomingIndex] || upcoming[0] || null;
+
+  useEffect(() => {
+    if (!upcoming.length) return;
+    if (activeUpcomingIndex > upcoming.length - 1) setActiveUpcomingIndex(0);
+  }, [upcoming.length, activeUpcomingIndex]);
 
   async function fetchSummary(sourceKey: string) {
     try {
@@ -334,9 +387,7 @@ export default function BriarsPage() {
       });
       const json = await res.json();
       if (json?.ok) return json.counts as Counts;
-    } catch {
-      //
-    }
+    } catch {}
     return undefined;
   }
 
@@ -347,9 +398,7 @@ export default function BriarsPage() {
       });
       const json = await res.json();
       if (json?.ok) return json.names as NamesByStatus;
-    } catch {
-      //
-    }
+    } catch {}
     return undefined;
   }
 
@@ -378,14 +427,12 @@ export default function BriarsPage() {
     setCountsByKey((prev) => ({ ...prev, [stableKey]: mergedCounts }));
 
     const mine = statusFromNames(mergedNames, playerName);
-    if (mine) {
-      setMyStatusByKey((prev) => ({ ...prev, [stableKey]: mine }));
-    }
+    if (mine) setMyStatusByKey((prev) => ({ ...prev, [stableKey]: mine }));
   }
 
   useEffect(() => {
     (async () => {
-      for (const g of upcoming.slice(0, 30)) {
+      for (const g of upcoming.slice(0, 12)) {
         await loadAvailabilityForGame(g);
       }
     })();
@@ -407,13 +454,13 @@ export default function BriarsPage() {
 
   useEffect(() => {
     (async () => {
-      if (!nextGame) {
+      if (!activeGame) {
         setWeather(null);
         return;
       }
 
       try {
-        const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, {
+        const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(activeGame.kickoffISO)}`, {
           cache: "no-store",
         });
         const json = await res.json();
@@ -422,11 +469,7 @@ export default function BriarsPage() {
         setWeather(null);
       }
     })();
-  }, [nextGame?.kickoffISO]);
-
-  const loginComplete = useMemo(() => {
-    return pinOk && playerName.trim().length >= 2;
-  }, [pinOk, playerName]);
+  }, [activeGame?.kickoffISO]);
 
   function persistName(next: string) {
     setPlayerName(next);
@@ -493,7 +536,6 @@ export default function BriarsPage() {
 
       setMyStatusByKey((prev) => ({ ...prev, [stableKey]: status }));
       flash("Saved ✓");
-
       await loadAvailabilityForGame(g);
     } catch (e: any) {
       flash(e?.message || "Something went wrong", 3000);
@@ -501,6 +543,7 @@ export default function BriarsPage() {
       setSavingKey(null);
     }
   }
+
   const ladder = data?.ladder;
   const ladderHeaders = ladder?.headers || [];
   const ladderRows = ladder?.rows || [];
@@ -526,14 +569,9 @@ export default function BriarsPage() {
   const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
   const idxGF = findIndexByNames(["gf", "for", "g+"]);
   const idxGA = findIndexByNames(["ga", "against", "g-"]);
-  const idxP = findIndexByNames(["p", "pld", "played", "games"]);
-  const idxW = findIndexByNames(["w", "won", "wins", "win"]);
-  const idxD = findIndexByNames(["d", "draw", "draws"]);
-  const idxL = findIndexByNames(["l", "loss", "losses"]);
 
   const rankedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
-
     rows.sort((a, b) => {
       const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
       const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
@@ -549,30 +587,23 @@ export default function BriarsPage() {
 
       return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
     });
-
     return rows;
   }, [ladderRows, idxPts, idxGD, idxGF]);
 
   const sortedLadderRows = useMemo(() => {
     const rows = [...rankedLadderRows];
-    if (!ladderSortKey) return rows;
-
     const idx = headerIndex[ladderSortKey.toLowerCase()];
     if (typeof idx !== "number") return rows;
 
     rows.sort((a, b) => {
       const av = num(a.cols[idx]);
       const bv = num(b.cols[idx]);
-
-      if (av === bv) {
-        return String(a.cols[0] || "").localeCompare(String(b.cols[0] || ""));
-      }
-
+      if (av === bv) return String(a.cols[0] || "").localeCompare(String(b.cols[0] || ""));
       return ladderSortDir === "desc" ? bv - av : av - bv;
     });
 
     return rows;
-  }, [rankedLadderRows, ladderSortKey, ladderSortDir, headerIndex]);
+  }, [rankedLadderRows, headerIndex, ladderSortDir, ladderSortKey]);
 
   const teamRankMap = useMemo(() => {
     const map: Record<string, number> = {};
@@ -582,21 +613,17 @@ export default function BriarsPage() {
       map[normaliseTeamName(name)] = index + 1;
     });
     return map;
-  }, [rankedLadderRows]);
+  }, [rankedLadderRows, idxTeam]);
 
   function findLadderRowForTeam(teamName: string) {
     const needle = normaliseTeamName(teamName);
-
     const direct = rankedLadderRows.find(
       (row) => normaliseTeamName(String(row.cols[idxTeam] || row.team || "")) === needle
     );
     if (direct) return direct;
 
     const short = shortTeamName(teamName).toLowerCase();
-    return rankedLadderRows.find((row) => {
-      const rowName = String(row.cols[idxTeam] || row.team || "").toLowerCase();
-      return rowName.includes(short);
-    });
+    return rankedLadderRows.find((row) => String(row.cols[idxTeam] || row.team || "").toLowerCase().includes(short));
   }
 
   function getTeamRank(teamName: string) {
@@ -613,11 +640,106 @@ export default function BriarsPage() {
   function teamDisplayLabel(teamName: string) {
     const short = shortTeamName(teamName);
     const rank = getTeamRank(teamName);
-
     if (!rank) return short;
-
     const emoji = rankEmoji(rank);
-    return `${short} ${emoji ? `${emoji} ` : ""}(${ordinal(rank)})`;
+    return `${short}${emoji ? ` ${emoji}` : ""} (${ordinal(rank)})`;
+  }
+
+  function compareStat(homeVal: number, awayVal: number) {
+    const total = Math.max(homeVal + awayVal, 1);
+    const homePct = (homeVal / total) * 100;
+    const awayPct = 100 - homePct;
+    return { homePct, awayPct };
+  }
+
+  function HeadToHead({ g }: { g: Game }) {
+    const homeRow = findLadderRowForTeam(g.home);
+    const awayRow = findLadderRowForTeam(g.away);
+
+    if (!homeRow || !awayRow) {
+      return (
+        <details className={styles.details}>
+          <summary className={styles.summary}>
+            <span>Head-to-head</span>
+            <span className={styles.summaryRight}>
+              Compare <ChevronDown size={16} />
+            </span>
+          </summary>
+          <div className={styles.detailsBody}>Not enough ladder data yet.</div>
+        </details>
+      );
+    }
+
+    const homeRank = getTeamRank(g.home) || 0;
+    const awayRank = getTeamRank(g.away) || 0;
+    const homePts = idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0;
+    const awayPts = idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0;
+    const homeGF = idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0;
+    const awayGF = idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0;
+    const homeGA = idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0;
+    const awayGA = idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0;
+    const homeGD = idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0;
+    const awayGD = idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0;
+
+    const edge =
+      homePts === awayPts && homeGD === awayGD
+        ? "Looks very even"
+        : homePts > awayPts || homeGD > awayGD
+        ? `${shortTeamName(g.home)} slight edge`
+        : `${shortTeamName(g.away)} slight edge`;
+
+    const stats = [
+      { label: "Points", home: homePts, away: awayPts },
+      { label: "Goals for", home: homeGF, away: awayGF },
+      { label: "Goals against", home: homeGA, away: awayGA, invert: true },
+      { label: "Goal diff", home: Math.max(homeGD, 0), away: Math.max(awayGD, 0) },
+    ];
+
+    return (
+      <details className={styles.details}>
+        <summary className={styles.summary}>
+          <span>Head-to-head</span>
+          <span className={styles.summaryRight}>
+            {edge} <ChevronDown size={16} />
+          </span>
+        </summary>
+        <div className={styles.detailsBody}>
+          <div className={styles.h2hTop}>
+            <div className={styles.h2hTeam}>
+              <strong>{shortTeamName(g.home)}</strong>
+              <span>{ordinal(homeRank)}</span>
+            </div>
+            <div className={styles.h2hCenter}>{edge}</div>
+            <div className={`${styles.h2hTeam} ${styles.h2hTeamRight}`}>
+              <strong>{shortTeamName(g.away)}</strong>
+              <span>{ordinal(awayRank)}</span>
+            </div>
+          </div>
+
+          <div className={styles.h2hStats}>
+            {stats.map((s) => {
+              const visualHome = s.invert ? s.away : s.home;
+              const visualAway = s.invert ? s.home : s.away;
+              const { homePct, awayPct } = compareStat(visualHome, visualAway);
+
+              return (
+                <div key={s.label} className={styles.statRow}>
+                  <div className={styles.statValues}>
+                    <span>{s.home}</span>
+                    <span>{s.label}</span>
+                    <span>{s.away}</span>
+                  </div>
+                  <div className={styles.barTrack}>
+                    <div className={styles.barHome} style={{ width: `${homePct}%` }} />
+                    <div className={styles.barAway} style={{ width: `${awayPct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </details>
+    );
   }
 
   function AvailabilityBlock({ g }: { g: Game }) {
@@ -629,501 +751,280 @@ export default function BriarsPage() {
 
     return (
       <div className={styles.availabilityBox}>
-        <div className={styles.availabilityTop}>
-          <div className={styles.availabilityTitle}>Availability</div>
-          <Pill tone="gold">
-            <Users size={15} /> ✅ {counts.yes} / ❓ {counts.maybe} / ❌ {counts.no}
-          </Pill>
-        </div>
-
-        <div className={styles.statusLine}>
-          Your status:{" "}
-          <span className={styles.statusStrong}>
-            {mine === "yes" ? "In" : mine === "maybe" ? "Maybe" : mine === "no" ? "Out" : "Not set"}
-            {saving ? " (saving…)" : ""}
-          </span>
-        </div>
-
-        <div className={styles.btnRow}>
-          <Button onClick={() => setStatus(g, "yes")} disabled={saving}>
-            ✅ I’m in
-          </Button>
-          <Button onClick={() => setStatus(g, "maybe")} kind="soft" disabled={saving}>
-            ❓ Maybe
-          </Button>
-          <Button onClick={() => setStatus(g, "no")} kind="soft" disabled={saving}>
-            ❌ Out
-          </Button>
-        </div>
-
-        <div className={styles.availabilityNamesGrid}>
-          <div className={styles.nameCol}>
-            <div className={styles.nameColTitle}>✅ In</div>
-            <div className={styles.nameColBody}>{names.yes.length ? names.yes.join(", ") : "—"}</div>
-          </div>
-          <div className={styles.nameCol}>
-            <div className={styles.nameColTitle}>❓ Maybe</div>
-            <div className={styles.nameColBody}>{names.maybe.length ? names.maybe.join(", ") : "—"}</div>
-          </div>
-          <div className={styles.nameCol}>
-            <div className={styles.nameColTitle}>❌ Out</div>
-            <div className={styles.nameColBody}>{names.no.length ? names.no.join(", ") : "—"}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function HeadToHead({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) {
-    const homeRow = findLadderRowForTeam(homeTeam);
-    const awayRow = findLadderRowForTeam(awayTeam);
-
-    if (!homeRow || !awayRow) {
-      return (
-        <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
-          Comparison not available yet.
-        </div>
-      );
-    }
-
-    const homeRank = getTeamRank(homeTeam);
-    const awayRank = getTeamRank(awayTeam);
-
-    const metrics = [
-      {
-        key: "position",
-        label: "Ladder position",
-        home: homeRank ?? 0,
-        away: awayRank ?? 0,
-        lowWins: true,
-        format: (v: number) => (v ? ordinal(v) : "—"),
-      },
-      { key: "games", label: "Games played", home: idxP >= 0 ? num(homeRow.cols[idxP]) : 0, away: idxP >= 0 ? num(awayRow.cols[idxP]) : 0 },
-      { key: "wins", label: "Wins", home: idxW >= 0 ? num(homeRow.cols[idxW]) : 0, away: idxW >= 0 ? num(awayRow.cols[idxW]) : 0 },
-      { key: "draws", label: "Draws", home: idxD >= 0 ? num(homeRow.cols[idxD]) : 0, away: idxD >= 0 ? num(awayRow.cols[idxD]) : 0 },
-      { key: "losses", label: "Losses", home: idxL >= 0 ? num(homeRow.cols[idxL]) : 0, away: idxL >= 0 ? num(awayRow.cols[idxL]) : 0, lowWins: true },
-      { key: "gf", label: "Goals for", home: idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0, away: idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0 },
-      { key: "ga", label: "Goals against", home: idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0, away: idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0, lowWins: true },
-      { key: "gd", label: "Goal difference", home: idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0, away: idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0 },
-      { key: "pts", label: "Points", home: idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0, away: idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0 },
-    ];
-
-    function isHomeBetter(metric: (typeof metrics)[number]) {
-      return metric.lowWins ? metric.home < metric.away : metric.home > metric.away;
-    }
-
-    function isAwayBetter(metric: (typeof metrics)[number]) {
-      return metric.lowWins ? metric.away < metric.home : metric.away > metric.home;
-    }
-
-    function getStrengths(metric: (typeof metrics)[number]) {
-      const a = metric.home;
-      const b = metric.away;
-
-      if (a === 0 && b === 0) return { homePct: 50, awayPct: 50 };
-
-      if (metric.lowWins) {
-        const maxVal = Math.max(a, b, 1);
-        const homeScore = maxVal - a + 1;
-        const awayScore = maxVal - b + 1;
-        const maxScore = Math.max(homeScore, awayScore, 1);
-        return {
-          homePct: Math.max(18, (homeScore / maxScore) * 100),
-          awayPct: Math.max(18, (awayScore / maxScore) * 100),
-        };
-      }
-
-      const maxVal = Math.max(a, b, 1);
-      return {
-        homePct: Math.max(18, (a / maxVal) * 100),
-        awayPct: Math.max(18, (b / maxVal) * 100),
-      };
-    }
-
-    return (
-      <details className={styles.details} style={{ marginTop: 14 }}>
-        <summary className={styles.summary}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <Trophy size={18} /> Head-to-head
-          </span>
-          <span className={styles.summaryRight}>
-            Compare <ChevronDown size={16} />
-          </span>
-        </summary>
-
-        <div style={{ marginTop: 14 }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
-              gap: 10,
-              alignItems: "center",
-              padding: "4px 2px 14px",
-              borderBottom: "1px solid var(--stroke)",
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Home</div>
-              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(homeTeam)}</div>
-            </div>
-
-            <div
-              style={{
-                padding: "8px 10px",
-                borderRadius: 999,
-                border: "1px solid var(--stroke)",
-                background: "rgba(17,24,39,0.03)",
-                fontSize: 12,
-                fontWeight: 950,
-                color: "var(--muted)",
-              }}
-            >
-              vs
-            </div>
-
-            <div style={{ minWidth: 0, textAlign: "right" }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Away</div>
-              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(awayTeam)}</div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
-            {metrics.map((m) => {
-              const homeBetter = isHomeBetter(m);
-              const awayBetter = isAwayBetter(m);
-              const { homePct, awayPct } = getStrengths(m);
-
-              const homeValue = m.format ? m.format(m.home) : String(m.home);
-              const awayValue = m.format ? m.format(m.away) : String(m.away);
-
-              return (
-                <div
-                  key={m.key}
-                  style={{
-                    border: "1px solid var(--stroke)",
-                    borderRadius: 16,
-                    padding: 12,
-                    background:
-                      homeBetter || awayBetter
-                        ? "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%)"
-                        : "rgba(255,255,255,0.9)",
-                    boxShadow: "0 8px 22px rgba(17,24,39,0.04)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 950,
-                      fontSize: 12,
-                      letterSpacing: 0.4,
-                      textTransform: "uppercase",
-                      color: "var(--muted)",
-                      marginBottom: 10,
-                    }}
-                  >
-                    {m.label}
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto 1fr auto",
-                      gap: 12,
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        minWidth: 58,
-                        textAlign: "left",
-                        fontWeight: 950,
-                        fontSize: 18,
-                        color: homeBetter ? "rgb(21,128,61)" : "var(--text)",
-                      }}
-                    >
-                      {homeValue}
-                    </div>
-
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div
-                          style={{
-                            position: "relative",
-                            height: 12,
-                            borderRadius: 999,
-                            background: "rgba(17,24,39,0.06)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "absolute",
-                              right: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: `${homePct}%`,
-                              borderRadius: 999,
-                              background: homeBetter
-                                ? "linear-gradient(90deg, rgba(34,197,94,0.38), rgba(34,197,94,0.88))"
-                                : "linear-gradient(90deg, rgba(148,163,184,0.28), rgba(148,163,184,0.62))",
-                            }}
-                          />
-                        </div>
-
-                        <div
-                          style={{
-                            position: "relative",
-                            height: 12,
-                            borderRadius: 999,
-                            background: "rgba(17,24,39,0.06)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "absolute",
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: `${awayPct}%`,
-                              borderRadius: 999,
-                              background: awayBetter
-                                ? "linear-gradient(90deg, rgba(59,130,246,0.88), rgba(59,130,246,0.38))"
-                                : "linear-gradient(90deg, rgba(148,163,184,0.62), rgba(148,163,184,0.28))",
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 8,
-                          fontSize: 11,
-                          fontWeight: 900,
-                          color: "var(--muted)",
-                        }}
-                      >
-                        <div>Home</div>
-                        <div style={{ textAlign: "right" }}>Away</div>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        minWidth: 58,
-                        textAlign: "right",
-                        fontWeight: 950,
-                        fontSize: 18,
-                        color: awayBetter ? "rgb(29,78,216)" : "var(--text)",
-                      }}
-                    >
-                      {awayValue}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </details>
-    );
-  }
-
-  const upcomingPreview = upcoming.slice(0, 4);
-  const upcomingList = showAllUpcoming ? upcoming : upcomingPreview;
-
-  return (
-    <div className={styles.shell}>
-      <div className={styles.header}>
-        <div>
-          <div className={styles.h1}>Briars Fixtures</div>
-          <div className={styles.sub}>
-            Source: <span className={styles.strong}>Sydney Men’s Hockey</span>
-            {data?.refreshedAt ? ` • Refreshed ${new Date(data.refreshedAt).toLocaleString("en-AU")}` : ""}
-          </div>
-        </div>
-
-        <div className={styles.actions}>
-          {toast ? <div className={styles.toast}>{toast}</div> : null}
-          {pinOk ? (
-            <Button kind="soft" onClick={logout}>
-              <LogOut size={16} /> Log out
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      {!loginComplete ? (
-        <div className={`${styles.card} ${styles.cardPad}`} style={{ marginBottom: 16 }}>
-          <div className={styles.sectionTitle}>Team access</div>
-          <div className={styles.loginGrid} style={{ marginTop: 12 }}>
-            <div>
-              <div className={styles.label}>Team PIN</div>
-              <div className={styles.pinRow}>
-                <input
-                  className={styles.input}
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value)}
-                  placeholder="Enter team PIN"
-                />
-                <Button onClick={rememberPin}>
-                  <ShieldCheck size={16} /> Save PIN
-                </Button>
-              </div>
-            </div>
-
+        {!pinOk || !playerName.trim() ? (
+          <div className={styles.loginGrid}>
             <div>
               <div className={styles.label}>Your name</div>
               <input
                 className={styles.input}
                 value={playerName}
                 onChange={(e) => persistName(e.target.value)}
-                placeholder="e.g. Joel"
+                placeholder="Joel A"
               />
-              <div className={styles.hint}>Needed so everyone can see who’s in / out / maybe.</div>
             </div>
+
+            <div>
+              <div className={styles.label}>Team PIN</div>
+              <div className={styles.inlineRow}>
+                <input
+                  className={styles.input}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Enter team PIN"
+                />
+                <Button onClick={rememberPin}>Save</Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className={styles.availabilityTop}>
+          <div>
+            <div className={styles.eyebrow}>Availability</div>
+            <div className={styles.availabilityTitle}>
+              {mine === "yes" ? "You’re in" : mine === "maybe" ? "You’re maybe" : mine === "no" ? "You’re out" : "Set your status"}
+              {saving ? " • saving..." : ""}
+            </div>
+          </div>
+
+          <div className={styles.countsWrap}>
+            <Pill tone="green">✅ {counts.yes}</Pill>
+            <Pill tone="gold">❓ {counts.maybe}</Pill>
+            <Pill tone="soft">❌ {counts.no}</Pill>
           </div>
         </div>
-      ) : null}
 
-      {loading ? <div className={`${styles.card} ${styles.cardPad}`}>Loading fixtures…</div> : null}
+        <div className={styles.btnRow}>
+          <Button onClick={() => setStatus(g, "yes")} active={mine === "yes"} disabled={saving}>
+            ✅ I’m in
+          </Button>
+          <Button onClick={() => setStatus(g, "maybe")} kind="soft" active={mine === "maybe"} disabled={saving}>
+            ❓ Maybe
+          </Button>
+          <Button onClick={() => setStatus(g, "no")} kind="soft" active={mine === "no"} disabled={saving}>
+            ❌ Out
+          </Button>
+        </div>
 
-      {!loading && nextGame ? (
-        <div className={`${styles.card} ${styles.cardPad} ${styles.nextGameCard}`}>
-          <div className={styles.rowTop}>
-            <Pill tone="gold">
-              <Trophy size={16} /> Next game
-            </Pill>
-
-            <Pill tone="blue">
-              Starts in <b style={{ color: "var(--text)" }}>{formatCountdown(new Date(nextGame.kickoffISO).getTime() - now.getTime())}</b>
-            </Pill>
-          </div>
-
-          <div className={styles.vsGrid}>
-            <div className={styles.team}>
-              <Logo url={CLUB_LOGOS[clubKey(nextGame.home)]} />
-              <div>
-                <div className={styles.teamName}>{nextGame.home}</div>
-                <div className={styles.subMini}>Home</div>
+        <details className={styles.details}>
+          <summary className={styles.summary}>
+            <span>View squad status</span>
+            <span className={styles.summaryRight}>
+              <Users size={15} /> {counts.yes + counts.maybe + counts.no} responses
+            </span>
+          </summary>
+          <div className={styles.detailsBody}>
+            <div className={styles.availabilityNamesGrid}>
+              <div className={styles.nameCol}>
+                <div className={styles.nameColTitle}>✅ In</div>
+                <div className={styles.nameColBody}>{names.yes.length ? names.yes.join(", ") : "—"}</div>
+              </div>
+              <div className={styles.nameCol}>
+                <div className={styles.nameColTitle}>❓ Maybe</div>
+                <div className={styles.nameColBody}>{names.maybe.length ? names.maybe.join(", ") : "—"}</div>
+              </div>
+              <div className={styles.nameCol}>
+                <div className={styles.nameColTitle}>❌ Out</div>
+                <div className={styles.nameColBody}>{names.no.length ? names.no.join(", ") : "—"}</div>
               </div>
             </div>
-
-            <div className={styles.mid}>
-              <div className={styles.vs}>VS</div>
-              <div className={styles.subMini}>{nextGame.roundLabel || "Upcoming fixture"}</div>
-            </div>
-
-            <div className={`${styles.team} ${styles.teamRight}`}>
-              <div>
-                <div className={styles.teamName}>{nextGame.away}</div>
-                <div className={styles.subMini}>Away</div>
-              </div>
-              <Logo url={CLUB_LOGOS[clubKey(nextGame.away)]} />
-            </div>
           </div>
+        </details>
+      </div>
+    );
+  }
 
-          <div className={styles.chips}>
-            <Pill tone="blue">
-              <CalendarDays size={16} /> {formatDayDateFromSource(nextGame.date)}
-            </Pill>
-            <Pill tone="green">
-              <Clock3 size={16} /> {formatTimeFromSource(nextGame.time)}
-            </Pill>
-            <Pill tone="map">
-              <MapPin size={16} /> {nextGame.venue || "—"}
-            </Pill>
+  if (loading) {
+    return <div className={styles.shell}>Loading…</div>;
+  }
+
+  if (!data) {
+    return <div className={styles.shell}>Could not load fixtures.</div>;
+  }
+
+  return (
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <div>
+          <h1 className={styles.h1}>Briars Fixtures</h1>
+          <div className={styles.sub}>
+            Source: <span className={styles.strong}>{data.source}</span> • Refreshed {data.refreshedAt}
           </div>
+        </div>
 
-          {weather?.ok ? (
-            <div className={styles.weatherRow}>
-              <Pill subtle>
-                <CloudSun size={15} /> {typeof weather.tempC === "number" ? `${weather.tempC}°C` : "—"}
-              </Pill>
-              <Pill subtle>
-                <Droplets size={15} /> {typeof weather.precipMM === "number" ? `${weather.precipMM}mm` : "—"}
-              </Pill>
-              <Pill subtle>
-                <Wind size={15} /> {typeof weather.windKmh === "number" ? `${weather.windKmh}km/h` : "—"}
-              </Pill>
-            </div>
+        <div className={styles.actions}>
+          {toast ? <span className={styles.toast}>{toast}</span> : null}
+          <Button kind="soft" onClick={() => downloadICS(data.games)}>
+            <CalendarDays size={16} />
+            Add all games to calendar
+          </Button>
+          {pinOk ? (
+            <Button kind="soft" onClick={logout}>
+              <LogOut size={16} />
+              Log out
+            </Button>
           ) : null}
-
-          <HeadToHead homeTeam={nextGame.home} awayTeam={nextGame.away} />
-
-          <div className={styles.divider} />
-
-          <AvailabilityBlock g={nextGame} />
         </div>
-      ) : null}
+      </header>
 
-      {!loading && upcoming.length > 0 ? (
-        <div style={{ marginTop: 18 }}>
-          <div className={styles.sectionTop}>
-            <div className={styles.sectionTitle}>Upcoming fixtures</div>
+      {activeGame ? (
+        <section className={`${styles.card} ${styles.heroCard}`}>
+          <div className={styles.cardPad}>
+            <div className={styles.heroTop}>
+              <div className={styles.heroLabels}>
+                <Pill tone="gold">{activeUpcomingIndex === 0 ? "Next game" : activeGame.roundLabel}</Pill>
+                <Pill tone="blue">{formatCountdown(new Date(activeGame.kickoffISO).getTime() - now.getTime())}</Pill>
+              </div>
+            </div>
 
-            <button className={styles.pillBtn} type="button" onClick={() => setShowAllUpcoming((v) => !v)}>
-              {showAllUpcoming ? (
-                <>
-                  Show next 4 <ChevronUp size={16} />
-                </>
-              ) : (
-                <>
-                  Show all <ChevronDown size={16} />
-                </>
-              )}
-            </button>
-          </div>
+            <div className={styles.fixtureTabsWrap}>
+              <div className={styles.fixtureTabs}>
+                {(showAllFixtureTabs ? upcoming : upcoming.slice(0, 6)).map((g, i) => {
+                  const isActive = i === activeUpcomingIndex;
+                  return (
+                    <button
+                      key={makeSourceKey(g)}
+                      type="button"
+                      onClick={() => setActiveUpcomingIndex(i)}
+                      className={`${styles.fixtureTab} ${isActive ? styles.fixtureTabActive : ""}`}
+                    >
+                      <span className={styles.fixtureTabTop}>{i === 0 ? "Next" : g.roundLabel}</span>
+                      <span className={styles.fixtureTabBottom}>{formatDayDateFromSource(g.date)}</span>
+                    </button>
+                  );
+                })}
 
-          <div className={styles.grid}>
-            {upcomingList.map((g) => {
-              const key = makeSourceKey(g);
-              const counts = countsByKey[key] || { yes: 0, maybe: 0, no: 0 };
-              const ms = new Date(g.kickoffISO).getTime() - now.getTime();
+                {upcoming.length > 6 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllFixtureTabs((v) => !v)}
+                    className={styles.fixtureMore}
+                  >
+                    {showAllFixtureTabs ? (
+                      <>
+                        Less <ChevronUp size={15} />
+                      </>
+                    ) : (
+                      <>
+                        More <ChevronDown size={15} />
+                      </>
+                    )}
+                  </button>
+                ) : null}
+              </div>
+            </div>
 
-              return (
-                <div key={key} className={styles.gcard}>
-                  <div className={styles.gTop}>
-                    <div className={styles.gMatch}>
-                      <Logo url={CLUB_LOGOS[clubKey(g.home)]} />
-                      <div className={styles.gVs}>vs</div>
-                      <Logo url={CLUB_LOGOS[clubKey(g.away)]} />
-                    </div>
-
-                    <Pill tone="blue">{formatCountdown(ms)}</Pill>
-                  </div>
-
-                  <div className={styles.gNames}>
-                    <div className={styles.gTitle}>
-                      {shortTeamName(g.home)} v {shortTeamName(g.away)}
-                    </div>
-                    <div className={styles.gSub}>{g.roundLabel || "Fixture"}</div>
-                  </div>
-
-                  <div className={styles.gMeta}>
-                    <span className={styles.gMetaItem}>
-                      <CalendarDays size={14} /> {formatDayDateFromSource(g.date)}
-                    </span>
-                    <span className={styles.gMetaItem}>
-                      <Clock3 size={14} /> {formatTimeFromSource(g.time)}
-                    </span>
-                    <span className={styles.gMetaItem}>
-                      <MapPin size={14} /> {g.venue || "—"}
-                    </span>
-                  </div>
-
-                  <AvailabilityBlock g={g} />
+            <div className={styles.matchRow}>
+              <div className={styles.teamBlock}>
+                <Logo url={CLUB_LOGOS[clubKey(activeGame.home)]} />
+                <div>
+                  <div className={styles.teamNameLg}>{teamDisplayLabel(activeGame.home)}</div>
+                  <div className={styles.teamSub}>Home</div>
                 </div>
-              );
-            })}
+              </div>
+
+              <div className={styles.vsBlock}>
+                <div className={styles.vsText}>VS</div>
+                <div className={styles.vsSub}>{activeGame.roundLabel}</div>
+              </div>
+
+              <div className={`${styles.teamBlock} ${styles.teamBlockRight}`}>
+                <div>
+                  <div className={styles.teamNameLg}>{teamDisplayLabel(activeGame.away)}</div>
+                  <div className={styles.teamSub}>Away</div>
+                </div>
+                <Logo url={CLUB_LOGOS[clubKey(activeGame.away)]} />
+              </div>
+            </div>
+
+            <div className={styles.metaStrip}>
+              <div className={styles.metaItem}>
+                <CalendarDays size={15} />
+                {formatLongDateFromSource(activeGame.date)}
+              </div>
+              <div className={styles.metaItem}>
+                <Clock3 size={15} />
+                {formatTimeFromSource(activeGame.time)}
+              </div>
+              <div className={styles.metaItem}>
+                <MapPin size={15} />
+                {activeGame.venue}
+              </div>
+            </div>
+
+            {weather?.ok ? (
+              <div className={styles.weatherRow}>
+                <Pill tone="soft">
+                  <CloudSun size={14} /> {weather.tempC ?? "—"}°C
+                </Pill>
+                <Pill tone="soft">
+                  <Droplets size={14} /> {weather.precipMM ?? "—"}mm
+                </Pill>
+                <Pill tone="soft">
+                  <Wind size={14} /> {weather.windKmh ?? "—"}km/h
+                </Pill>
+              </div>
+            ) : null}
+
+            <div className={styles.heroSection}>
+              <AvailabilityBlock g={activeGame} />
+            </div>
+
+            <div className={styles.heroSection}>
+              <HeadToHead g={activeGame} />
+            </div>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      {!loading && ladderHeaders.length > 0 && sortedLadderRows.length > 0 ? (
-        <div className={`${styles.card} ${styles.cardPad}`} style={{ marginTop: 18 }}>
-          <div className={styles.sectionTitle}>Ladder</div>
+      <section className={styles.section}>
+        <div className={styles.sectionTop}>
+          <h2 className={styles.sectionTitle}>Upcoming fixtures</h2>
+        </div>
+
+        <div className={styles.upcomingList}>
+          {upcoming.map((g, i) => {
+            const key = makeSourceKey(g);
+            const counts = countsByKey[key] || { yes: 0, maybe: 0, no: 0 };
+            const mine = myStatusByKey[key];
+            const active = activeGame && makeSourceKey(activeGame) === key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`${styles.fixtureRow} ${active ? styles.fixtureRowActive : ""}`}
+                onClick={() => setActiveUpcomingIndex(i)}
+              >
+                <div className={styles.fixtureRowMain}>
+                  <div className={styles.fixtureRowTitle}>
+                    {shortTeamName(g.home)} v {shortTeamName(g.away)}
+                  </div>
+                  <div className={styles.fixtureRowSub}>
+                    {formatDayDateFromSource(g.date)} • {formatTimeFromSource(g.time)} • {g.venue}
+                  </div>
+                </div>
+
+                <div className={styles.fixtureRowSide}>
+                  <Pill tone="blue">{formatCountdown(new Date(g.kickoffISO).getTime() - now.getTime())}</Pill>
+                  <div className={styles.fixtureMiniStatus}>
+                    <span>{mine === "yes" ? "In" : mine === "maybe" ? "Maybe" : mine === "no" ? "Out" : "Not set"}</span>
+                    <span>
+                      ✅ {counts.yes} • ❓ {counts.maybe} • ❌ {counts.no}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {ladderRows.length ? (
+        <section className={styles.section}>
+          <div className={styles.sectionTop}>
+            <h2 className={styles.sectionTitle}>Ladder</h2>
+          </div>
 
           <div className={styles.ladderWrap}>
             <table className={styles.ladder}>
@@ -1151,13 +1052,15 @@ export default function BriarsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedLadderRows.map((row, idx) => {
-                  const isBriars = String(row.team).toLowerCase().includes("briars");
+                {sortedLadderRows.map((row, i) => {
+                  const teamName = String(row.cols[0] || row.team || "");
+                  const isBriars = teamName.toLowerCase().includes("briars");
+
                   return (
-                    <tr key={`${row.team}-${idx}`} className={isBriars ? styles.ladderBriars : ""}>
-                      {row.cols.map((cell, i) => (
-                        <td key={`${idx}-${i}`} className={styles.ladderTd}>
-                          {cell}
+                    <tr key={`${teamName}-${i}`} className={isBriars ? styles.ladderBriars : ""}>
+                      {row.cols.map((col, j) => (
+                        <td key={`${teamName}-${j}`} className={styles.ladderTd}>
+                          {col}
                         </td>
                       ))}
                     </tr>
@@ -1166,38 +1069,28 @@ export default function BriarsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      {!loading && past.length > 0 ? (
-        <div style={{ marginTop: 18 }}>
+      {past.length ? (
+        <section className={styles.section}>
           <div className={styles.sectionTop}>
-            <div className={styles.sectionTitle}>Past results</div>
+            <h2 className={styles.sectionTitle}>Past results</h2>
           </div>
 
-          <div className={styles.pastGrid}>
-            {past.slice(0, 8).map((g) => (
-              <div key={makeSourceKey(g)} className={styles.gcard}>
-                <div className={styles.gTitle}>
+          <div className={styles.pastList}>
+            {past.slice(0, 6).map((g) => (
+              <div key={makeSourceKey(g)} className={styles.pastCard}>
+                <div className={styles.pastTitle}>
                   {shortTeamName(g.home)} v {shortTeamName(g.away)}
                 </div>
-                <div className={styles.gSub}>{formatLongDateFromSource(g.date)}</div>
-
-                <div className={styles.gMeta}>
-                  <span className={styles.gMetaItem}>
-                    <Clock3 size={14} /> {formatTimeFromSource(g.time)}
-                  </span>
-                  <span className={styles.gMetaItem}>
-                    <MapPin size={14} /> {g.venue || "—"}
-                  </span>
-                  <span className={styles.gMetaItem}>
-                    <Trophy size={14} /> {g.score || "-"}
-                  </span>
+                <div className={styles.pastSub}>
+                  {formatDayDateFromSource(g.date)} • {g.score || "Result pending"}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       ) : null}
     </div>
   );

@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/ingest-legends",
+      "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
       "schedule": "0 3 * * *"
     }
   ]

@@ -2,7 +2,7 @@
    DESIGN TOKENS (single source of truth)
    (Tailwind vibes: keep the palette + spacing consistent)
 ====================================================== */
-:root{
+:global(:root){
   --ink: #0f172a;
 
   --ink-82: rgba(15, 23, 42, 0.82);

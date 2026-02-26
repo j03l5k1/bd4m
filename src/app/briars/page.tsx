@@ -629,7 +629,7 @@ export default function BriarsPage() {
           <div className={styles.actions}>
             <Button onClick={() => (window.location.href = "/api/calendar/all")}>
               <SiGooglecalendar size={18} />
-              Add to calendar
+              Add all games to calendar
             </Button>
 
             {!showLogin && (

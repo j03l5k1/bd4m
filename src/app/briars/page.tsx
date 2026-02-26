@@ -157,7 +157,6 @@ export default function BriarsPage() {
     return idx === -1 ? Math.max(gamesSorted.length - 1, 0) : idx;
   }, [gamesSorted, now]);
 
-  // Auto jump to next game after kickoff passes (unless user pinned)
   useEffect(() => {
     if (!gamesSorted.length) return;
     setActiveIndex((prev) => {
@@ -179,7 +178,6 @@ export default function BriarsPage() {
     return gamesSorted.filter((g) => new Date(g.kickoffISO).getTime() >= t);
   }, [gamesSorted, now]);
 
-  // Weather only for upcoming selected game
   useEffect(() => {
     (async () => {
       if (!activeGame || !isActiveUpcoming) {
@@ -225,6 +223,7 @@ export default function BriarsPage() {
         weather={weather}
         isActiveUpcoming={isActiveUpcoming}
         onToast={(m) => flash(m)}
+        ladder={data.ladder}
       />
 
       <LadderTable ladder={data.ladder} />

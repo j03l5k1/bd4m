@@ -388,14 +388,14 @@ export default function BriarsPage() {
   }
 
   const idxTeam = 0;
-  const idxPts = findIndexByNames(["pts", "points"]);
-  const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
-  const idxGF = findIndexByNames(["gf", "for"]);
-  const idxGA = findIndexByNames(["ga", "against"]);
-  const idxP = findIndexByNames(["p", "pld", "played"]);
-  const idxW = findIndexByNames(["w", "won", "wins"]);
-  const idxD = findIndexByNames(["d", "draw", "draws"]);
-  const idxL = findIndexByNames(["l", "loss", "losses"]);
+const idxPts = findIndexByNames(["pts", "points"]);
+const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
+const idxGF = findIndexByNames(["gf", "for", "g+"]);
+const idxGA = findIndexByNames(["ga", "against", "g-"]);
+const idxP = findIndexByNames(["p", "pld", "played", "games"]);
+const idxW = findIndexByNames(["w", "won", "wins", "win"]);
+const idxD = findIndexByNames(["d", "draw", "draws"]);
+const idxL = findIndexByNames(["l", "loss", "losses"]);
 
   const rankedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
@@ -548,130 +548,195 @@ export default function BriarsPage() {
   }
 
   function HeadToHead({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) {
-    const homeRow = findLadderRowForTeam(homeTeam);
-    const awayRow = findLadderRowForTeam(awayTeam);
+  const homeRow = findLadderRowForTeam(homeTeam);
+  const awayRow = findLadderRowForTeam(awayTeam);
 
-    if (!homeRow || !awayRow) {
-      return (
-        <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
-          Comparison not available yet.
-        </div>
-      );
-    }
-
-    const metrics = [
-      { label: "Pos", home: getTeamRank(homeTeam) ? ordinal(getTeamRank(homeTeam)!) : "—", away: getTeamRank(awayTeam) ? ordinal(getTeamRank(awayTeam)!) : "—" },
-      { label: "P", home: idxP >= 0 ? homeRow.cols[idxP] : "—", away: idxP >= 0 ? awayRow.cols[idxP] : "—" },
-      { label: "W", home: idxW >= 0 ? homeRow.cols[idxW] : "—", away: idxW >= 0 ? awayRow.cols[idxW] : "—" },
-      { label: "D", home: idxD >= 0 ? homeRow.cols[idxD] : "—", away: idxD >= 0 ? awayRow.cols[idxD] : "—" },
-      { label: "L", home: idxL >= 0 ? homeRow.cols[idxL] : "—", away: idxL >= 0 ? awayRow.cols[idxL] : "—" },
-      { label: "GF", home: idxGF >= 0 ? homeRow.cols[idxGF] : "—", away: idxGF >= 0 ? awayRow.cols[idxGF] : "—" },
-      { label: "GA", home: idxGA >= 0 ? homeRow.cols[idxGA] : "—", away: idxGA >= 0 ? awayRow.cols[idxGA] : "—" },
-      { label: "GD", home: idxGD >= 0 ? homeRow.cols[idxGD] : "—", away: idxGD >= 0 ? awayRow.cols[idxGD] : "—" },
-      { label: "Pts", home: idxPts >= 0 ? homeRow.cols[idxPts] : "—", away: idxPts >= 0 ? awayRow.cols[idxPts] : "—" },
-    ];
-
+  if (!homeRow || !awayRow) {
     return (
-      <details
-        className={styles.details}
-        style={{ marginTop: 12 }}
-      >
-        <summary className={styles.summary}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <Trophy size={18} /> Head-to-head
-          </span>
-          <span className={styles.summaryRight}>
-            Compare <ChevronDown size={16} />
-          </span>
-        </summary>
-
-        <div style={{ marginTop: 14, overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: 320,
-              fontSize: 13,
-            }}
-          >
-            <thead>
-              <tr>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "10px 8px",
-                    borderBottom: "1px solid var(--stroke)",
-                    color: "var(--muted)",
-                    fontWeight: 950,
-                  }}
-                >
-                  {teamDisplayLabel(homeTeam)}
-                </th>
-                <th
-                  style={{
-                    textAlign: "center",
-                    padding: "10px 8px",
-                    borderBottom: "1px solid var(--stroke)",
-                    color: "var(--muted)",
-                    fontWeight: 950,
-                  }}
-                >
-                  Stat
-                </th>
-                <th
-                  style={{
-                    textAlign: "right",
-                    padding: "10px 8px",
-                    borderBottom: "1px solid var(--stroke)",
-                    color: "var(--muted)",
-                    fontWeight: 950,
-                  }}
-                >
-                  {teamDisplayLabel(awayTeam)}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics.map((m) => (
-                <tr key={m.label}>
-                  <td
-                    style={{
-                      padding: "10px 8px",
-                      borderBottom: "1px solid rgba(17,24,39,0.06)",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {m.home}
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 8px",
-                      borderBottom: "1px solid rgba(17,24,39,0.06)",
-                      textAlign: "center",
-                      color: "var(--muted)",
-                      fontWeight: 950,
-                    }}
-                  >
-                    {m.label}
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 8px",
-                      borderBottom: "1px solid rgba(17,24,39,0.06)",
-                      textAlign: "right",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {m.away}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+      <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
+        Comparison not available yet.
+      </div>
     );
   }
+
+  const homeRank = getTeamRank(homeTeam);
+  const awayRank = getTeamRank(awayTeam);
+
+  const metrics = [
+    {
+      label: "Ladder position",
+      home: homeRank ? homeRank : "—",
+      away: awayRank ? awayRank : "—",
+      lowWins: true,
+    },
+    {
+      label: "Games",
+      home: idxP >= 0 ? num(homeRow.cols[idxP]) : 0,
+      away: idxP >= 0 ? num(awayRow.cols[idxP]) : 0,
+    },
+    {
+      label: "Wins",
+      home: idxW >= 0 ? num(homeRow.cols[idxW]) : 0,
+      away: idxW >= 0 ? num(awayRow.cols[idxW]) : 0,
+    },
+    {
+      label: "Draws",
+      home: idxD >= 0 ? num(homeRow.cols[idxD]) : 0,
+      away: idxD >= 0 ? num(awayRow.cols[idxD]) : 0,
+    },
+    {
+      label: "Losses",
+      home: idxL >= 0 ? num(homeRow.cols[idxL]) : 0,
+      away: idxL >= 0 ? num(awayRow.cols[idxL]) : 0,
+      lowWins: true,
+    },
+    {
+      label: "Goals for",
+      home: idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0,
+      away: idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0,
+    },
+    {
+      label: "Goals against",
+      home: idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0,
+      away: idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0,
+      lowWins: true,
+    },
+    {
+      label: "Goal diff",
+      home: idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0,
+      away: idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0,
+    },
+    {
+      label: "Points",
+      home: idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0,
+      away: idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0,
+    },
+  ];
+
+  function isHomeBetter(metric: (typeof metrics)[number]) {
+    if (typeof metric.home !== "number" || typeof metric.away !== "number") return false;
+    return metric.lowWins ? metric.home < metric.away : metric.home > metric.away;
+  }
+
+  function isAwayBetter(metric: (typeof metrics)[number]) {
+    if (typeof metric.home !== "number" || typeof metric.away !== "number") return false;
+    return metric.lowWins ? metric.away < metric.home : metric.away > metric.home;
+  }
+
+  return (
+    <details className={styles.details} style={{ marginTop: 12 }}>
+      <summary className={styles.summary}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          <Trophy size={18} /> Head-to-head
+        </span>
+        <span className={styles.summaryRight}>
+          Compare <ChevronDown size={16} />
+        </span>
+      </summary>
+
+      <div style={{ marginTop: 14 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr",
+            gap: 10,
+            alignItems: "center",
+            padding: "0 2px 12px",
+            borderBottom: "1px solid var(--stroke)",
+          }}
+        >
+          <div style={{ fontWeight: 950 }}>
+            {teamDisplayLabel(homeTeam)}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>
+            vs
+          </div>
+          <div style={{ fontWeight: 950, textAlign: "right" }}>
+            {teamDisplayLabel(awayTeam)}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+          {metrics.map((m) => {
+            const homeBetter = isHomeBetter(m);
+            const awayBetter = isAwayBetter(m);
+
+            return (
+              <div
+                key={m.label}
+                style={{
+                  border: "1px solid var(--stroke)",
+                  borderRadius: 14,
+                  padding: 12,
+                  background: "rgba(17,24,39,0.02)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    color: "var(--muted)",
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.4,
+                  }}
+                >
+                  {m.label}
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto 1fr",
+                    gap: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 950,
+                      color: homeBetter ? "rgb(21, 128, 61)" : "var(--text)",
+                      background: homeBetter ? "rgba(34,197,94,0.10)" : "transparent",
+                      border: homeBetter ? "1px solid rgba(34,197,94,0.18)" : "1px solid transparent",
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                    }}
+                  >
+                    {typeof m.home === "number" && m.label === "Ladder position" ? ordinal(m.home) : m.home}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {homeBetter ? "ahead" : awayBetter ? "behind" : "even"}
+                  </div>
+
+                  <div
+                    style={{
+                      fontWeight: 950,
+                      textAlign: "right",
+                      color: awayBetter ? "rgb(21, 128, 61)" : "var(--text)",
+                      background: awayBetter ? "rgba(34,197,94,0.10)" : "transparent",
+                      border: awayBetter ? "1px solid rgba(34,197,94,0.18)" : "1px solid transparent",
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                    }}
+                  >
+                    {typeof m.away === "number" && m.label === "Ladder position" ? ordinal(m.away) : m.away}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </details>
+  );
+}
 
   function GameCard({ g }: { g: Game }) {
     const dt = new Date(g.kickoffISO);

@@ -3,19 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
-  Clock3,
-  MapPin,
-  Users,
-  ShieldCheck,
-  Trophy,
   ChevronDown,
   ChevronUp,
-  LogOut,
+  Clock3,
   CloudSun,
   Droplets,
+  LogOut,
+  MapPin,
+  ShieldCheck,
+  Trophy,
+  Users,
   Wind,
 } from "lucide-react";
-import { SiGooglecalendar } from "react-icons/si";
 import styles from "./briars.module.css";
 
 type Game = {
@@ -44,7 +43,6 @@ type Payload = {
 };
 
 type Counts = { yes: number; no: number; maybe: number };
-
 type NamesByStatus = { yes: string[]; maybe: string[]; no: string[] };
 
 type Weather = {
@@ -93,17 +91,33 @@ function formatCountdown(ms: number) {
   return `${days}d ${hours}h ${mins}m`;
 }
 
-function formatDayDate(iso: string) {
-  const d = new Date(iso);
+function parseSourceDate(dateStr: string) {
+  const [dd, mm, yyyy] = dateStr.split("/").map(Number);
+  return new Date(yyyy, (mm || 1) - 1, dd || 1);
+}
+
+function formatDayDateFromSource(dateStr: string) {
+  const d = parseSourceDate(dateStr);
   const day = d.toLocaleDateString("en-AU", { weekday: "short" });
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const [dd, mm] = dateStr.split("/");
   return `${day} ${dd}/${mm}`;
 }
 
-function formatTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+function formatLongDateFromSource(dateStr: string) {
+  const d = parseSourceDate(dateStr);
+  return d.toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatTimeFromSource(timeStr: string) {
+  const [hour24 = 0, minute = 0] = timeStr.split(":").map(Number);
+  const suffix = hour24 >= 12 ? "pm" : "am";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
 function shortTeamName(team: string) {
@@ -116,28 +130,31 @@ function num(x: string | undefined) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function ordinal(n: number) {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n}st`;
-  if (mod10 === 2 && mod100 !== 12) return `${n}nd`;
-  if (mod10 === 3 && mod100 !== 13) return `${n}rd`;
-  return `${n}th`;
-}
+function Pill({
+  children,
+  subtle,
+  tone = "default",
+}: {
+  children: React.ReactNode;
+  subtle?: boolean;
+  tone?: "default" | "gold" | "blue" | "green" | "map";
+}) {
+  const toneClass =
+    tone === "gold"
+      ? styles.pillGold
+      : tone === "blue"
+      ? styles.pillBlue
+      : tone === "green"
+      ? styles.pillGreen
+      : tone === "map"
+      ? styles.pillMap
+      : "";
 
-function rankEmoji(rank?: number) {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
-  return "";
-}
-
-function normaliseTeamName(team: string) {
-  return team.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function Pill({ children, subtle }: { children: React.ReactNode; subtle?: boolean }) {
-  return <span className={`${styles.pill} ${subtle ? styles.pillSubtle : ""}`}>{children}</span>;
+  return (
+    <span className={`${styles.pill} ${subtle ? styles.pillSubtle : ""} ${toneClass}`}>
+      {children}
+    </span>
+  );
 }
 
 function Button({
@@ -156,6 +173,7 @@ function Button({
       className={`${styles.btn} ${kind === "primary" ? styles.btnPrimary : styles.btnSoft}`}
       onClick={onClick}
       disabled={disabled}
+      type="button"
       style={disabled ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
     >
       {children}
@@ -173,28 +191,23 @@ function Logo({ url }: { url?: string }) {
 
 export default function BriarsPage() {
   const [data, setData] = useState<Payload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
+
   const [countsByKey, setCountsByKey] = useState<Record<string, Counts>>({});
   const [namesByKey, setNamesByKey] = useState<Record<string, NamesByStatus>>({});
   const [myStatusByKey, setMyStatusByKey] = useState<Record<string, "yes" | "no" | "maybe">>({});
-
-  const [weather, setWeather] = useState<Weather | null>(null);
-
-  const [now, setNow] = useState(new Date());
-  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   const [pinOk, setPinOk] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [playerName, setPlayerName] = useState("");
-
-  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-
-  const [ladderSortKey, setLadderSortKey] = useState<string>("PTS");
-  const [ladderSortDir, setLadderSortDir] = useState<"desc" | "asc">("desc");
-
-  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [isMobile, setIsMobile] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [ladderSortKey, setLadderSortKey] = useState("PTS");
+  const [ladderSortDir, setLadderSortDir] = useState<"asc" | "desc">("desc");
+  const [weather, setWeather] = useState<Weather | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
@@ -207,36 +220,32 @@ export default function BriarsPage() {
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 700px)");
-    const update = () => setIsMobile(mq.matches);
-    update();
-    mq.addEventListener?.("change", update);
-    return () => mq.removeEventListener?.("change", update);
-  }, []);
-
-  async function loadFixtures() {
-    setLoading(true);
-    const res = await fetch("/api/briars-fixtures", { cache: "no-store" });
-    const json = await res.json();
-    setData(json);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    loadFixtures();
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/briars-fixtures", { cache: "no-store" });
+        const json = await res.json();
+        setData(json);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const { upcoming, past, nextGame } = useMemo(() => {
     const games = data?.games ?? [];
     const u: Game[] = [];
     const p: Game[] = [];
+
     for (const g of games) {
       const dt = new Date(g.kickoffISO);
       if (dt.getTime() >= now.getTime()) u.push(g);
       else p.push(g);
     }
+
     u.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
     p.sort((a, b) => new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime());
+
     return { upcoming: u, past: p, nextGame: u[0] || null };
   }, [data, now]);
 
@@ -248,7 +257,7 @@ export default function BriarsPage() {
         setNamesByKey((prev) => ({ ...prev, [sourceKey]: json.names as NamesByStatus }));
       }
     } catch {
-      // ignore
+      //
     }
   }
 
@@ -257,9 +266,13 @@ export default function BriarsPage() {
       const next: Record<string, Counts> = {};
       for (const g of upcoming.slice(0, 30)) {
         const key = makeSourceKey(g);
-        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
-        const json = await res.json();
-        if (json?.ok) next[key] = json.counts;
+        try {
+          const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
+          const json = await res.json();
+          if (json?.ok) next[key] = json.counts;
+        } catch {
+          //
+        }
       }
       setCountsByKey(next);
     })();
@@ -267,23 +280,30 @@ export default function BriarsPage() {
 
   useEffect(() => {
     (async () => {
-      const targets = [nextGame, ...upcoming.slice(0, 5)].filter(Boolean) as Game[];
-      for (const g of targets) await loadNames(makeSourceKey(g));
+      const targets = [nextGame, ...upcoming.slice(0, 4)].filter(Boolean) as Game[];
+      for (const g of targets) {
+        await loadNames(makeSourceKey(g));
+      }
     })();
   }, [nextGame?.kickoffISO, upcoming.length]);
 
   useEffect(() => {
     (async () => {
       if (!nextGame) return setWeather(null);
-      const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, { cache: "no-store" });
-      const json = await res.json();
-      setWeather(json);
+      try {
+        const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, {
+          cache: "no-store",
+        });
+        const json = await res.json();
+        setWeather(json);
+      } catch {
+        setWeather(null);
+      }
     })();
   }, [nextGame?.kickoffISO]);
 
   const loginComplete = useMemo(() => {
-    const nOk = (playerName || "").trim().length >= 2;
-    return pinOk && nOk;
+    return pinOk && playerName.trim().length >= 2;
   }, [pinOk, playerName]);
 
   function persistName(next: string) {
@@ -292,40 +312,34 @@ export default function BriarsPage() {
     if (n.length >= 2) localStorage.setItem(LS_PLAYER_NAME, n);
   }
 
+  function flash(msg: string, ms = 1800) {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), ms);
+  }
+
   function rememberPin() {
     if (pinInput.trim() !== "briars2026") {
-      setToast("Wrong PIN");
-      setTimeout(() => setToast(null), 2200);
+      flash("Wrong PIN", 2200);
       return;
     }
     localStorage.setItem(LS_PIN_OK, "1");
     localStorage.setItem(LS_TEAM_PIN, "briars2026");
     setPinOk(true);
     setPinInput("");
-    setToast("PIN saved ✓");
-    setTimeout(() => setToast(null), 2000);
+    flash("PIN saved ✓", 2000);
   }
 
   function logout() {
     localStorage.removeItem(LS_PIN_OK);
     localStorage.removeItem(LS_TEAM_PIN);
     setPinOk(false);
-    setToast("Logged out");
-    setTimeout(() => setToast(null), 1600);
+    flash("Logged out", 1600);
   }
 
   async function setStatus(g: Game, status: "yes" | "no" | "maybe") {
-    if (!pinOk) {
-      setToast("Enter the team PIN first.");
-      setTimeout(() => setToast(null), 2500);
-      return;
-    }
-    const n = (playerName || "").trim();
-    if (n.length < 2) {
-      setToast("Enter your name first.");
-      setTimeout(() => setToast(null), 2500);
-      return;
-    }
+    if (!pinOk) return flash("Enter the team PIN first.", 2500);
+    const n = playerName.trim();
+    if (n.length < 2) return flash("Enter your name first.", 2500);
 
     const source_key = makeSourceKey(g);
     setSavingKey(source_key);
@@ -352,8 +366,7 @@ export default function BriarsPage() {
       if (!json?.ok) throw new Error(json?.error || "Failed to save");
 
       setMyStatusByKey((prev) => ({ ...prev, [source_key]: status }));
-      setToast("Saved ✓");
-      setTimeout(() => setToast(null), 1800);
+      flash("Saved ✓");
 
       const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, {
         cache: "no-store",
@@ -363,8 +376,7 @@ export default function BriarsPage() {
 
       await loadNames(source_key);
     } catch (e: any) {
-      setToast(e?.message || "Something went wrong");
-      setTimeout(() => setToast(null), 3000);
+      flash(e?.message || "Something went wrong", 3000);
     } finally {
       setSavingKey(null);
     }
@@ -376,915 +388,362 @@ export default function BriarsPage() {
 
   const headerIndex = useMemo(() => {
     const map: Record<string, number> = {};
-    ladderHeaders.forEach((h, i) => (map[h.trim().toLowerCase()] = i));
-    return map;
-  }, [ladderHeaders.join("|")]);
-
-  function findIndexByNames(names: string[]) {
-    for (const n of names) {
-      const idx = headerIndex[n.toLowerCase()];
-      if (typeof idx === "number") return idx;
-    }
-    return -1;
-  }
-
-  const idxTeam = 0;
-  const idxPts = findIndexByNames(["pts", "points"]);
-  const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
-  const idxGF = findIndexByNames(["gf", "for", "g+"]);
-  const idxGA = findIndexByNames(["ga", "against", "g-"]);
-  const idxP = findIndexByNames(["p", "pld", "played", "games"]);
-  const idxW = findIndexByNames(["w", "won", "wins", "win"]);
-  const idxD = findIndexByNames(["d", "draw", "draws"]);
-  const idxL = findIndexByNames(["l", "loss", "losses"]);
-
-  const rankedLadderRows = useMemo(() => {
-    const rows = [...ladderRows];
-
-    rows.sort((a, b) => {
-      const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
-      const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
-      if (bPts !== aPts) return bPts - aPts;
-
-      const aGD = idxGD >= 0 ? num(a.cols[idxGD]) : 0;
-      const bGD = idxGD >= 0 ? num(b.cols[idxGD]) : 0;
-      if (bGD !== aGD) return bGD - aGD;
-
-      const aGFv = idxGF >= 0 ? num(a.cols[idxGF]) : 0;
-      const bGFv = idxGF >= 0 ? num(b.cols[idxGF]) : 0;
-      if (bGFv !== aGFv) return bGFv - aGFv;
-
-      return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
+    ladderHeaders.forEach((h, i) => {
+      map[h.trim().toLowerCase()] = i;
     });
-
-    return rows;
-  }, [ladderRows, idxPts, idxGD, idxGF, idxTeam]);
+    return map;
+  }, [ladderHeaders]);
 
   const sortedLadderRows = useMemo(() => {
-    const rows = [...rankedLadderRows];
+    const rows = [...ladderRows];
+    if (!ladderSortKey) return rows;
 
-    if (ladderSortKey && ladderHeaders.length) {
-      const keyLower = ladderSortKey.toLowerCase();
-      const idx = headerIndex[keyLower];
-      if (typeof idx === "number") {
-        rows.sort((a, b) => {
-          const av = num(a.cols[idx]);
-          const bv = num(b.cols[idx]);
-          if (av === bv) {
-            const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
-            const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
-            if (bPts !== aPts) return bPts - aPts;
+    const idx = headerIndex[ladderSortKey.toLowerCase()];
+    if (typeof idx !== "number") return rows;
 
-            const aGD = idxGD >= 0 ? num(a.cols[idxGD]) : 0;
-            const bGD = idxGD >= 0 ? num(b.cols[idxGD]) : 0;
-            if (bGD !== aGD) return bGD - aGD;
+    rows.sort((a, b) => {
+      const av = num(a.cols[idx]);
+      const bv = num(b.cols[idx]);
 
-            return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
-          }
-          return ladderSortDir === "desc" ? bv - av : av - bv;
-        });
+      if (av === bv) {
+        return String(a.cols[0] || "").localeCompare(String(b.cols[0] || ""));
       }
-    }
+
+      return ladderSortDir === "desc" ? bv - av : av - bv;
+    });
 
     return rows;
-  }, [rankedLadderRows, ladderHeaders.join("|"), ladderSortKey, ladderSortDir, headerIndex, idxPts, idxGD, idxTeam]);
+  }, [ladderRows, ladderSortKey, ladderSortDir, headerIndex]);
 
-  const teamRankMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    rankedLadderRows.forEach((row, index) => {
-      const name = String(row.cols[idxTeam] || row.team || "");
-      if (!name) return;
-      map[normaliseTeamName(name)] = index + 1;
-    });
-    return map;
-  }, [rankedLadderRows, idxTeam]);
+  const upcomingPreview = upcoming.slice(0, 4);
+  const upcomingList = showAllUpcoming ? upcoming : upcomingPreview;
 
-  function findLadderRowForTeam(teamName: string) {
-    const needle = normaliseTeamName(teamName);
-    const direct = rankedLadderRows.find(
-      (row) => normaliseTeamName(String(row.cols[idxTeam] || row.team || "")) === needle
-    );
-    if (direct) return direct;
-
-    const short = shortTeamName(teamName).toLowerCase();
-    return rankedLadderRows.find((row) => {
-      const rowName = String(row.cols[idxTeam] || row.team || "").toLowerCase();
-      return rowName.includes(short);
-    });
-  }
-
-  function getTeamRank(teamName: string) {
-    const direct = teamRankMap[normaliseTeamName(teamName)];
-    if (direct) return direct;
-
-    const row = findLadderRowForTeam(teamName);
-    if (!row) return undefined;
-
-    const rowName = String(row.cols[idxTeam] || row.team || "");
-    return teamRankMap[normaliseTeamName(rowName)];
-  }
-
-  function teamDisplayLabel(teamName: string) {
-    const short = shortTeamName(teamName);
-    const rank = getTeamRank(teamName);
-
-    if (!rank) return short;
-
-    const emoji = rankEmoji(rank);
-    return `${short} ${emoji ? `${emoji} ` : ""}(${ordinal(rank)})`;
-  }
-
-  const showLogin = !loginComplete;
-  const upcomingPreview = upcoming.slice(0, 5);
-  const upcomingAll = upcoming;
-
-  function AvailabilityNames({ g }: { g: Game }) {
+  function AvailabilityBlock({ g }: { g: Game }) {
     const key = makeSourceKey(g);
-    const mine = myStatusByKey[key];
     const names = namesByKey[key] || { yes: [], maybe: [], no: [] };
+    const counts = countsByKey[key] || { yes: 0, maybe: 0, no: 0 };
+    const mine = myStatusByKey[key];
     const saving = savingKey === key;
 
-    const colStyle: React.CSSProperties = isMobile
-      ? { paddingLeft: 0, borderLeft: "none" }
-      : { paddingLeft: 12, borderLeft: "1px solid var(--stroke)" };
-
-    const gridStyle: React.CSSProperties = isMobile
-      ? { display: "grid", gridTemplateColumns: "1fr", gap: 12 }
-      : { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
-
     return (
-      <div style={{ marginTop: 10 }}>
-        <div style={{ marginTop: 6, color: "var(--muted)", fontWeight: 850 }}>
+      <div className={styles.availabilityBox}>
+        <div className={styles.availabilityTop}>
+          <div className={styles.availabilityTitle}>Availability</div>
+          <Pill tone="gold">
+            <Users size={15} /> ✅ {counts.yes} / ❓ {counts.maybe} / ❌ {counts.no}
+          </Pill>
+        </div>
+
+        <div className={styles.statusLine}>
           Your status:{" "}
-          <span style={{ color: "var(--text)", fontWeight: 950 }}>
+          <span className={styles.statusStrong}>
             {mine === "yes" ? "In" : mine === "maybe" ? "Maybe" : mine === "no" ? "Out" : "Not set"}
             {saving ? " (saving…)" : ""}
           </span>
         </div>
 
-        <div style={{ marginTop: 12, borderTop: "1px solid var(--stroke)", paddingTop: 12 }}>
-          <div style={gridStyle}>
-            <div>
-              <div style={{ fontWeight: 950, marginBottom: 6 }}>✅ In</div>
-              <div style={{ color: "var(--muted)", fontWeight: 850, lineHeight: 1.5 }}>
-                {names.yes.length ? names.yes.join(", ") : "—"}
-              </div>
-            </div>
+        <div className={styles.btnRow}>
+          <Button onClick={() => setStatus(g, "yes")} disabled={saving}>
+            ✅ I’m in
+          </Button>
+          <Button onClick={() => setStatus(g, "maybe")} kind="soft" disabled={saving}>
+            ❓ Maybe
+          </Button>
+          <Button onClick={() => setStatus(g, "no")} kind="soft" disabled={saving}>
+            ❌ Out
+          </Button>
+        </div>
 
-            <div style={colStyle}>
-              <div style={{ fontWeight: 950, marginBottom: 6 }}>❓ Maybe</div>
-              <div style={{ color: "var(--muted)", fontWeight: 850, lineHeight: 1.5 }}>
-                {names.maybe.length ? names.maybe.join(", ") : "—"}
-              </div>
-            </div>
-
-            <div style={colStyle}>
-              <div style={{ fontWeight: 950, marginBottom: 6 }}>❌ Out</div>
-              <div style={{ color: "var(--muted)", fontWeight: 850, lineHeight: 1.5 }}>
-                {names.no.length ? names.no.join(", ") : "—"}
-              </div>
-            </div>
+        <div className={styles.availabilityNamesGrid}>
+          <div className={styles.nameCol}>
+            <div className={styles.nameColTitle}>✅ In</div>
+            <div className={styles.nameColBody}>{names.yes.length ? names.yes.join(", ") : "—"}</div>
+          </div>
+          <div className={styles.nameCol}>
+            <div className={styles.nameColTitle}>❓ Maybe</div>
+            <div className={styles.nameColBody}>{names.maybe.length ? names.maybe.join(", ") : "—"}</div>
+          </div>
+          <div className={styles.nameCol}>
+            <div className={styles.nameColTitle}>❌ Out</div>
+            <div className={styles.nameColBody}>{names.no.length ? names.no.join(", ") : "—"}</div>
           </div>
         </div>
       </div>
     );
   }
 
-  function HeadToHead({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) {
-    const homeRow = findLadderRowForTeam(homeTeam);
-    const awayRow = findLadderRowForTeam(awayTeam);
-
-    if (!homeRow || !awayRow) {
-      return (
-        <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
-          Comparison not available yet.
+  return (
+    <div className={styles.shell}>
+      <div className={styles.header}>
+        <div>
+          <div className={styles.h1}>Briars Fixtures</div>
+          <div className={styles.sub}>
+            Source: <span className={styles.strong}>Sydney Men’s Hockey</span>
+            {data?.refreshedAt ? ` • Refreshed ${new Date(data.refreshedAt).toLocaleString("en-AU")}` : ""}
+          </div>
         </div>
-      );
-    }
 
-    const homeRank = getTeamRank(homeTeam);
-    const awayRank = getTeamRank(awayTeam);
+        <div className={styles.actions}>
+          {toast ? <div className={styles.toast}>{toast}</div> : null}
+          {pinOk ? (
+            <Button kind="soft" onClick={logout}>
+              <LogOut size={16} /> Log out
+            </Button>
+          ) : null}
+        </div>
+      </div>
 
-    const metrics = [
-      {
-        key: "position",
-        label: "Ladder position",
-        home: homeRank ?? 0,
-        away: awayRank ?? 0,
-        lowWins: true,
-        format: (v: number) => (v ? ordinal(v) : "—"),
-      },
-      {
-        key: "games",
-        label: "Games played",
-        home: idxP >= 0 ? num(homeRow.cols[idxP]) : 0,
-        away: idxP >= 0 ? num(awayRow.cols[idxP]) : 0,
-      },
-      {
-        key: "wins",
-        label: "Wins",
-        home: idxW >= 0 ? num(homeRow.cols[idxW]) : 0,
-        away: idxW >= 0 ? num(awayRow.cols[idxW]) : 0,
-      },
-      {
-        key: "draws",
-        label: "Draws",
-        home: idxD >= 0 ? num(homeRow.cols[idxD]) : 0,
-        away: idxD >= 0 ? num(awayRow.cols[idxD]) : 0,
-      },
-      {
-        key: "losses",
-        label: "Losses",
-        home: idxL >= 0 ? num(homeRow.cols[idxL]) : 0,
-        away: idxL >= 0 ? num(awayRow.cols[idxL]) : 0,
-        lowWins: true,
-      },
-      {
-        key: "gf",
-        label: "Goals for",
-        home: idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0,
-        away: idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0,
-      },
-      {
-        key: "ga",
-        label: "Goals against",
-        home: idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0,
-        away: idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0,
-        lowWins: true,
-      },
-      {
-        key: "gd",
-        label: "Goal difference",
-        home: idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0,
-        away: idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0,
-      },
-      {
-        key: "pts",
-        label: "Points",
-        home: idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0,
-        away: idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0,
-      },
-    ];
-
-    function isHomeBetter(metric: (typeof metrics)[number]) {
-      return metric.lowWins ? metric.home < metric.away : metric.home > metric.away;
-    }
-
-    function isAwayBetter(metric: (typeof metrics)[number]) {
-      return metric.lowWins ? metric.away < metric.home : metric.away > metric.home;
-    }
-
-    function getStrengths(metric: (typeof metrics)[number]) {
-      const a = metric.home;
-      const b = metric.away;
-
-      if (a === 0 && b === 0) {
-        return { homePct: 50, awayPct: 50 };
-      }
-
-      if (metric.lowWins) {
-        const maxVal = Math.max(a, b, 1);
-        const homeScore = maxVal - a + 1;
-        const awayScore = maxVal - b + 1;
-        const maxScore = Math.max(homeScore, awayScore, 1);
-        return {
-          homePct: Math.max(18, (homeScore / maxScore) * 100),
-          awayPct: Math.max(18, (awayScore / maxScore) * 100),
-        };
-      }
-
-      const maxVal = Math.max(a, b, 1);
-      return {
-        homePct: Math.max(18, (a / maxVal) * 100),
-        awayPct: Math.max(18, (b / maxVal) * 100),
-      };
-    }
-
-    return (
-      <details className={styles.details} style={{ marginTop: 12 }}>
-        <summary className={styles.summary}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <Trophy size={18} /> Head-to-head
-          </span>
-          <span className={styles.summaryRight}>
-            Compare <ChevronDown size={16} />
-          </span>
-        </summary>
-
-        <div style={{ marginTop: 14 }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
-              gap: 10,
-              alignItems: "center",
-              padding: "4px 2px 14px",
-              borderBottom: "1px solid var(--stroke)",
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Home</div>
-              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(homeTeam)}</div>
+      {!loginComplete ? (
+        <div className={`${styles.card} ${styles.cardPad}`} style={{ marginBottom: 16 }}>
+          <div className={styles.sectionTitle}>Team access</div>
+          <div className={styles.loginGrid} style={{ marginTop: 12 }}>
+            <div>
+              <div className={styles.label}>Team PIN</div>
+              <div className={styles.pinRow}>
+                <input
+                  className={styles.input}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Enter team PIN"
+                />
+                <Button onClick={rememberPin}>
+                  <ShieldCheck size={16} /> Save PIN
+                </Button>
+              </div>
             </div>
 
-            <div
-              style={{
-                padding: "8px 10px",
-                borderRadius: 999,
-                border: "1px solid var(--stroke)",
-                background: "rgba(17,24,39,0.03)",
-                fontSize: 12,
-                fontWeight: 950,
-                color: "var(--muted)",
-              }}
-            >
-              vs
+            <div>
+              <div className={styles.label}>Your name</div>
+              <input
+                className={styles.input}
+                value={playerName}
+                onChange={(e) => persistName(e.target.value)}
+                placeholder="e.g. Joel"
+              />
+              <div className={styles.hint}>Needed so everyone can see who’s in / out / maybe.</div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className={`${styles.card} ${styles.cardPad}`}>Loading fixtures…</div>
+      ) : null}
+
+      {!loading && nextGame ? (
+        <div className={`${styles.card} ${styles.cardPad} ${styles.nextGameCard}`}>
+          <div className={styles.rowTop}>
+            <Pill tone="gold">
+              <Trophy size={16} /> Next game
+            </Pill>
+
+            <Pill tone="blue">
+              Starts in <b style={{ color: "var(--text)" }}>{formatCountdown(new Date(nextGame.kickoffISO).getTime() - now.getTime())}</b>
+            </Pill>
+          </div>
+
+          <div className={styles.vsGrid}>
+            <div className={styles.team}>
+              <Logo url={CLUB_LOGOS[clubKey(nextGame.home)]} />
+              <div>
+                <div className={styles.teamName}>{nextGame.home}</div>
+                <div className={styles.subMini}>Home</div>
+              </div>
             </div>
 
-            <div style={{ minWidth: 0, textAlign: "right" }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Away</div>
-              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(awayTeam)}</div>
+            <div className={styles.mid}>
+              <div className={styles.vs}>VS</div>
+              <div className={styles.subMini}>{nextGame.roundLabel || "Upcoming fixture"}</div>
+            </div>
+
+            <div className={`${styles.team} ${styles.teamRight}`}>
+              <div>
+                <div className={styles.teamName}>{nextGame.away}</div>
+                <div className={styles.subMini}>Away</div>
+              </div>
+              <Logo url={CLUB_LOGOS[clubKey(nextGame.away)]} />
             </div>
           </div>
 
-          <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
-            {metrics.map((m) => {
-              const homeBetter = isHomeBetter(m);
-              const awayBetter = isAwayBetter(m);
-              const { homePct, awayPct } = getStrengths(m);
+          <div className={styles.chips}>
+            <Pill tone="blue">
+              <CalendarDays size={16} /> {formatDayDateFromSource(nextGame.date)}
+            </Pill>
+            <Pill tone="green">
+              <Clock3 size={16} /> {formatTimeFromSource(nextGame.time)}
+            </Pill>
+            <Pill tone="map">
+              <MapPin size={16} /> {nextGame.venue || "—"}
+            </Pill>
+          </div>
 
-              const homeValue = m.format ? m.format(m.home) : String(m.home);
-              const awayValue = m.format ? m.format(m.away) : String(m.away);
+          {weather?.ok ? (
+            <div className={styles.weatherRow}>
+              <Pill subtle>
+                <CloudSun size={15} /> {typeof weather.tempC === "number" ? `${weather.tempC}°C` : "—"}
+              </Pill>
+              <Pill subtle>
+                <Droplets size={15} /> {typeof weather.precipMM === "number" ? `${weather.precipMM}mm` : "—"}
+              </Pill>
+              <Pill subtle>
+                <Wind size={15} /> {typeof weather.windKmh === "number" ? `${weather.windKmh}km/h` : "—"}
+              </Pill>
+            </div>
+          ) : null}
+
+          <div className={styles.divider} />
+
+          <AvailabilityBlock g={nextGame} />
+        </div>
+      ) : null}
+
+      {!loading && upcoming.length > 0 ? (
+        <div style={{ marginTop: 18 }}>
+          <div className={styles.sectionTop}>
+            <div className={styles.sectionTitle}>Upcoming fixtures</div>
+
+            <button className={styles.pillBtn} type="button" onClick={() => setShowAllUpcoming((v) => !v)}>
+              {showAllUpcoming ? (
+                <>
+                  Show next 4 <ChevronUp size={16} />
+                </>
+              ) : (
+                <>
+                  Show all <ChevronDown size={16} />
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className={styles.grid}>
+            {upcomingList.map((g) => {
+              const key = makeSourceKey(g);
+              const counts = countsByKey[key] || { yes: 0, maybe: 0, no: 0 };
+              const ms = new Date(g.kickoffISO).getTime() - now.getTime();
 
               return (
-                <div
-                  key={m.key}
-                  style={{
-                    border: "1px solid var(--stroke)",
-                    borderRadius: 16,
-                    padding: 12,
-                    background:
-                      homeBetter || awayBetter
-                        ? "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%)"
-                        : "rgba(255,255,255,0.9)",
-                    boxShadow: "0 8px 22px rgba(17,24,39,0.04)",
-                  }}
-                >
-                 <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
-  }}
->
-                    <div
-                      style={{
-                        fontWeight: 950,
-                        fontSize: 12,
-                        letterSpacing: 0.4,
-                        textTransform: "uppercase",
-                        color: "var(--muted)",
-                      }}
-                    >
-                      {m.label}
+                <div key={key} className={styles.gcard}>
+                  <div className={styles.gTop}>
+                    <div className={styles.gMatch}>
+                      <Logo url={CLUB_LOGOS[clubKey(g.home)]} />
+                      <div className={styles.gVs}>vs</div>
+                      <Logo url={CLUB_LOGOS[clubKey(g.away)]} />
                     </div>
 
-                   
+                    <Pill tone="blue">{formatCountdown(ms)}</Pill>
                   </div>
 
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto 1fr auto",
-                      gap: 12,
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        minWidth: 58,
-                        textAlign: "left",
-                        fontWeight: 950,
-                        fontSize: 18,
-                        color: homeBetter ? "rgb(21,128,61)" : "var(--text)",
-                      }}
-                    >
-                      {homeValue}
+                  <div className={styles.gNames}>
+                    <div className={styles.gTitle}>
+                      {shortTeamName(g.home)} v {shortTeamName(g.away)}
                     </div>
+                    <div className={styles.gSub}>{g.roundLabel || "Fixture"}</div>
+                  </div>
 
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <div
-                          style={{
-                            position: "relative",
-                            height: 12,
-                            borderRadius: 999,
-                            background: "rgba(17,24,39,0.06)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "absolute",
-                              right: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: `${homePct}%`,
-                              borderRadius: 999,
-                              background: homeBetter
-                                ? "linear-gradient(90deg, rgba(34,197,94,0.38), rgba(34,197,94,0.88))"
-                                : "linear-gradient(90deg, rgba(148,163,184,0.28), rgba(148,163,184,0.62))",
-                              boxShadow: homeBetter ? "0 0 18px rgba(34,197,94,0.18)" : "none",
-                            }}
-                          />
-                        </div>
+                  <div className={styles.gMeta}>
+                    <span className={styles.gMetaItem}>
+                      <CalendarDays size={14} /> {formatDayDateFromSource(g.date)}
+                    </span>
+                    <span className={styles.gMetaItem}>
+                      <Clock3 size={14} /> {formatTimeFromSource(g.time)}
+                    </span>
+                    <span className={styles.gMetaItem}>
+                      <MapPin size={14} /> {g.venue || "—"}
+                    </span>
+                  </div>
 
-                        <div
-                          style={{
-                            position: "relative",
-                            height: 12,
-                            borderRadius: 999,
-                            background: "rgba(17,24,39,0.06)",
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              position: "absolute",
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                              width: `${awayPct}%`,
-                              borderRadius: 999,
-                              background: awayBetter
-                                ? "linear-gradient(90deg, rgba(59,130,246,0.88), rgba(59,130,246,0.38))"
-                                : "linear-gradient(90deg, rgba(148,163,184,0.62), rgba(148,163,184,0.28))",
-                              boxShadow: awayBetter ? "0 0 18px rgba(59,130,246,0.16)" : "none",
-                            }}
-                          />
-                        </div>
-                      </div>
+                  <AvailabilityBlock g={g} />
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 8,
-                          fontSize: 11,
-                          fontWeight: 900,
-                          color: "var(--muted)",
-                        }}
-                      >
-                        <div>Home</div>
-                        <div style={{ textAlign: "right" }}>Away</div>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        minWidth: 58,
-                        textAlign: "right",
-                        fontWeight: 950,
-                        fontSize: 18,
-                        color: awayBetter ? "rgb(29,78,216)" : "var(--text)",
-                      }}
-                    >
-                      {awayValue}
-                    </div>
+                  <div style={{ marginTop: 12 }}>
+                    <Pill tone="gold">
+                      <Users size={15} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
+                    </Pill>
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-      </details>
-    );
-  }
+      ) : null}
 
-  function GameCard({ g }: { g: Game }) {
-    const dt = new Date(g.kickoffISO);
-    const ms = dt.getTime() - now.getTime();
-    const counts = countsByKey[makeSourceKey(g)] || { yes: 0, no: 0, maybe: 0 };
-    const homeLogo = CLUB_LOGOS[clubKey(g.home)];
-    const awayLogo = CLUB_LOGOS[clubKey(g.away)];
+      {!loading && ladderHeaders.length > 0 && sortedLadderRows.length > 0 ? (
+        <div className={`${styles.card} ${styles.cardPad}`} style={{ marginTop: 18 }}>
+          <div className={styles.sectionTitle}>Ladder</div>
 
-    const key = makeSourceKey(g);
-    const mine = myStatusByKey[key];
-    const saving = savingKey === key;
-
-    const yesLabel = mine ? "Change to ✅ Yes" : "✅ Yes";
-    const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
-    const noLabel = mine ? "Change to ❌ No" : "❌ No";
-
-    return (
-      <div className={styles.gcard}>
-        <div className={styles.gTop}>
-          <div className={styles.gMatch}>
-            <Logo url={homeLogo} />
-            <span className={styles.gVs}>vs</span>
-            <Logo url={awayLogo} />
-            <div className={styles.gNames}>
-              <div className={styles.gTitle}>
-                {teamDisplayLabel(g.home)} vs {teamDisplayLabel(g.away)}
-              </div>
-              <div className={styles.gSub}>{g.roundLabel || "Fixture"}</div>
-            </div>
-          </div>
-          <Pill subtle>{formatCountdown(ms)}</Pill>
-        </div>
-
-        <div className={styles.gMeta}>
-          <span className={styles.gMetaItem}>
-            <Clock3 size={16} /> {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)}
-          </span>
-          <span className={styles.gMetaItem}>
-            <MapPin size={16} /> {g.venue || "—"}
-          </span>
-        </div>
-
-        <details className={styles.details}>
-          <summary className={styles.summary}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-              <Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
-            </span>
-            <ChevronDown size={16} />
-          </summary>
-
-          <div className={styles.btnRow}>
-            <Button onClick={() => setStatus(g, "yes")} disabled={saving}>
-              {yesLabel}
-            </Button>
-            <Button onClick={() => setStatus(g, "maybe")} disabled={saving}>
-              {maybeLabel}
-            </Button>
-            <Button onClick={() => setStatus(g, "no")} disabled={saving}>
-              {noLabel}
-            </Button>
-          </div>
-
-          <AvailabilityNames g={g} />
-        </details>
-      </div>
-    );
-  }
-
-  return (
-    <main>
-      <div className={styles.shell}>
-        <div className={styles.header}>
-          <div>
-            <div className={styles.h1}>Briars Legends</div>
-            <div className={styles.sub}>
-              Last refresh{" "}
-              <span className={styles.strong}>
-                {data?.refreshedAt ? new Date(data.refreshedAt).toLocaleString() : "—"}
-              </span>
-            </div>
-          </div>
-
-          <div className={styles.actions}>
-            <Button onClick={() => (window.location.href = "/api/calendar/all")}>
-              <SiGooglecalendar size={18} />
-              Add to calendar
-            </Button>
-
-            {!showLogin && (
-              <Pill>
-                <Users size={16} />
-                {(playerName || "").trim() || "Player"}
-                <button
-                  onClick={logout}
-                  style={{
-                    marginLeft: 6,
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontWeight: 950,
-                    color: "rgba(17,24,39,0.70)",
-                  }}
-                  title="Log out PIN on this device"
-                >
-                  <LogOut size={16} />
-                </button>
-              </Pill>
-            )}
-
-            <Button kind="soft" onClick={loadFixtures}>
-              Refresh
-            </Button>
+          <div className={styles.ladderWrap}>
+            <table className={styles.ladder}>
+              <thead>
+                <tr>
+                  {ladderHeaders.map((h) => {
+                    const active = ladderSortKey.toLowerCase() === h.toLowerCase();
+                    return (
+                      <th
+                        key={h}
+                        className={`${styles.ladderTh} ${active ? styles.ladderThActive : ""}`}
+                        onClick={() => {
+                          if (active) {
+                            setLadderSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                          } else {
+                            setLadderSortKey(h);
+                            setLadderSortDir("desc");
+                          }
+                        }}
+                      >
+                        {h}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedLadderRows.map((row, idx) => {
+                  const isBriars = String(row.team).toLowerCase().includes("briars");
+                  return (
+                    <tr key={`${row.team}-${idx}`} className={isBriars ? styles.ladderBriars : ""}>
+                      {row.cols.map((cell, i) => (
+                        <td key={`${idx}-${i}`} className={styles.ladderTd}>
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
+      ) : null}
 
-        {toast && (
-          <div
-            style={{
-              marginTop: 8,
-              marginBottom: 12,
-              padding: 12,
-              borderRadius: 14,
-              border: "1px solid var(--stroke)",
-              background: "rgba(16,185,129,0.10)",
-              fontWeight: 950,
-            }}
-          >
-            {toast}
+      {!loading && past.length > 0 ? (
+        <div style={{ marginTop: 18 }}>
+          <div className={styles.sectionTop}>
+            <div className={styles.sectionTitle}>Past results</div>
           </div>
-        )}
 
-        {loading && <div className={styles.sub}>Loading…</div>}
+          <div className={styles.pastGrid}>
+            {past.slice(0, 8).map((g) => (
+              <div key={makeSourceKey(g)} className={styles.gcard}>
+                <div className={styles.gTitle}>
+                  {shortTeamName(g.home)} v {shortTeamName(g.away)}
+                </div>
+                <div className={styles.gSub}>{formatLongDateFromSource(g.date)}</div>
 
-        {!loading && (
-          <>
-            {showLogin && (
-              <div className={`${styles.card} ${styles.cardPad}`}>
-                <div className={styles.loginGrid}>
-                  <div>
-                    <div className={styles.label}>Your name</div>
-                    <input
-                      value={playerName}
-                      onChange={(e) => persistName(e.target.value)}
-                      onBlur={(e) => persistName(e.target.value)}
-                      placeholder="e.g. Joel"
-                      className={styles.input}
-                    />
-                    <div className={styles.hint}>Saved automatically on this device.</div>
-                  </div>
-
-                  <div>
-                    <div className={styles.label}>Team PIN</div>
-                    {!pinOk ? (
-                      <div className={styles.pinRow}>
-                        <input
-                          value={pinInput}
-                          onChange={(e) => setPinInput(e.target.value)}
-                          placeholder="Enter PIN"
-                          type="password"
-                          className={styles.input}
-                        />
-                        <Button onClick={rememberPin}>
-                          <ShieldCheck size={18} />
-                          Remember
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className={styles.pinRow}>
-                        <Pill>
-                          <ShieldCheck size={16} /> Unlocked on this device
-                        </Pill>
-                        <Button kind="soft" onClick={logout}>
-                          Log out
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                <div className={styles.gMeta}>
+                  <span className={styles.gMetaItem}>
+                    <Clock3 size={14} /> {formatTimeFromSource(g.time)}
+                  </span>
+                  <span className={styles.gMetaItem}>
+                    <MapPin size={14} /> {g.venue || "—"}
+                  </span>
+                  <span className={styles.gMetaItem}>
+                    <Trophy size={14} /> {g.score || "-"}
+                  </span>
                 </div>
               </div>
-            )}
-
-            {(() => {
-              if (!nextGame) return null;
-
-              const ms = new Date(nextGame.kickoffISO).getTime() - now.getTime();
-              const counts = countsByKey[makeSourceKey(nextGame)] || { yes: 0, no: 0, maybe: 0 };
-              const homeLogo = CLUB_LOGOS[clubKey(nextGame.home)];
-              const awayLogo = CLUB_LOGOS[clubKey(nextGame.away)];
-
-              const key = makeSourceKey(nextGame);
-              const mine = myStatusByKey[key];
-              const saving = savingKey === key;
-
-              const yesLabel = mine ? "Change to ✅ Yes" : "✅ Yes";
-              const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
-              const noLabel = mine ? "Change to ❌ No" : "❌ No";
-
-              return (
-                <div style={{ marginTop: showLogin ? 14 : 0 }}>
-                  <div className={styles.card}>
-                    <div className={styles.cardPad}>
-                      <div className={styles.rowTop}>
-                        <Pill>
-                          <Trophy size={16} /> Next game
-                        </Pill>
-                        <Pill subtle>
-                          Starts in <b style={{ color: "var(--text)" }}>{formatCountdown(ms)}</b>
-                        </Pill>
-                      </div>
-
-                      <div className={styles.vsGrid}>
-                        <div className={styles.team}>
-                          <Logo url={homeLogo} />
-                          <div>
-                            <div className={styles.teamName}>{teamDisplayLabel(nextGame.home)}</div>
-                            <div className={styles.subMini}>Home</div>
-                          </div>
-                        </div>
-
-                        <div className={styles.mid}>
-                          <div className={styles.vs}>VS</div>
-                          <div className={styles.subMini}>{nextGame.roundLabel || "Fixture"}</div>
-                        </div>
-
-                        <div className={`${styles.team} ${styles.teamRight}`}>
-                          <div>
-                            <div className={styles.teamName}>{teamDisplayLabel(nextGame.away)}</div>
-                            <div className={styles.subMini}>Away</div>
-                          </div>
-                          <Logo url={awayLogo} />
-                        </div>
-                      </div>
-
-                      <div className={styles.chips}>
-                        <Pill>
-                          <CalendarDays size={16} /> {formatDayDate(nextGame.kickoffISO)}
-                        </Pill>
-                        <Pill>
-                          <Clock3 size={16} /> {formatTime(nextGame.kickoffISO)}
-                        </Pill>
-                        <Pill>
-                          <MapPin size={16} /> {nextGame.venue || "—"}
-                        </Pill>
-                        <Pill>
-                          <Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
-                        </Pill>
-
-                        {weather?.ok && (
-                          <Pill>
-                            <CloudSun size={16} />
-                            {weather.tempC?.toFixed?.(0)}°C
-                            <span style={{ opacity: 0.65 }}>·</span>
-                            <Droplets size={16} />
-                            {weather.precipMM?.toFixed?.(0)}mm
-                            <span style={{ opacity: 0.65 }}>·</span>
-                            <Wind size={16} />
-                            {weather.windKmh?.toFixed?.(0)}km/h
-                          </Pill>
-                        )}
-                      </div>
-
-                      <HeadToHead homeTeam={nextGame.home} awayTeam={nextGame.away} />
-
-                      <div className={styles.divider} />
-
-                      <details className={styles.details}>
-                        <summary className={styles.summary}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                            <Users size={18} /> Mark availability
-                          </span>
-                          <span className={styles.summaryRight}>
-                            Expand <ChevronDown size={16} />
-                          </span>
-                        </summary>
-
-                        <div className={styles.btnRow}>
-                          <Button onClick={() => setStatus(nextGame, "yes")} disabled={saving}>
-                            {yesLabel}
-                          </Button>
-                          <Button onClick={() => setStatus(nextGame, "maybe")} disabled={saving}>
-                            {maybeLabel}
-                          </Button>
-                          <Button onClick={() => setStatus(nextGame, "no")} disabled={saving}>
-                            {noLabel}
-                          </Button>
-                        </div>
-
-                        <AvailabilityNames g={nextGame} />
-                      </details>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div style={{ marginTop: 18 }}>
-              <div className={styles.sectionTop}>
-                <div className={styles.sectionTitle}>Upcoming fixtures</div>
-                <button className={styles.pillBtn} onClick={() => setShowAllUpcoming((v) => !v)}>
-                  {showAllUpcoming ? (
-                    <>
-                      <ChevronUp size={16} /> Hide full list
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown size={16} /> Show all ({upcomingAll.length})
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className={styles.grid}>
-                {(showAllUpcoming ? upcomingAll : upcomingPreview).map((g, i) => (
-                  <GameCard key={`${g.kickoffISO}-${i}`} g={g} />
-                ))}
-              </div>
-
-              {upcomingAll.length === 0 && (
-                <div className={`${styles.card} ${styles.cardPad}`}>
-                  <div className={styles.sub}>No upcoming games found.</div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: 18 }}>
-              <div className={styles.sectionTop}>
-                <div className={styles.sectionTitle}>Snr Masters Ladder</div>
-                <Pill subtle>Default: Pts ↓ then GD ↓</Pill>
-              </div>
-
-              <div className={styles.card}>
-                <div className={styles.ladderWrap}>
-                  <table className={styles.ladder}>
-                    <thead>
-                      <tr>
-                        {ladderHeaders.map((h) => {
-                          const upper = h.toUpperCase();
-                          const isActive = ladderSortKey === upper;
-                          return (
-                            <th
-                              key={h}
-                              className={`${styles.ladderTh} ${isActive ? styles.ladderThActive : ""}`}
-                              onClick={() => {
-                                if (ladderSortKey === upper) {
-                                  setLadderSortDir((d) => (d === "desc" ? "asc" : "desc"));
-                                } else {
-                                  setLadderSortKey(upper);
-                                  setLadderSortDir("desc");
-                                }
-                              }}
-                              title="Click to sort"
-                            >
-                              {h}
-                              {isActive ? (ladderSortDir === "desc" ? " ↓" : " ↑") : ""}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedLadderRows.map((r, idx) => {
-                        const isBriars = /briars/i.test(r.cols[0] || "");
-                        return (
-                          <tr key={`${r.team}-${idx}`} className={isBriars ? styles.ladderBriars : ""}>
-                            {r.cols.map((c, i) => (
-                              <td key={i} className={styles.ladderTd}>
-                                {c}
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
-
-                      {sortedLadderRows.length === 0 && (
-                        <tr>
-                          <td className={styles.ladderTd} colSpan={Math.max(ladderHeaders.length, 1)}>
-                            Ladder not found on source page (or headers changed).
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 18, paddingBottom: 38 }}>
-              <div className={styles.sectionTitle} style={{ marginBottom: 10 }}>
-                Past results
-              </div>
-
-              <div className={styles.pastGrid}>
-                {past.slice(0, 12).map((g, idx) => (
-                  <div key={idx} className={styles.card}>
-                    <div className={styles.cardPad}>
-                      <div style={{ fontWeight: 950 }}>
-                        {teamDisplayLabel(g.home)} vs {teamDisplayLabel(g.away)}
-                      </div>
-                      <div className={styles.hint} style={{ marginTop: 4 }}>
-                        {g.roundLabel ? `${g.roundLabel} • ` : ""}
-                        {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)} • {g.venue}
-                      </div>
-                      <div style={{ marginTop: 10 }}>
-                        <Pill>
-                          <Trophy size={16} /> Final: <span style={{ color: "var(--text)" }}>{g.score}</span>
-                        </Pill>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {past.length === 0 && (
-                  <div className={`${styles.card} ${styles.cardPad}`}>
-                    <div className={styles.sub}>No past games found.</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

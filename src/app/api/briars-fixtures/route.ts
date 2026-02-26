@@ -3,12 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
 function auDateFromISO(iso: string) {
-  // convert kickoff_at ISO → dd/mm/yyyy in Australia/Sydney
   const d = new Date(iso);
   const parts = new Intl.DateTimeFormat("en-AU", {
     timeZone: "Australia/Sydney",
@@ -38,25 +33,40 @@ function auTimeFromISO(iso: string) {
 }
 
 export async function GET() {
-  const sb = supabaseAdmin();
+  const sb = supabaseAdmin; // ✅ client (NOT callable)
 
-  const { data: teams } = await sb.from("teams").select("team_key,name_full,short_name");
-  const teamNameByKey = new Map((teams ?? []).map((t) => [t.team_key, t.name_full]));
+  const { data: teams, error: teamErr } = await sb
+    .from("teams")
+    .select("team_key,name_full,short_name");
+
+  if (teamErr) {
+    return NextResponse.json({ ok: false, error: teamErr.message }, { status: 500 });
+  }
+
+  const teamNameByKey = new Map(
+    (teams ?? []).map((t: any) => [t.team_key, t.name_full])
+  );
 
   const { data: matches, error: matchErr } = await sb
     .from("matches")
-    .select("round_label,kickoff_at,venue,home_team_key,away_team_key,home_score,away_score,source_hash")
+    .select(
+      "round_label,kickoff_at,venue,home_team_key,away_team_key,home_score,away_score,source_hash"
+    )
     .eq("season", 2026)
     .order("kickoff_at", { ascending: true });
 
-  if (matchErr) return NextResponse.json({ ok: false, error: matchErr.message }, { status: 500 });
+  if (matchErr) {
+    return NextResponse.json({ ok: false, error: matchErr.message }, { status: 500 });
+  }
 
-  const allGames = (matches ?? []).map((m) => {
+  const allGames = (matches ?? []).map((m: any) => {
     const home = teamNameByKey.get(m.home_team_key) ?? m.home_team_key;
     const away = teamNameByKey.get(m.away_team_key) ?? m.away_team_key;
 
     const score =
-      m.home_score === null || m.away_score === null ? "-" : `${m.home_score}-${m.away_score}`;
+      m.home_score === null || m.away_score === null
+        ? "-"
+        : `${m.home_score}-${m.away_score}`;
 
     return {
       date: auDateFromISO(m.kickoff_at),
@@ -67,24 +77,27 @@ export async function GET() {
       away,
       score,
       kickoffISO: m.kickoff_at,
+      source_key: `${m.kickoff_at}|${home}|${away}`, // keeps your availability lookup consistent
     };
   });
 
-  // “Briars fixtures” subset for the page (keeps your current behaviour)
-  const briarsGames = allGames.filter((g) => g.home.toLowerCase().includes("briars") || g.away.toLowerCase().includes("briars"));
+  const briarsGames = allGames.filter(
+    (g) => String(g.home).toLowerCase().includes("briars") || String(g.away).toLowerCase().includes("briars")
+  );
 
-  // ladder in your existing format (headers + rows)
   const { data: ladderRows, error: ladderErr } = await sb
     .from("ladder_latest")
     .select("team_key,position,played,wins,draws,losses,gf,ga,gd,points,as_of")
     .eq("season", 2026)
     .order("position", { ascending: true });
 
-  if (ladderErr) return NextResponse.json({ ok: false, error: ladderErr.message }, { status: 500 });
+  if (ladderErr) {
+    return NextResponse.json({ ok: false, error: ladderErr.message }, { status: 500 });
+  }
 
   const ladder = {
     headers: ["Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"],
-    rows: (ladderRows ?? []).map((r) => {
+    rows: (ladderRows ?? []).map((r: any) => {
       const team = teamNameByKey.get(r.team_key) ?? r.team_key;
       return {
         team,

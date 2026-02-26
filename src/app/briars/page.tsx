@@ -730,15 +730,14 @@ export default function BriarsPage() {
                     boxShadow: "0 8px 22px rgba(17,24,39,0.04)",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 10,
-                      marginBottom: 10,
-                    }}
-                  >
+                 <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  }}
+>
                     <div
                       style={{
                         fontWeight: 950,
@@ -751,27 +750,7 @@ export default function BriarsPage() {
                       {m.label}
                     </div>
 
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 950,
-                        padding: "5px 8px",
-                        borderRadius: 999,
-                        border: "1px solid var(--stroke)",
-                        background: homeBetter
-                          ? "rgba(34,197,94,0.10)"
-                          : awayBetter
-                          ? "rgba(59,130,246,0.10)"
-                          : "rgba(17,24,39,0.03)",
-                        color: homeBetter
-                          ? "rgb(21,128,61)"
-                          : awayBetter
-                          ? "rgb(29,78,216)"
-                          : "var(--muted)",
-                      }}
-                    >
-                      {homeBetter ? "Home edge" : awayBetter ? "Away edge" : "Even"}
-                    </div>
+                   
                   </div>
 
                   <div

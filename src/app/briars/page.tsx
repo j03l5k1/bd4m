@@ -45,6 +45,8 @@ type Payload = {
 
 type Counts = { yes: number; no: number; maybe: number };
 
+type NamesByStatus = { yes: string[]; maybe: string[]; no: string[] };
+
 type Weather = {
   ok: boolean;
   at?: string;
@@ -91,6 +93,20 @@ function formatCountdown(ms: number) {
   return `${days}d ${hours}h ${mins}m`;
 }
 
+function formatDayDate(iso: string) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("en-AU", { weekday: "short" }); // Tue
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day} ${dd}/${mm}`;
+}
+
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  // "6:10 pm"
+  return d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+}
+
 function num(x: string | undefined) {
   if (!x) return 0;
   const n = Number(String(x).replace(/[^\d.-]/g, ""));
@@ -105,15 +121,19 @@ function Button({
   children,
   onClick,
   kind = "primary",
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   kind?: "primary" | "soft";
+  disabled?: boolean;
 }) {
   return (
     <button
       className={`${styles.btn} ${kind === "primary" ? styles.btnPrimary : styles.btnSoft}`}
       onClick={onClick}
+      disabled={disabled}
+      style={disabled ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
     >
       {children}
     </button>
@@ -131,6 +151,9 @@ function Logo({ url }: { url?: string }) {
 export default function BriarsPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [countsByKey, setCountsByKey] = useState<Record<string, Counts>>({});
+  const [namesByKey, setNamesByKey] = useState<Record<string, NamesByStatus>>({});
+  const [myStatusByKey, setMyStatusByKey] = useState<Record<string, "yes" | "no" | "maybe">>({});
+
   const [weather, setWeather] = useState<Weather | null>(null);
 
   const [now, setNow] = useState(new Date());
@@ -145,6 +168,11 @@ export default function BriarsPage() {
   const [ladderSortKey, setLadderSortKey] = useState<string>("PTS");
   const [ladderSortDir, setLadderSortDir] = useState<"desc" | "asc">("desc");
 
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
@@ -153,6 +181,14 @@ export default function BriarsPage() {
   useEffect(() => {
     setPinOk(localStorage.getItem(LS_PIN_OK) === "1");
     setPlayerName(localStorage.getItem(LS_PLAYER_NAME) || "");
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 700px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
   }, []);
 
   async function loadFixtures() {
@@ -181,14 +217,24 @@ export default function BriarsPage() {
     return { upcoming: u, past: p, nextGame: u[0] || null };
   }, [data, now]);
 
+  async function loadNames(sourceKey: string) {
+    try {
+      const res = await fetch(`/api/availability/names?source_key=${encodeURIComponent(sourceKey)}`, { cache: "no-store" });
+      const json = await res.json();
+      if (json?.ok) {
+        setNamesByKey((prev) => ({ ...prev, [sourceKey]: json.names as NamesByStatus }));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     (async () => {
       const next: Record<string, Counts> = {};
       for (const g of upcoming.slice(0, 30)) {
         const key = makeSourceKey(g);
-        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
         const json = await res.json();
         if (json?.ok) next[key] = json.counts;
       }
@@ -197,11 +243,17 @@ export default function BriarsPage() {
   }, [upcoming.length]);
 
   useEffect(() => {
+    // preload names for next game + preview games (cheap)
+    (async () => {
+      const targets = [nextGame, ...upcoming.slice(0, 5)].filter(Boolean) as Game[];
+      for (const g of targets) await loadNames(makeSourceKey(g));
+    })();
+  }, [nextGame?.kickoffISO, upcoming.length]);
+
+  useEffect(() => {
     (async () => {
       if (!nextGame) return setWeather(null);
-      const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, { cache: "no-store" });
       const json = await res.json();
       setWeather(json);
     })();
@@ -219,52 +271,79 @@ export default function BriarsPage() {
   }
 
   function rememberPin() {
-    if (pinInput.trim() !== "briars2026") return alert("Wrong PIN");
+    if (pinInput.trim() !== "briars2026") {
+      setToast("Wrong PIN");
+      setTimeout(() => setToast(null), 2200);
+      return;
+    }
     localStorage.setItem(LS_PIN_OK, "1");
     localStorage.setItem(LS_TEAM_PIN, "briars2026");
     setPinOk(true);
     setPinInput("");
+    setToast("PIN saved ✓");
+    setTimeout(() => setToast(null), 2000);
   }
 
   function logout() {
     localStorage.removeItem(LS_PIN_OK);
     localStorage.removeItem(LS_TEAM_PIN);
     setPinOk(false);
+    setToast("Logged out");
+    setTimeout(() => setToast(null), 1600);
   }
 
   async function setStatus(g: Game, status: "yes" | "no" | "maybe") {
-    if (!pinOk) return alert("Enter team PIN first");
+    if (!pinOk) {
+      setToast("Enter the team PIN first.");
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
     const n = (playerName || "").trim();
-    if (n.length < 2) return alert("Enter your name");
+    if (n.length < 2) {
+      setToast("Enter your name first.");
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
 
     const source_key = makeSourceKey(g);
+    setSavingKey(source_key);
 
-    const res = await fetch("/api/availability/set", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pin: localStorage.getItem(LS_TEAM_PIN) || "",
-        playerName: n,
-        status,
-        game: {
-          source_key,
-          kickoff_iso: g.kickoffISO,
-          home: g.home,
-          away: g.away,
-          venue: g.venue,
-        },
-      }),
-    });
+    try {
+      const res = await fetch("/api/availability/set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pin: localStorage.getItem(LS_TEAM_PIN) || "",
+          playerName: n,
+          status,
+          game: {
+            source_key,
+            kickoff_iso: g.kickoffISO,
+            home: g.home,
+            away: g.away,
+            venue: g.venue,
+          },
+        }),
+      });
 
-    const json = await res.json();
-    if (!json?.ok) return alert(json?.error || "Failed to save");
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error || "Failed to save");
 
-    const sum = await fetch(
-      `/api/availability/summary?source_key=${encodeURIComponent(source_key)}`,
-      { cache: "no-store" }
-    ).then((r) => r.json());
+      setMyStatusByKey((prev) => ({ ...prev, [source_key]: status }));
+      setToast("Saved ✓");
+      setTimeout(() => setToast(null), 1800);
 
-    if (sum?.ok) setCountsByKey((prev) => ({ ...prev, [source_key]: sum.counts }));
+      const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, { cache: "no-store" })
+        .then((r) => r.json());
+      if (sum?.ok) setCountsByKey((prev) => ({ ...prev, [source_key]: sum.counts }));
+
+      await loadNames(source_key);
+    } catch (e: any) {
+      setToast(e?.message || "Something went wrong");
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setSavingKey(null);
+    }
   }
 
   // Ladder sort
@@ -311,7 +390,7 @@ export default function BriarsPage() {
       return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
     });
 
-    // User sort overrides (still stable with tie-break fallback)
+    // User sort override
     if (ladderSortKey && ladderHeaders.length) {
       const keyLower = ladderSortKey.toLowerCase();
       const idx = headerIndex[keyLower];
@@ -338,21 +417,61 @@ export default function BriarsPage() {
     return rows;
   }, [ladderRows, ladderHeaders.join("|"), ladderSortKey, ladderSortDir, headerIndex, idxPts, idxGD, idxGF]);
 
-  function onLadderHeaderClick(h: string) {
-    const upper = h.toUpperCase();
-    if (ladderSortKey === upper) {
-      setLadderSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setLadderSortKey(upper);
-      setLadderSortDir("desc");
-    }
-  }
-
-  // UI helpers
   const showLogin = !loginComplete;
-
   const upcomingPreview = upcoming.slice(0, 5);
   const upcomingAll = upcoming;
+
+  function AvailabilityNames({ g }: { g: Game }) {
+    const key = makeSourceKey(g);
+    const mine = myStatusByKey[key];
+    const names = namesByKey[key] || { yes: [], maybe: [], no: [] };
+    const saving = savingKey === key;
+
+    const colStyle: React.CSSProperties = isMobile
+      ? { paddingLeft: 0, borderLeft: "none" }
+      : { paddingLeft: 12, borderLeft: "1px solid var(--stroke)" };
+
+    const gridStyle: React.CSSProperties = isMobile
+      ? { display: "grid", gridTemplateColumns: "1fr", gap: 12 }
+      : { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
+
+    return (
+      <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 6, color: "var(--muted)", fontWeight: 850 }}>
+          Your status:{" "}
+          <span style={{ color: "var(--text)", fontWeight: 950 }}>
+            {mine === "yes" ? "In" : mine === "maybe" ? "Maybe" : mine === "no" ? "Out" : "Not set"}
+            {saving ? " (saving…)" : ""}
+          </span>
+        </div>
+
+        <div style={{ marginTop: 12, borderTop: "1px solid var(--stroke)", paddingTop: 12 }}>
+          <div style={gridStyle}>
+            <div>
+              <div style={{ fontWeight: 950, marginBottom: 6 }}>✅ In</div>
+              <div style={{ color: "var(--muted)", fontWeight: 850, lineHeight: 1.5 }}>
+                {names.yes.length ? names.yes.join(", ") : "—"}
+              </div>
+            </div>
+
+            <div style={colStyle}>
+              <div style={{ fontWeight: 950, marginBottom: 6 }}>❓ Maybe</div>
+              <div style={{ color: "var(--muted)", fontWeight: 850, lineHeight: 1.5 }}>
+                {names.maybe.length ? names.maybe.join(", ") : "—"}
+              </div>
+            </div>
+
+            <div style={colStyle}>
+              <div style={{ fontWeight: 950, marginBottom: 6 }}>❌ Out</div>
+              <div style={{ color: "var(--muted)", fontWeight: 850, lineHeight: 1.5 }}>
+                {names.no.length ? names.no.join(", ") : "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   function GameCard({ g }: { g: Game }) {
     const dt = new Date(g.kickoffISO);
@@ -360,6 +479,14 @@ export default function BriarsPage() {
     const counts = countsByKey[makeSourceKey(g)] || { yes: 0, no: 0, maybe: 0 };
     const homeLogo = CLUB_LOGOS[clubKey(g.home)];
     const awayLogo = CLUB_LOGOS[clubKey(g.away)];
+
+    const key = makeSourceKey(g);
+    const mine = myStatusByKey[key];
+    const saving = savingKey === key;
+
+    const yesLabel = mine ? "Change to ✅ Yes" : "✅ Yes";
+    const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
+    const noLabel = mine ? "Change to ❌ No" : "❌ No";
 
     return (
       <div className={styles.gcard}>
@@ -378,7 +505,7 @@ export default function BriarsPage() {
 
         <div className={styles.gMeta}>
           <span className={styles.gMetaItem}>
-            <Clock3 size={16} /> {dt.toLocaleDateString()} · {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            <Clock3 size={16} /> {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)}
           </span>
           <span className={styles.gMetaItem}>
             <MapPin size={16} /> {g.venue || "—"}
@@ -392,11 +519,14 @@ export default function BriarsPage() {
             </span>
             <ChevronDown size={16} />
           </summary>
+
           <div className={styles.btnRow}>
-            <Button onClick={() => setStatus(g, "yes")}>✅ Yes</Button>
-            <Button onClick={() => setStatus(g, "maybe")}>❓ Maybe</Button>
-            <Button onClick={() => setStatus(g, "no")}>❌ No</Button>
+            <Button onClick={() => setStatus(g, "yes")} disabled={saving}>{yesLabel}</Button>
+            <Button onClick={() => setStatus(g, "maybe")} disabled={saving}>{maybeLabel}</Button>
+            <Button onClick={() => setStatus(g, "no")} disabled={saving}>{noLabel}</Button>
           </div>
+
+          <AvailabilityNames g={g} />
         </details>
       </div>
     );
@@ -450,6 +580,22 @@ export default function BriarsPage() {
           </div>
         </div>
 
+        {toast && (
+          <div
+            style={{
+              marginTop: 8,
+              marginBottom: 12,
+              padding: 12,
+              borderRadius: 14,
+              border: "1px solid var(--stroke)",
+              background: "rgba(16,185,129,0.10)",
+              fontWeight: 950,
+            }}
+          >
+            {toast}
+          </div>
+        )}
+
         {loading && <div className={styles.sub}>Loading…</div>}
 
         {!loading && (
@@ -500,11 +646,18 @@ export default function BriarsPage() {
             {(() => {
               if (!nextGame) return null;
 
-              const dt = new Date(nextGame.kickoffISO);
-              const ms = dt.getTime() - now.getTime();
+              const ms = new Date(nextGame.kickoffISO).getTime() - now.getTime();
               const counts = countsByKey[makeSourceKey(nextGame)] || { yes: 0, no: 0, maybe: 0 };
               const homeLogo = CLUB_LOGOS[clubKey(nextGame.home)];
               const awayLogo = CLUB_LOGOS[clubKey(nextGame.away)];
+
+              const key = makeSourceKey(nextGame);
+              const mine = myStatusByKey[key];
+              const saving = savingKey === key;
+
+              const yesLabel = mine ? "Change to ✅ Yes" : "✅ Yes";
+              const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
+              const noLabel = mine ? "Change to ❌ No" : "❌ No";
 
               return (
                 <div style={{ marginTop: showLogin ? 14 : 0 }}>
@@ -541,8 +694,8 @@ export default function BriarsPage() {
                       </div>
 
                       <div className={styles.chips}>
-                        <Pill><CalendarDays size={16} /> {dt.toLocaleDateString()}</Pill>
-                        <Pill><Clock3 size={16} /> {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Pill>
+                        <Pill><CalendarDays size={16} /> {formatDayDate(nextGame.kickoffISO)}</Pill>
+                        <Pill><Clock3 size={16} /> {formatTime(nextGame.kickoffISO)}</Pill>
                         <Pill><MapPin size={16} /> {nextGame.venue || "—"}</Pill>
                         <Pill><Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}</Pill>
 
@@ -573,10 +726,12 @@ export default function BriarsPage() {
                         </summary>
 
                         <div className={styles.btnRow}>
-                          <Button onClick={() => setStatus(nextGame, "yes")}>✅ Yes</Button>
-                          <Button onClick={() => setStatus(nextGame, "maybe")}>❓ Maybe</Button>
-                          <Button onClick={() => setStatus(nextGame, "no")}>❌ No</Button>
+                          <Button onClick={() => setStatus(nextGame, "yes")} disabled={saving}>{yesLabel}</Button>
+                          <Button onClick={() => setStatus(nextGame, "maybe")} disabled={saving}>{maybeLabel}</Button>
+                          <Button onClick={() => setStatus(nextGame, "no")} disabled={saving}>{noLabel}</Button>
                         </div>
+
+                        <AvailabilityNames g={nextGame} />
                       </details>
                     </div>
                   </div>
@@ -680,22 +835,20 @@ export default function BriarsPage() {
               <div className={styles.sectionTitle} style={{ marginBottom: 10 }}>Past results</div>
 
               <div className={styles.pastGrid}>
-                {past.slice(0, 12).map((g, idx) => {
-                  const dt = new Date(g.kickoffISO);
-                  return (
-                    <div key={idx} className={styles.card}>
-                      <div className={styles.cardPad}>
-                        <div style={{ fontWeight: 950 }}>{g.home} vs {g.away}</div>
-                        <div className={styles.hint} style={{ marginTop: 4 }}>
-                          {g.roundLabel ? `${g.roundLabel} • ` : ""}{dt.toLocaleString()} • {g.venue}
-                        </div>
-                        <div style={{ marginTop: 10 }}>
-                          <Pill><Trophy size={16} /> Final: <span style={{ color: "var(--text)" }}>{g.score}</span></Pill>
-                        </div>
+                {past.slice(0, 12).map((g, idx) => (
+                  <div key={idx} className={styles.card}>
+                    <div className={styles.cardPad}>
+                      <div style={{ fontWeight: 950 }}>{g.home} vs {g.away}</div>
+                      <div className={styles.hint} style={{ marginTop: 4 }}>
+                        {g.roundLabel ? `${g.roundLabel} • ` : ""}
+                        {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)} • {g.venue}
+                      </div>
+                      <div style={{ marginTop: 10 }}>
+                        <Pill><Trophy size={16} /> Final: <span style={{ color: "var(--text)" }}>{g.score}</span></Pill>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
 
                 {past.length === 0 && (
                   <div className={`${styles.card} ${styles.cardPad}`}>

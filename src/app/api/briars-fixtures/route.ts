@@ -1,171 +1,115 @@
 import { NextResponse } from "next/server";
-import * as cheerio from "cheerio";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-type Game = {
-  date: string;
-  time: string;
-  venue: string;
-  roundLabel: string;
-  home: string;
-  away: string;
-  score: string;
-  kickoffISO: string;
-};
+export const runtime = "nodejs";
 
-type LadderRow = {
-  team: string;
-  cols: string[];
-};
-
-function clean(s: string) {
-  return s.replace(/\s+/g, " ").trim();
+function pad(n: number) {
+  return String(n).padStart(2, "0");
 }
 
-function getTimeZoneOffsetMinutes(date: Date, timeZone: string) {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
+function auDateFromISO(iso: string) {
+  // convert kickoff_at ISO → dd/mm/yyyy in Australia/Sydney
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+  }).formatToParts(d);
+
+  const m: Record<string, string> = {};
+  for (const p of parts) if (p.type !== "literal") m[p.type] = p.value;
+  return `${m.day}/${m.month}/${m.year}`;
+}
+
+function auTimeFromISO(iso: string) {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    hour12: false,
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  });
+  }).formatToParts(d);
 
-  const parts = dtf.formatToParts(date);
-  const map: Record<string, string> = {};
-
-  for (const part of parts) {
-    if (part.type !== "literal") map[part.type] = part.value;
-  }
-
-  const asUTC = Date.UTC(
-    Number(map.year),
-    Number(map.month) - 1,
-    Number(map.day),
-    Number(map.hour),
-    Number(map.minute),
-    Number(map.second)
-  );
-
-  return Math.round((asUTC - date.getTime()) / 60000);
-}
-
-function parseKickoffISO(date: string, time: string) {
-  const [dd, mm, yyyy] = date.split("/").map(Number);
-  const [hh = 0, min = 0, sec = 0] = (time || "00:00:00").split(":").map(Number);
-
-  // Treat scraped values as local Australia/Sydney time.
-  const utcGuess = Date.UTC(yyyy, (mm || 1) - 1, dd || 1, hh, min, sec);
-  const guessDate = new Date(utcGuess);
-  const offsetMinutes = getTimeZoneOffsetMinutes(guessDate, "Australia/Sydney");
-  const actualUtcMs = utcGuess - offsetMinutes * 60_000;
-
-  return new Date(actualUtcMs).toISOString();
+  const m: Record<string, string> = {};
+  for (const p of parts) if (p.type !== "literal") m[p.type] = p.value;
+  return `${m.hour}:${m.minute}:${m.second}`;
 }
 
 export async function GET() {
-  const url = "https://smhockey.com.au/legends";
+  const sb = supabaseAdmin();
 
-  const res = await fetch(url, { next: { revalidate: 43200 } });
-  if (!res.ok) {
-    return NextResponse.json({ ok: false, error: "Failed to fetch source" }, { status: 502 });
-  }
+  const { data: teams } = await sb.from("teams").select("team_key,name_full,short_name");
+  const teamNameByKey = new Map((teams ?? []).map((t) => [t.team_key, t.name_full]));
 
-  const html = await res.text();
-  const $ = cheerio.load(html);
+  const { data: matches, error: matchErr } = await sb
+    .from("matches")
+    .select("round_label,kickoff_at,venue,home_team_key,away_team_key,home_score,away_score,source_hash")
+    .eq("season", 2026)
+    .order("kickoff_at", { ascending: true });
 
-  let currentRound = "";
-  const allGames: Game[] = [];
-  const briarsGames: Game[] = [];
+  if (matchErr) return NextResponse.json({ ok: false, error: matchErr.message }, { status: 500 });
 
-  $("tr").each((_, tr) => {
-    const rowText = clean($(tr).text());
-    const roundMatch = rowText.match(/\bRound\s+\d+\b/i);
-    if (roundMatch) currentRound = roundMatch[0];
+  const allGames = (matches ?? []).map((m) => {
+    const home = teamNameByKey.get(m.home_team_key) ?? m.home_team_key;
+    const away = teamNameByKey.get(m.away_team_key) ?? m.away_team_key;
 
-    const tds = $(tr).find("td");
-    if (tds.length < 6) return;
+    const score =
+      m.home_score === null || m.away_score === null ? "-" : `${m.home_score}-${m.away_score}`;
 
-    const date = clean($(tds[0]).text());
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(date)) return;
-
-    const home = clean($(tds[1]).text());
-    const away = clean($(tds[2]).text());
-    const time = clean($(tds[3]).text()) || "00:00:00";
-    const venue = clean($(tds[4]).text());
-    const score = clean($(tds[5]).text()) || "-";
-
-    const game: Game = {
-      date,
-      time,
-      venue,
-      roundLabel: currentRound || "",
+    return {
+      date: auDateFromISO(m.kickoff_at),
+      time: auTimeFromISO(m.kickoff_at),
+      venue: m.venue ?? "",
+      roundLabel: m.round_label ?? "",
       home,
       away,
       score,
-      kickoffISO: parseKickoffISO(date, time),
+      kickoffISO: m.kickoff_at,
     };
-
-    allGames.push(game);
-
-    const isBriars = /briars/i.test(home) || /briars/i.test(away);
-    if (isBriars) briarsGames.push(game);
   });
 
-  allGames.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
-  briarsGames.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
+  // “Briars fixtures” subset for the page (keeps your current behaviour)
+  const briarsGames = allGames.filter((g) => g.home.toLowerCase().includes("briars") || g.away.toLowerCase().includes("briars"));
 
-  let ladderHeaders: string[] = [];
-  const ladderRows: LadderRow[] = [];
+  // ladder in your existing format (headers + rows)
+  const { data: ladderRows, error: ladderErr } = await sb
+    .from("ladder_latest")
+    .select("team_key,position,played,wins,draws,losses,gf,ga,gd,points,as_of")
+    .eq("season", 2026)
+    .order("position", { ascending: true });
 
-  $("table").each((_, table) => {
-    const headers = $(table)
-      .find("tr")
-      .first()
-      .find("th,td")
-      .map((_, cell) => clean($(cell).text()))
-      .get()
-      .filter(Boolean);
+  if (ladderErr) return NextResponse.json({ ok: false, error: ladderErr.message }, { status: 500 });
 
-    const looksLikeLadder =
-      headers.some((h) => /^team$/i.test(h)) &&
-      headers.some((h) => /pts|points/i.test(h));
-
-    if (!looksLikeLadder) return;
-
-    ladderHeaders = headers;
-
-    $(table)
-      .find("tr")
-      .slice(1)
-      .each((_, tr) => {
-        const cells = $(tr)
-          .find("td,th")
-          .map((_, cell) => clean($(cell).text()))
-          .get()
-          .filter((x) => x !== "");
-
-        if (cells.length < 2) return;
-        ladderRows.push({ team: cells[0], cols: cells });
-      });
-
-    return false;
-  });
+  const ladder = {
+    headers: ["Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"],
+    rows: (ladderRows ?? []).map((r) => {
+      const team = teamNameByKey.get(r.team_key) ?? r.team_key;
+      return {
+        team,
+        cols: [
+          team,
+          String(r.played ?? 0),
+          String(r.wins ?? 0),
+          String(r.draws ?? 0),
+          String(r.losses ?? 0),
+          String(r.gf ?? 0),
+          String(r.ga ?? 0),
+          String(r.gd ?? 0),
+          String(r.points ?? 0),
+        ],
+      };
+    }),
+  };
 
   return NextResponse.json({
     ok: true,
     team: "Briars",
-    source: url,
+    source: "supabase",
     refreshedAt: new Date().toISOString(),
-    // fixtures to show on the Briars page
     games: briarsGames,
-    // full comp dataset so we can compute opponent form / h2h without breaking on UI truncation
     allGames,
-    ladder: {
-      headers: ladderHeaders,
-      rows: ladderRows,
-    },
+    ladder,
   });
 }

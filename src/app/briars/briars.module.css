@@ -852,3 +852,114 @@
 @media (max-width: 860px){
   .h2hGrid{ grid-template-columns: 1fr; }
 }
+
+.h2hCompare {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.h2hCompareHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px 10px;
+}
+
+.h2hCompareTeam {
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.h2hCompareTeamRight {
+  text-align: right;
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.h2hCompareVs {
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.h2hCompareRows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.h2hCompareRow {
+  position: relative;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+}
+
+.h2hCompareBar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.h2hCompareTrack {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background: #0f172a;
+}
+
+.h2hCompareFillA {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  opacity: 0.12;
+  /* uses your existing colour via current CSS if you want;
+     this works even if it’s just a neutral tint */
+  background: #16a34a;
+}
+
+.h2hCompareFillB {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  opacity: 0.12;
+  background: #f59e0b;
+}
+
+.h2hCompareRowInner {
+  position: relative;
+  display: grid;
+  grid-template-columns: 92px 1fr 92px;
+  align-items: center;
+  padding: 14px 12px;
+  gap: 10px;
+}
+
+.h2hCompareValA,
+.h2hCompareValB {
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+  padding: 10px 10px;
+  border-radius: 12px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+}
+
+.h2hCompareLabel {
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: rgba(15, 23, 42, 0.70);
+}

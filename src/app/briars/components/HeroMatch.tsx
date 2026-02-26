@@ -3,7 +3,7 @@
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, CloudSun, Droplets, MapPin, Wind } from "lucide-react";
 import styles from "../briars.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
-import type { Game, Weather } from "../page";
+import type { Game, Weather, LadderPayload } from "../page";
 import HeadToHead from "./HeadToHead";
 
 const CLUB_LOGOS: Record<string, string> = {
@@ -70,6 +70,73 @@ function Logo({ url }: { url?: string }) {
   );
 }
 
+/** ---------- Ladder → TeamStats (simple, stable) ---------- */
+function toNum(s: string) {
+  const n = Number(String(s ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+function norm(s: string) {
+  return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function idxOf(headers: string[], wants: (string | RegExp)[]) {
+  const H = (headers || []).map((h) => String(h || "").toLowerCase());
+  for (let i = 0; i < H.length; i++) {
+    for (const w of wants) {
+      if (typeof w === "string") {
+        if (H[i] === w || H[i].includes(w)) return i;
+      } else {
+        if (w.test(H[i])) return i;
+      }
+    }
+  }
+  return -1;
+}
+
+function getTeamStatsFromLadder(ladder: LadderPayload | undefined, teamLabel: string) {
+  if (!ladder?.rows?.length) return null;
+
+  const headers = ladder.headers || [];
+  const rows = ladder.rows || [];
+
+  const row = rows.find((r) => {
+    const teamCell = r.cols?.[0] || r.team || "";
+    return norm(teamCell) === norm(teamLabel);
+  });
+
+  if (!row?.cols?.length) return null;
+
+  const iPlayed = idxOf(headers, [/^games?$/, "played", "gp"]);
+  const iW = idxOf(headers, [/^win(s)?$/, "win"]);
+  const iD = idxOf(headers, [/^draw(s)?$/, "draw"]);
+  const iL = idxOf(headers, [/^loss(es)?$/, "loss"]);
+  const iGF = idxOf(headers, [/^gf$/, "goals for", "for"]);
+  const iGA = idxOf(headers, [/^ga$/, "goals against", "against"]);
+  const iGD = idxOf(headers, [/^gd$/, "diff"]);
+  const iPts = idxOf(headers, ["point", "pts"]);
+
+  const played = iPlayed >= 0 ? toNum(row.cols[iPlayed]) : undefined;
+  const wins = iW >= 0 ? toNum(row.cols[iW]) : undefined;
+  const draws = iD >= 0 ? toNum(row.cols[iD]) : undefined;
+  const losses = iL >= 0 ? toNum(row.cols[iL]) : undefined;
+  const gf = iGF >= 0 ? toNum(row.cols[iGF]) : undefined;
+  const ga = iGA >= 0 ? toNum(row.cols[iGA]) : undefined;
+  const gd = iGD >= 0 ? toNum(row.cols[iGD]) : gf !== undefined && ga !== undefined ? gf - ga : undefined;
+  const points = iPts >= 0 ? toNum(row.cols[iPts]) : undefined;
+
+  return {
+    team: teamLabel,
+    played,
+    wins,
+    draws,
+    losses,
+    gf,
+    ga,
+    gd,
+    points,
+  };
+}
+
 export default function HeroMatch({
   activeGame,
   gamesSorted,
@@ -83,6 +150,7 @@ export default function HeroMatch({
   weather,
   isActiveUpcoming,
   onToast,
+  ladder,
 }: {
   activeGame: Game;
   gamesSorted: Game[];
@@ -99,6 +167,7 @@ export default function HeroMatch({
   isActiveUpcoming: boolean;
 
   onToast: (msg: string) => void;
+  ladder?: LadderPayload;
 }) {
   const heroCountdown = formatCountdown(new Date(activeGame.kickoffISO).getTime() - now.getTime());
 
@@ -110,6 +179,10 @@ export default function HeroMatch({
     setUserPinnedSelection(true);
     setActiveIndex(safe);
   }
+
+  // Pull both teams’ stats straight from ladder table (no clever matching)
+  const teamAStats = getTeamStatsFromLadder(ladder, activeGame.home);
+  const teamBStats = getTeamStatsFromLadder(ladder, activeGame.away);
 
   return (
     <section className={`${styles.card} ${styles.heroCard}`}>
@@ -131,7 +204,6 @@ export default function HeroMatch({
           </div>
         </div>
 
-        {/* Tabs for upcoming games */}
         <div className={styles.fixtureTabsWrap}>
           <div className={styles.fixtureTabs}>
             {(showAllFixtureTabs ? upcomingGames : upcomingGames.slice(0, 6)).map((g) => {
@@ -154,7 +226,14 @@ export default function HeroMatch({
             })}
 
             {upcomingGames.length > 6 ? (
-              <button className={styles.fixtureMore} type="button" onClick={() => { setUserPinnedSelection(true); setShowAllFixtureTabs(!showAllFixtureTabs); }}>
+              <button
+                className={styles.fixtureMore}
+                type="button"
+                onClick={() => {
+                  setUserPinnedSelection(true);
+                  setShowAllFixtureTabs(!showAllFixtureTabs);
+                }}
+              >
                 {showAllFixtureTabs ? (
                   <>
                     Less <ChevronUp size={15} />
@@ -169,7 +248,6 @@ export default function HeroMatch({
           </div>
         </div>
 
-        {/* Mobile-safe VS alignment */}
         <div className={styles.matchStack}>
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.home)]} />
@@ -221,12 +299,16 @@ export default function HeroMatch({
           </div>
         ) : null}
 
-        {/* Head-to-head (collapsed by default) */}
-<div className={styles.heroSection}>
-  <HeadToHead allGames={gamesSorted} teamA={activeGame.home} teamB={activeGame.away} />
-</div>
+        <div className={styles.heroSection}>
+          <HeadToHead
+            allGames={gamesSorted}
+            teamA={activeGame.home}
+            teamB={activeGame.away}
+            teamAStats={teamAStats}
+            teamBStats={teamBStats}
+          />
+        </div>
 
-        {/* Block 3 call-in */}
         <div className={styles.heroSection}>
           <AvailabilityBlock game={activeGame} onToast={onToast} />
         </div>

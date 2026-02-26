@@ -87,7 +87,9 @@ export async function GET(req: Request) {
     lines.push(`DTEND;TZID=Australia/Sydney:${toICSDateTimeInSydney(end)}`);
     lines.push(`SUMMARY:${escapeICS(`${g.home} vs ${g.away}`)}`);
     lines.push(`LOCATION:${escapeICS("Sydney Olympic Park Hockey Centre")}`);
-    lines.push(`DESCRIPTION:${escapeICS(`Round: ${g.roundLabel || "—"}`)}`);
+    lines.push(
+  `DESCRIPTION:${escapeICS(`Round: ${g.roundLabel || "—"}\\nVenue: Sydney Olympic Park Hockey Centre\\nMap: https://maps.app.goo.gl/YE4bD7YUjN9jacNH7`)}`
+);
     lines.push("END:VEVENT");
   }
 

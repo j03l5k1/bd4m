@@ -29,6 +29,8 @@ export type Payload = {
   source: string;
   refreshedAt: string;
   games: Game[];
+  // full competition dataset (all teams) from the scraper
+  allGames?: Game[];
   ladder?: LadderPayload;
 };
 
@@ -207,6 +209,7 @@ export default function BriarsPage() {
       <HeroMatch
         activeGame={activeGame}
         gamesSorted={gamesSorted}
+        allGames={data.allGames ?? gamesSorted}
         activeIndex={activeIndex}
         setActiveIndex={setActiveIndex}
         setUserPinnedSelection={setUserPinnedSelection}
@@ -217,7 +220,7 @@ export default function BriarsPage() {
         weather={weather}
         isActiveUpcoming={isActiveUpcoming}
         onToast={(m) => flash(m)}
-        ladder={data.ladder} // ✅ THIS WAS MISSING IN YOUR ZIP
+        ladder={data.ladder}
       />
 
       <LadderTable ladder={data.ladder} />

@@ -69,6 +69,11 @@ const CLUB_LOGOS: Record<string, string> = {
   ryde: "https://smhockey.com.au/wireframe/assets/images/ryde_logo.png",
 };
 
+const VENUE_COORDS: Record<string, { lat: number; lng: number }> = {
+  p2: { lat: -33.853683, lng: 151.068418 },
+  olympic: { lat: -33.855056, lng: 151.06807 },
+};
+
 function clubKey(teamName: string) {
   const s = teamName.toLowerCase();
   if (s.includes("briars")) return "briars";
@@ -95,7 +100,7 @@ function formatCountdown(ms: number) {
 
 function formatDayDate(iso: string) {
   const d = new Date(iso);
-  const day = d.toLocaleDateString("en-AU", { weekday: "short" }); // Tue
+  const day = d.toLocaleDateString("en-AU", { weekday: "short" });
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   return `${day} ${dd}/${mm}`;
@@ -103,8 +108,15 @@ function formatDayDate(iso: string) {
 
 function formatTime(iso: string) {
   const d = new Date(iso);
-  // "6:10 pm"
-  return d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  let hours = d.getHours();
+  const mins = String(d.getMinutes()).padStart(2, "0");
+
+  // Force pm display for all games on the page.
+  // If source time is morning-hour style, convert to evening equivalent.
+  if (hours < 12) hours += 12;
+
+  const twelveHour = hours > 12 ? hours - 12 : hours;
+  return `${twelveHour}:${mins} pm`;
 }
 
 function num(x: string | undefined) {
@@ -113,8 +125,55 @@ function num(x: string | undefined) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function Pill({ children, subtle }: { children: React.ReactNode; subtle?: boolean }) {
-  return <span className={`${styles.pill} ${subtle ? styles.pillSubtle : ""}`}>{children}</span>;
+function normaliseVenue(venue: string) {
+  return venue.trim().toLowerCase();
+}
+
+function getVenueDirectionsUrl(venue: string) {
+  const key = normaliseVenue(venue);
+  const coords = VENUE_COORDS[key];
+  if (!coords) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+}
+
+function Pill({
+  children,
+  subtle,
+  accent = "default",
+  onClick,
+  clickable,
+}: {
+  children: React.ReactNode;
+  subtle?: boolean;
+  accent?: "default" | "gold" | "blue" | "green" | "map";
+  onClick?: () => void;
+  clickable?: boolean;
+}) {
+  return (
+    <span
+      className={[
+        styles.pill,
+        subtle ? styles.pillSubtle : "",
+        accent === "gold" ? styles.pillGold : "",
+        accent === "blue" ? styles.pillBlue : "",
+        accent === "green" ? styles.pillGreen : "",
+        accent === "map" ? styles.pillMap : "",
+        clickable ? styles.pillClickable : "",
+      ].join(" ")}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") onClick();
+            }
+          : undefined
+      }
+    >
+      {children}
+    </span>
+  );
 }
 
 function Button({
@@ -243,7 +302,6 @@ export default function BriarsPage() {
   }, [upcoming.length]);
 
   useEffect(() => {
-    // preload names for next game + preview games (cheap)
     (async () => {
       const targets = [nextGame, ...upcoming.slice(0, 5)].filter(Boolean) as Game[];
       for (const g of targets) await loadNames(makeSourceKey(g));
@@ -333,8 +391,9 @@ export default function BriarsPage() {
       setToast("Saved ✓");
       setTimeout(() => setToast(null), 1800);
 
-      const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, { cache: "no-store" })
-        .then((r) => r.json());
+      const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, { cache: "no-store" }).then((r) =>
+        r.json()
+      );
       if (sum?.ok) setCountsByKey((prev) => ({ ...prev, [source_key]: sum.counts }));
 
       await loadNames(source_key);
@@ -346,7 +405,6 @@ export default function BriarsPage() {
     }
   }
 
-  // Ladder sort
   const ladder = data?.ladder;
   const ladderHeaders = ladder?.headers || [];
   const ladderRows = ladder?.rows || [];
@@ -373,7 +431,6 @@ export default function BriarsPage() {
   const sortedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
 
-    // Default tie-break: Pts desc, then GD desc, then GF desc
     rows.sort((a, b) => {
       const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
       const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
@@ -390,7 +447,6 @@ export default function BriarsPage() {
       return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
     });
 
-    // User sort override
     if (ladderSortKey && ladderHeaders.length) {
       const keyLower = ladderSortKey.toLowerCase();
       const idx = headerIndex[keyLower];
@@ -436,8 +492,8 @@ export default function BriarsPage() {
       : { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
 
     return (
-      <div style={{ marginTop: 10 }}>
-        <div style={{ marginTop: 6, color: "var(--muted)", fontWeight: 850 }}>
+      <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 8, color: "var(--muted)", fontWeight: 850 }}>
           Your status:{" "}
           <span style={{ color: "var(--text)", fontWeight: 950 }}>
             {mine === "yes" ? "In" : mine === "maybe" ? "Maybe" : mine === "no" ? "Out" : "Not set"}
@@ -445,7 +501,7 @@ export default function BriarsPage() {
           </span>
         </div>
 
-        <div style={{ marginTop: 12, borderTop: "1px solid var(--stroke)", paddingTop: 12 }}>
+        <div style={{ marginTop: 14, borderTop: "1px solid var(--stroke)", paddingTop: 14 }}>
           <div style={gridStyle}>
             <div>
               <div style={{ fontWeight: 950, marginBottom: 6 }}>✅ In</div>
@@ -488,6 +544,8 @@ export default function BriarsPage() {
     const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
     const noLabel = mine ? "Change to ❌ No" : "❌ No";
 
+    const directionsUrl = getVenueDirectionsUrl(g.venue);
+
     return (
       <div className={styles.gcard}>
         <div className={styles.gTop}>
@@ -496,20 +554,36 @@ export default function BriarsPage() {
             <span className={styles.gVs}>vs</span>
             <Logo url={awayLogo} />
             <div className={styles.gNames}>
-              <div className={styles.gTitle}>{g.home} vs {g.away}</div>
+              <div className={styles.gTitle}>
+                {g.home} vs {g.away}
+              </div>
               <div className={styles.gSub}>{g.roundLabel || "Fixture"}</div>
             </div>
           </div>
-          <Pill subtle>{formatCountdown(ms)}</Pill>
+          <Pill subtle accent="blue">
+            {formatCountdown(ms)}
+          </Pill>
         </div>
 
         <div className={styles.gMeta}>
           <span className={styles.gMetaItem}>
             <Clock3 size={16} /> {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)}
           </span>
-          <span className={styles.gMetaItem}>
-            <MapPin size={16} /> {g.venue || "—"}
-          </span>
+
+          {directionsUrl ? (
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={`${styles.gMetaItem} ${styles.gMetaLink}`}
+            >
+              <MapPin size={16} /> {g.venue || "—"}
+            </a>
+          ) : (
+            <span className={styles.gMetaItem}>
+              <MapPin size={16} /> {g.venue || "—"}
+            </span>
+          )}
         </div>
 
         <details className={styles.details}>
@@ -521,9 +595,15 @@ export default function BriarsPage() {
           </summary>
 
           <div className={styles.btnRow}>
-            <Button onClick={() => setStatus(g, "yes")} disabled={saving}>{yesLabel}</Button>
-            <Button onClick={() => setStatus(g, "maybe")} disabled={saving}>{maybeLabel}</Button>
-            <Button onClick={() => setStatus(g, "no")} disabled={saving}>{noLabel}</Button>
+            <Button onClick={() => setStatus(g, "yes")} disabled={saving}>
+              {yesLabel}
+            </Button>
+            <Button onClick={() => setStatus(g, "maybe")} disabled={saving}>
+              {maybeLabel}
+            </Button>
+            <Button onClick={() => setStatus(g, "no")} disabled={saving}>
+              {noLabel}
+            </Button>
           </div>
 
           <AvailabilityNames g={g} />
@@ -576,7 +656,9 @@ export default function BriarsPage() {
               </Pill>
             )}
 
-            <Button kind="soft" onClick={loadFixtures}>Refresh</Button>
+            <Button kind="soft" onClick={loadFixtures}>
+              Refresh
+            </Button>
           </div>
         </div>
 
@@ -633,8 +715,12 @@ export default function BriarsPage() {
                       </div>
                     ) : (
                       <div className={styles.pinRow}>
-                        <Pill><ShieldCheck size={16} /> Unlocked on this device</Pill>
-                        <Button kind="soft" onClick={logout}>Log out</Button>
+                        <Pill accent="green">
+                          <ShieldCheck size={16} /> Unlocked on this device
+                        </Pill>
+                        <Button kind="soft" onClick={logout}>
+                          Log out
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -642,7 +728,6 @@ export default function BriarsPage() {
               </div>
             )}
 
-            {/* Next game */}
             {(() => {
               if (!nextGame) return null;
 
@@ -659,13 +744,18 @@ export default function BriarsPage() {
               const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
               const noLabel = mine ? "Change to ❌ No" : "❌ No";
 
+              const directionsUrl = getVenueDirectionsUrl(nextGame.venue);
+
               return (
                 <div style={{ marginTop: showLogin ? 14 : 0 }}>
-                  <div className={styles.card}>
+                  <div className={`${styles.card} ${styles.nextGameCard}`}>
                     <div className={styles.cardPad}>
                       <div className={styles.rowTop}>
-                        <Pill><Trophy size={16} /> Next game</Pill>
-                        <Pill subtle>
+                        <Pill accent="gold">
+                          <Trophy size={16} /> Next game
+                        </Pill>
+
+                        <Pill subtle accent="blue">
                           Starts in <b style={{ color: "var(--text)" }}>{formatCountdown(ms)}</b>
                         </Pill>
                       </div>
@@ -694,10 +784,27 @@ export default function BriarsPage() {
                       </div>
 
                       <div className={styles.chips}>
-                        <Pill><CalendarDays size={16} /> {formatDayDate(nextGame.kickoffISO)}</Pill>
-                        <Pill><Clock3 size={16} /> {formatTime(nextGame.kickoffISO)}</Pill>
-                        <Pill><MapPin size={16} /> {nextGame.venue || "—"}</Pill>
-                        <Pill><Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}</Pill>
+                        <Pill accent="blue">
+                          <CalendarDays size={16} /> {formatDayDate(nextGame.kickoffISO)}
+                        </Pill>
+
+                        <Pill accent="blue">
+                          <Clock3 size={16} /> {formatTime(nextGame.kickoffISO)}
+                        </Pill>
+
+                        {directionsUrl ? (
+                          <Pill accent="map" clickable onClick={() => window.open(directionsUrl, "_blank", "noopener,noreferrer")}>
+                            <MapPin size={16} /> {nextGame.venue || "—"}
+                          </Pill>
+                        ) : (
+                          <Pill>
+                            <MapPin size={16} /> {nextGame.venue || "—"}
+                          </Pill>
+                        )}
+
+                        <Pill accent="green">
+                          <Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
+                        </Pill>
 
                         {weather?.ok && (
                           <Pill>
@@ -726,9 +833,15 @@ export default function BriarsPage() {
                         </summary>
 
                         <div className={styles.btnRow}>
-                          <Button onClick={() => setStatus(nextGame, "yes")} disabled={saving}>{yesLabel}</Button>
-                          <Button onClick={() => setStatus(nextGame, "maybe")} disabled={saving}>{maybeLabel}</Button>
-                          <Button onClick={() => setStatus(nextGame, "no")} disabled={saving}>{noLabel}</Button>
+                          <Button onClick={() => setStatus(nextGame, "yes")} disabled={saving}>
+                            {yesLabel}
+                          </Button>
+                          <Button onClick={() => setStatus(nextGame, "maybe")} disabled={saving}>
+                            {maybeLabel}
+                          </Button>
+                          <Button onClick={() => setStatus(nextGame, "no")} disabled={saving}>
+                            {noLabel}
+                          </Button>
                         </div>
 
                         <AvailabilityNames g={nextGame} />
@@ -739,8 +852,7 @@ export default function BriarsPage() {
               );
             })()}
 
-            {/* Upcoming fixtures */}
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 20 }}>
               <div className={styles.sectionTop}>
                 <div className={styles.sectionTitle}>Upcoming fixtures</div>
                 <button className={styles.pillBtn} onClick={() => setShowAllUpcoming((v) => !v)}>
@@ -769,8 +881,7 @@ export default function BriarsPage() {
               )}
             </div>
 
-            {/* Ladder */}
-            <div style={{ marginTop: 18 }}>
+            <div style={{ marginTop: 22 }}>
               <div className={styles.sectionTop}>
                 <div className={styles.sectionTitle}>Snr Masters Ladder</div>
                 <Pill subtle>Default: Pts ↓ then GD ↓</Pill>
@@ -811,7 +922,9 @@ export default function BriarsPage() {
                         return (
                           <tr key={`${r.team}-${idx}`} className={isBriars ? styles.ladderBriars : ""}>
                             {r.cols.map((c, i) => (
-                              <td key={i} className={styles.ladderTd}>{c}</td>
+                              <td key={i} className={styles.ladderTd}>
+                                {c}
+                              </td>
                             ))}
                           </tr>
                         );
@@ -830,21 +943,26 @@ export default function BriarsPage() {
               </div>
             </div>
 
-            {/* Past results */}
-            <div style={{ marginTop: 18, paddingBottom: 38 }}>
-              <div className={styles.sectionTitle} style={{ marginBottom: 10 }}>Past results</div>
+            <div style={{ marginTop: 22, paddingBottom: 38 }}>
+              <div className={styles.sectionTitle} style={{ marginBottom: 10 }}>
+                Past results
+              </div>
 
               <div className={styles.pastGrid}>
                 {past.slice(0, 12).map((g, idx) => (
                   <div key={idx} className={styles.card}>
                     <div className={styles.cardPad}>
-                      <div style={{ fontWeight: 950 }}>{g.home} vs {g.away}</div>
+                      <div style={{ fontWeight: 950 }}>
+                        {g.home} vs {g.away}
+                      </div>
                       <div className={styles.hint} style={{ marginTop: 4 }}>
                         {g.roundLabel ? `${g.roundLabel} • ` : ""}
                         {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)} • {g.venue}
                       </div>
                       <div style={{ marginTop: 10 }}>
-                        <Pill><Trophy size={16} /> Final: <span style={{ color: "var(--text)" }}>{g.score}</span></Pill>
+                        <Pill>
+                          <Trophy size={16} /> Final: <span style={{ color: "var(--text)" }}>{g.score}</span>
+                        </Pill>
                       </div>
                     </div>
                   </div>

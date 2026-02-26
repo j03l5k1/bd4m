@@ -69,11 +69,6 @@ const CLUB_LOGOS: Record<string, string> = {
   ryde: "https://smhockey.com.au/wireframe/assets/images/ryde_logo.png",
 };
 
-const VENUE_COORDS: Record<string, { lat: number; lng: number }> = {
-  p2: { lat: -33.853683, lng: 151.068418 },
-  olympic: { lat: -33.855056, lng: 151.06807 },
-};
-
 function clubKey(teamName: string) {
   const s = teamName.toLowerCase();
   if (s.includes("briars")) return "briars";
@@ -108,15 +103,7 @@ function formatDayDate(iso: string) {
 
 function formatTime(iso: string) {
   const d = new Date(iso);
-  let hours = d.getHours();
-  const mins = String(d.getMinutes()).padStart(2, "0");
-
-  // Force pm display for all games on the page.
-  // If source time is morning-hour style, convert to evening equivalent.
-  if (hours < 12) hours += 12;
-
-  const twelveHour = hours > 12 ? hours - 12 : hours;
-  return `${twelveHour}:${mins} pm`;
+  return d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }).toLowerCase();
 }
 
 function shortTeamName(team: string) {
@@ -129,55 +116,28 @@ function num(x: string | undefined) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function normaliseVenue(venue: string) {
-  return venue.trim().toLowerCase();
+function ordinal(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n}st`;
+  if (mod10 === 2 && mod100 !== 12) return `${n}nd`;
+  if (mod10 === 3 && mod100 !== 13) return `${n}rd`;
+  return `${n}th`;
 }
 
-function getVenueDirectionsUrl(venue: string) {
-  const key = normaliseVenue(venue);
-  const coords = VENUE_COORDS[key];
-  if (!coords) return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+function rankEmoji(rank?: number) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return "";
 }
 
-function Pill({
-  children,
-  subtle,
-  accent = "default",
-  onClick,
-  clickable,
-}: {
-  children: React.ReactNode;
-  subtle?: boolean;
-  accent?: "default" | "gold" | "blue" | "green" | "map";
-  onClick?: () => void;
-  clickable?: boolean;
-}) {
-  return (
-    <span
-      className={[
-        styles.pill,
-        subtle ? styles.pillSubtle : "",
-        accent === "gold" ? styles.pillGold : "",
-        accent === "blue" ? styles.pillBlue : "",
-        accent === "green" ? styles.pillGreen : "",
-        accent === "map" ? styles.pillMap : "",
-        clickable ? styles.pillClickable : "",
-      ].join(" ")}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") onClick();
-            }
-          : undefined
-      }
-    >
-      {children}
-    </span>
-  );
+function normaliseTeamName(team: string) {
+  return team.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function Pill({ children, subtle }: { children: React.ReactNode; subtle?: boolean }) {
+  return <span className={`${styles.pill} ${subtle ? styles.pillSubtle : ""}`}>{children}</span>;
 }
 
 function Button({
@@ -431,8 +391,13 @@ export default function BriarsPage() {
   const idxPts = findIndexByNames(["pts", "points"]);
   const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
   const idxGF = findIndexByNames(["gf", "for"]);
+  const idxGA = findIndexByNames(["ga", "against"]);
+  const idxP = findIndexByNames(["p", "pld", "played"]);
+  const idxW = findIndexByNames(["w", "won", "wins"]);
+  const idxD = findIndexByNames(["d", "draw", "draws"]);
+  const idxL = findIndexByNames(["l", "loss", "losses"]);
 
-  const sortedLadderRows = useMemo(() => {
+  const rankedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
 
     rows.sort((a, b) => {
@@ -450,6 +415,12 @@ export default function BriarsPage() {
 
       return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
     });
+
+    return rows;
+  }, [ladderRows, idxPts, idxGD, idxGF, idxTeam]);
+
+  const sortedLadderRows = useMemo(() => {
+    const rows = [...rankedLadderRows];
 
     if (ladderSortKey && ladderHeaders.length) {
       const keyLower = ladderSortKey.toLowerCase();
@@ -475,10 +446,53 @@ export default function BriarsPage() {
     }
 
     return rows;
-  }, [ladderRows, ladderHeaders.join("|"), ladderSortKey, ladderSortDir, headerIndex, idxPts, idxGD, idxGF]);
+  }, [rankedLadderRows, ladderHeaders.join("|"), ladderSortKey, ladderSortDir, headerIndex, idxPts, idxGD, idxTeam]);
+
+  const teamRankMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    rankedLadderRows.forEach((row, index) => {
+      const name = String(row.cols[idxTeam] || row.team || "");
+      if (!name) return;
+      map[normaliseTeamName(name)] = index + 1;
+    });
+    return map;
+  }, [rankedLadderRows, idxTeam]);
+
+  function findLadderRowForTeam(teamName: string) {
+    const needle = normaliseTeamName(teamName);
+    const direct = rankedLadderRows.find((row) => normaliseTeamName(String(row.cols[idxTeam] || row.team || "")) === needle);
+    if (direct) return direct;
+
+    const short = shortTeamName(teamName).toLowerCase();
+    return rankedLadderRows.find((row) => {
+      const rowName = String(row.cols[idxTeam] || row.team || "").toLowerCase();
+      return rowName.includes(short);
+    });
+  }
+
+  function getTeamRank(teamName: string) {
+    const direct = teamRankMap[normaliseTeamName(teamName)];
+    if (direct) return direct;
+
+    const row = findLadderRowForTeam(teamName);
+    if (!row) return undefined;
+
+    const rowName = String(row.cols[idxTeam] || row.team || "");
+    return teamRankMap[normaliseTeamName(rowName)];
+  }
+
+  function teamDisplayLabel(teamName: string) {
+    const short = shortTeamName(teamName);
+    const rank = getTeamRank(teamName);
+
+    if (!rank) return short;
+
+    const emoji = rankEmoji(rank);
+    return `${short} ${emoji ? `${emoji} ` : ""}(${ordinal(rank)})`;
+  }
 
   const showLogin = !loginComplete;
-  const upcomingPreview = upcoming.slice(0, 4);
+  const upcomingPreview = upcoming.slice(0, 5);
   const upcomingAll = upcoming;
 
   function AvailabilityNames({ g }: { g: Game }) {
@@ -496,8 +510,8 @@ export default function BriarsPage() {
       : { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 };
 
     return (
-      <div style={{ marginTop: 12 }}>
-        <div style={{ marginTop: 8, color: "var(--muted)", fontWeight: 850 }}>
+      <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 6, color: "var(--muted)", fontWeight: 850 }}>
           Your status:{" "}
           <span style={{ color: "var(--text)", fontWeight: 950 }}>
             {mine === "yes" ? "In" : mine === "maybe" ? "Maybe" : mine === "no" ? "Out" : "Not set"}
@@ -505,7 +519,7 @@ export default function BriarsPage() {
           </span>
         </div>
 
-        <div style={{ marginTop: 14, borderTop: "1px solid var(--stroke)", paddingTop: 14 }}>
+        <div style={{ marginTop: 12, borderTop: "1px solid var(--stroke)", paddingTop: 12 }}>
           <div style={gridStyle}>
             <div>
               <div style={{ fontWeight: 950, marginBottom: 6 }}>✅ In</div>
@@ -533,6 +547,132 @@ export default function BriarsPage() {
     );
   }
 
+  function HeadToHead({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) {
+    const homeRow = findLadderRowForTeam(homeTeam);
+    const awayRow = findLadderRowForTeam(awayTeam);
+
+    if (!homeRow || !awayRow) {
+      return (
+        <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
+          Comparison not available yet.
+        </div>
+      );
+    }
+
+    const metrics = [
+      { label: "Pos", home: getTeamRank(homeTeam) ? ordinal(getTeamRank(homeTeam)!) : "—", away: getTeamRank(awayTeam) ? ordinal(getTeamRank(awayTeam)!) : "—" },
+      { label: "P", home: idxP >= 0 ? homeRow.cols[idxP] : "—", away: idxP >= 0 ? awayRow.cols[idxP] : "—" },
+      { label: "W", home: idxW >= 0 ? homeRow.cols[idxW] : "—", away: idxW >= 0 ? awayRow.cols[idxW] : "—" },
+      { label: "D", home: idxD >= 0 ? homeRow.cols[idxD] : "—", away: idxD >= 0 ? awayRow.cols[idxD] : "—" },
+      { label: "L", home: idxL >= 0 ? homeRow.cols[idxL] : "—", away: idxL >= 0 ? awayRow.cols[idxL] : "—" },
+      { label: "GF", home: idxGF >= 0 ? homeRow.cols[idxGF] : "—", away: idxGF >= 0 ? awayRow.cols[idxGF] : "—" },
+      { label: "GA", home: idxGA >= 0 ? homeRow.cols[idxGA] : "—", away: idxGA >= 0 ? awayRow.cols[idxGA] : "—" },
+      { label: "GD", home: idxGD >= 0 ? homeRow.cols[idxGD] : "—", away: idxGD >= 0 ? awayRow.cols[idxGD] : "—" },
+      { label: "Pts", home: idxPts >= 0 ? homeRow.cols[idxPts] : "—", away: idxPts >= 0 ? awayRow.cols[idxPts] : "—" },
+    ];
+
+    return (
+      <details
+        className={styles.details}
+        style={{ marginTop: 12 }}
+      >
+        <summary className={styles.summary}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <Trophy size={18} /> Head-to-head
+          </span>
+          <span className={styles.summaryRight}>
+            Compare <ChevronDown size={16} />
+          </span>
+        </summary>
+
+        <div style={{ marginTop: 14, overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: 320,
+              fontSize: 13,
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "10px 8px",
+                    borderBottom: "1px solid var(--stroke)",
+                    color: "var(--muted)",
+                    fontWeight: 950,
+                  }}
+                >
+                  {teamDisplayLabel(homeTeam)}
+                </th>
+                <th
+                  style={{
+                    textAlign: "center",
+                    padding: "10px 8px",
+                    borderBottom: "1px solid var(--stroke)",
+                    color: "var(--muted)",
+                    fontWeight: 950,
+                  }}
+                >
+                  Stat
+                </th>
+                <th
+                  style={{
+                    textAlign: "right",
+                    padding: "10px 8px",
+                    borderBottom: "1px solid var(--stroke)",
+                    color: "var(--muted)",
+                    fontWeight: 950,
+                  }}
+                >
+                  {teamDisplayLabel(awayTeam)}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.map((m) => (
+                <tr key={m.label}>
+                  <td
+                    style={{
+                      padding: "10px 8px",
+                      borderBottom: "1px solid rgba(17,24,39,0.06)",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {m.home}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 8px",
+                      borderBottom: "1px solid rgba(17,24,39,0.06)",
+                      textAlign: "center",
+                      color: "var(--muted)",
+                      fontWeight: 950,
+                    }}
+                  >
+                    {m.label}
+                  </td>
+                  <td
+                    style={{
+                      padding: "10px 8px",
+                      borderBottom: "1px solid rgba(17,24,39,0.06)",
+                      textAlign: "right",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {m.away}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    );
+  }
+
   function GameCard({ g }: { g: Game }) {
     const dt = new Date(g.kickoffISO);
     const ms = dt.getTime() - now.getTime();
@@ -548,8 +688,6 @@ export default function BriarsPage() {
     const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
     const noLabel = mine ? "Change to ❌ No" : "❌ No";
 
-    const directionsUrl = getVenueDirectionsUrl(g.venue);
-
     return (
       <div className={styles.gcard}>
         <div className={styles.gTop}>
@@ -559,35 +697,21 @@ export default function BriarsPage() {
             <Logo url={awayLogo} />
             <div className={styles.gNames}>
               <div className={styles.gTitle}>
-                {g.home} vs {g.away}
+                {teamDisplayLabel(g.home)} vs {teamDisplayLabel(g.away)}
               </div>
               <div className={styles.gSub}>{g.roundLabel || "Fixture"}</div>
             </div>
           </div>
-          <Pill subtle accent="blue">
-            {formatCountdown(ms)}
-          </Pill>
+          <Pill subtle>{formatCountdown(ms)}</Pill>
         </div>
 
         <div className={styles.gMeta}>
           <span className={styles.gMetaItem}>
             <Clock3 size={16} /> {formatDayDate(g.kickoffISO)} · {formatTime(g.kickoffISO)}
           </span>
-
-          {directionsUrl ? (
-            <a
-              href={directionsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={`${styles.gMetaItem} ${styles.gMetaLink}`}
-            >
-              <MapPin size={16} /> {g.venue || "—"}
-            </a>
-          ) : (
-            <span className={styles.gMetaItem}>
-              <MapPin size={16} /> {g.venue || "—"}
-            </span>
-          )}
+          <span className={styles.gMetaItem}>
+            <MapPin size={16} /> {g.venue || "—"}
+          </span>
         </div>
 
         <details className={styles.details}>
@@ -633,7 +757,7 @@ export default function BriarsPage() {
           <div className={styles.actions}>
             <Button onClick={() => (window.location.href = "/api/calendar/all")}>
               <SiGooglecalendar size={18} />
-              Add all games to calendar
+              Add to calendar
             </Button>
 
             {!showLogin && (
@@ -719,7 +843,7 @@ export default function BriarsPage() {
                       </div>
                     ) : (
                       <div className={styles.pinRow}>
-                        <Pill accent="green">
+                        <Pill>
                           <ShieldCheck size={16} /> Unlocked on this device
                         </Pill>
                         <Button kind="soft" onClick={logout}>
@@ -748,18 +872,15 @@ export default function BriarsPage() {
               const maybeLabel = mine ? "Change to ❓ Maybe" : "❓ Maybe";
               const noLabel = mine ? "Change to ❌ No" : "❌ No";
 
-              const directionsUrl = getVenueDirectionsUrl(nextGame.venue);
-
               return (
                 <div style={{ marginTop: showLogin ? 14 : 0 }}>
-                  <div className={`${styles.card} ${styles.nextGameCard}`}>
+                  <div className={styles.card}>
                     <div className={styles.cardPad}>
                       <div className={styles.rowTop}>
-                        <Pill accent="gold">
+                        <Pill>
                           <Trophy size={16} /> Next game
                         </Pill>
-
-                        <Pill subtle accent="blue">
+                        <Pill subtle>
                           Starts in <b style={{ color: "var(--text)" }}>{formatCountdown(ms)}</b>
                         </Pill>
                       </div>
@@ -768,7 +889,7 @@ export default function BriarsPage() {
                         <div className={styles.team}>
                           <Logo url={homeLogo} />
                           <div>
-                            <div className={styles.teamName}>{shortTeamName(nextGame.home)}</div>
+                            <div className={styles.teamName}>{teamDisplayLabel(nextGame.home)}</div>
                             <div className={styles.subMini}>Home</div>
                           </div>
                         </div>
@@ -780,7 +901,7 @@ export default function BriarsPage() {
 
                         <div className={`${styles.team} ${styles.teamRight}`}>
                           <div>
-                            <div className={styles.teamName}>{shortTeamName(nextGame.away)}</div>
+                            <div className={styles.teamName}>{teamDisplayLabel(nextGame.away)}</div>
                             <div className={styles.subMini}>Away</div>
                           </div>
                           <Logo url={awayLogo} />
@@ -788,25 +909,16 @@ export default function BriarsPage() {
                       </div>
 
                       <div className={styles.chips}>
-                        <Pill accent="blue">
+                        <Pill>
                           <CalendarDays size={16} /> {formatDayDate(nextGame.kickoffISO)}
                         </Pill>
-
-                        <Pill accent="blue">
+                        <Pill>
                           <Clock3 size={16} /> {formatTime(nextGame.kickoffISO)}
                         </Pill>
-
-                        {directionsUrl ? (
-                          <Pill accent="map" clickable onClick={() => window.open(directionsUrl, "_blank", "noopener,noreferrer")}>
-                            <MapPin size={16} /> {nextGame.venue || "—"}
-                          </Pill>
-                        ) : (
-                          <Pill>
-                            <MapPin size={16} /> {nextGame.venue || "—"}
-                          </Pill>
-                        )}
-
-                        <Pill accent="green">
+                        <Pill>
+                          <MapPin size={16} /> {nextGame.venue || "—"}
+                        </Pill>
+                        <Pill>
                           <Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
                         </Pill>
 
@@ -823,6 +935,8 @@ export default function BriarsPage() {
                           </Pill>
                         )}
                       </div>
+
+                      <HeadToHead homeTeam={nextGame.home} awayTeam={nextGame.away} />
 
                       <div className={styles.divider} />
 
@@ -856,7 +970,7 @@ export default function BriarsPage() {
               );
             })()}
 
-            <div style={{ marginTop: 20 }}>
+            <div style={{ marginTop: 18 }}>
               <div className={styles.sectionTop}>
                 <div className={styles.sectionTitle}>Upcoming fixtures</div>
                 <button className={styles.pillBtn} onClick={() => setShowAllUpcoming((v) => !v)}>
@@ -885,7 +999,7 @@ export default function BriarsPage() {
               )}
             </div>
 
-            <div style={{ marginTop: 22 }}>
+            <div style={{ marginTop: 18 }}>
               <div className={styles.sectionTop}>
                 <div className={styles.sectionTitle}>Snr Masters Ladder</div>
                 <Pill subtle>Default: Pts ↓ then GD ↓</Pill>
@@ -947,7 +1061,7 @@ export default function BriarsPage() {
               </div>
             </div>
 
-            <div style={{ marginTop: 22, paddingBottom: 38 }}>
+            <div style={{ marginTop: 18, paddingBottom: 38 }}>
               <div className={styles.sectionTitle} style={{ marginBottom: 10 }}>
                 Past results
               </div>
@@ -957,7 +1071,7 @@ export default function BriarsPage() {
                   <div key={idx} className={styles.card}>
                     <div className={styles.cardPad}>
                       <div style={{ fontWeight: 950 }}>
-                        {g.home} vs {g.away}
+                        {teamDisplayLabel(g.home)} vs {teamDisplayLabel(g.away)}
                       </div>
                       <div className={styles.hint} style={{ marginTop: 4 }}>
                         {g.roundLabel ? `${g.roundLabel} • ` : ""}

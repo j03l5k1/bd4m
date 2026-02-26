@@ -1,6 +1,6 @@
 
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
 
 function clean(s: string) {
   return s.replace(/\s+/g, " ").trim();

@@ -16,6 +16,7 @@ import {
   Wind,
 } from "lucide-react";
 import { SiGooglecalendar } from "react-icons/si";
+import styles from "./briars.module.css";
 
 type Game = {
   date: string;
@@ -96,103 +97,33 @@ function num(x: string | undefined) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="card">
-      {children}
-      <style jsx>{`
-        .card{
-          border: 1px solid rgba(17,24,39,0.10);
-          background: rgba(255,255,255,0.88);
-          border-radius: 18px;
-          box-shadow: 0 10px 30px rgba(17,24,39,0.10);
-          backdrop-filter: blur(10px);
-        }
-      `}</style>
-    </div>
-  );
-}
-
 function Pill({ children, subtle }: { children: React.ReactNode; subtle?: boolean }) {
-  return (
-    <span className={`pill ${subtle ? "subtle" : ""}`}>
-      {children}
-      <style jsx>{`
-        .pill{
-          display:inline-flex;
-          align-items:center;
-          gap:8px;
-          padding:8px 10px;
-          border-radius:999px;
-          border:1px solid rgba(17,24,39,0.10);
-          background: rgba(17,24,39,0.02);
-          color: rgba(17,24,39,0.70);
-          font-size:13px;
-          font-weight:800;
-          white-space:nowrap;
-        }
-        .pill.subtle{
-          background: rgba(17,24,39,0.01);
-          color: rgba(17,24,39,0.60);
-        }
-      `}</style>
-    </span>
-  );
+  return <span className={`${styles.pill} ${subtle ? styles.pillSubtle : ""}`}>{children}</span>;
 }
 
-function Button({ children, onClick, kind = "primary" }: { children: React.ReactNode; onClick?: () => void; kind?: "primary"|"soft" }) {
+function Button({
+  children,
+  onClick,
+  kind = "primary",
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  kind?: "primary" | "soft";
+}) {
   return (
-    <button className={`btn ${kind}`} onClick={onClick}>
+    <button
+      className={`${styles.btn} ${kind === "primary" ? styles.btnPrimary : styles.btnSoft}`}
+      onClick={onClick}
+    >
       {children}
-      <style jsx>{`
-        .btn{
-          padding: 10px 12px;
-          border-radius: 12px;
-          font-weight: 900;
-          cursor: pointer;
-          border: 1px solid rgba(17,24,39,0.14);
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .btn.primary{
-          background: white;
-          box-shadow: 0 4px 18px rgba(17,24,39,0.08);
-          color: rgba(17,24,39,0.92);
-        }
-        .btn.soft{
-          background: rgba(17,24,39,0.03);
-          border: 1px solid rgba(17,24,39,0.10);
-          color: rgba(17,24,39,0.88);
-        }
-        .btn:active{ transform: translateY(1px); }
-      `}</style>
     </button>
   );
 }
 
 function Logo({ url }: { url?: string }) {
   return (
-    <div className="logo">
-      {url ? <img src={url} alt="" /> : <span>—</span>}
-      <style jsx>{`
-        .logo{
-          width:54px;height:54px;
-          border-radius:14px;
-          border:1px solid rgba(17,24,39,0.10);
-          background:white;
-          display:grid;
-          place-items:center;
-          overflow:hidden;
-          flex:0 0 auto;
-        }
-        .logo img{
-          width:100%;height:100%;
-          object-fit:contain;
-          padding:8px;
-        }
-        .logo span{ color: rgba(17,24,39,0.35); font-weight:900; }
-      `}</style>
+    <div className={styles.logo}>
+      {url ? <img className={styles.logoImg} src={url} alt="" /> : <span className={styles.logoFallback}>—</span>}
     </div>
   );
 }
@@ -205,17 +136,14 @@ export default function BriarsPage() {
   const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  // login / remembered
   const [pinOk, setPinOk] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [playerName, setPlayerName] = useState("");
 
-  // upcoming display
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
-  // ladder sorting
   const [ladderSortKey, setLadderSortKey] = useState<string>("PTS");
-  const [ladderSortDir, setLadderSortDir] = useState<"desc"|"asc">("desc");
+  const [ladderSortDir, setLadderSortDir] = useState<"desc" | "asc">("desc");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
@@ -235,7 +163,9 @@ export default function BriarsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { loadFixtures(); }, []);
+  useEffect(() => {
+    loadFixtures();
+  }, []);
 
   const { upcoming, past, nextGame } = useMemo(() => {
     const games = data?.games ?? [];
@@ -246,18 +176,19 @@ export default function BriarsPage() {
       if (dt.getTime() >= now.getTime()) u.push(g);
       else p.push(g);
     }
-    u.sort((a,b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
-    p.sort((a,b) => new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime());
+    u.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
+    p.sort((a, b) => new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime());
     return { upcoming: u, past: p, nextGame: u[0] || null };
   }, [data, now]);
 
-  // counts
   useEffect(() => {
     (async () => {
       const next: Record<string, Counts> = {};
       for (const g of upcoming.slice(0, 30)) {
         const key = makeSourceKey(g);
-        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
+        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, {
+          cache: "no-store",
+        });
         const json = await res.json();
         if (json?.ok) next[key] = json.counts;
       }
@@ -265,17 +196,17 @@ export default function BriarsPage() {
     })();
   }, [upcoming.length]);
 
-  // weather (next game)
   useEffect(() => {
     (async () => {
       if (!nextGame) return setWeather(null);
-      const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, { cache: "no-store" });
+      const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, {
+        cache: "no-store",
+      });
       const json = await res.json();
       setWeather(json);
     })();
   }, [nextGame?.kickoffISO]);
 
-  // auto-hide login if ready
   const loginComplete = useMemo(() => {
     const nOk = (playerName || "").trim().length >= 2;
     return pinOk && nOk;
@@ -328,22 +259,22 @@ export default function BriarsPage() {
     const json = await res.json();
     if (!json?.ok) return alert(json?.error || "Failed to save");
 
-    const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, { cache: "no-store" }).then(r => r.json());
-    if (sum?.ok) setCountsByKey(prev => ({ ...prev, [source_key]: sum.counts }));
+    const sum = await fetch(
+      `/api/availability/summary?source_key=${encodeURIComponent(source_key)}`,
+      { cache: "no-store" }
+    ).then((r) => r.json());
+
+    if (sum?.ok) setCountsByKey((prev) => ({ ...prev, [source_key]: sum.counts }));
   }
 
-  // ----- LADDER SORTING -----
+  // Ladder sort
   const ladder = data?.ladder;
   const ladderHeaders = ladder?.headers || [];
   const ladderRows = ladder?.rows || [];
 
-  // Find important columns by header name (flexible)
   const headerIndex = useMemo(() => {
     const map: Record<string, number> = {};
-    ladderHeaders.forEach((h, i) => {
-      const key = h.trim().toLowerCase();
-      map[key] = i;
-    });
+    ladderHeaders.forEach((h, i) => (map[h.trim().toLowerCase()] = i));
     return map;
   }, [ladderHeaders.join("|")]);
 
@@ -359,20 +290,11 @@ export default function BriarsPage() {
   const idxPts = findIndexByNames(["pts", "points"]);
   const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
   const idxGF = findIndexByNames(["gf", "for"]);
-  const idxGA = findIndexByNames(["ga", "against"]);
-
-  function sortValue(row: { cols: string[] }, key: string) {
-    // key matches header label
-    const k = key.toLowerCase();
-    const idx = headerIndex[k];
-    if (typeof idx === "number") return num(row.cols[idx]);
-    return 0;
-  }
 
   const sortedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
 
-    // Default: points desc, then GD desc, then GF desc
+    // Default tie-break: Pts desc, then GD desc, then GF desc
     rows.sort((a, b) => {
       const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
       const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
@@ -382,15 +304,15 @@ export default function BriarsPage() {
       const bGD = idxGD >= 0 ? num(b.cols[idxGD]) : 0;
       if (bGD !== aGD) return bGD - aGD;
 
-      const aGF = idxGF >= 0 ? num(a.cols[idxGF]) : 0;
-      const bGF = idxGF >= 0 ? num(b.cols[idxGF]) : 0;
-      if (bGF !== aGF) return bGF - aGF;
+      const aGFv = idxGF >= 0 ? num(a.cols[idxGF]) : 0;
+      const bGFv = idxGF >= 0 ? num(b.cols[idxGF]) : 0;
+      if (bGFv !== aGFv) return bGFv - aGFv;
 
       return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
     });
 
-    // If user clicked a column sort, apply that on top
-    if (ladderHeaders.length && ladderSortKey) {
+    // User sort overrides (still stable with tie-break fallback)
+    if (ladderSortKey && ladderHeaders.length) {
       const keyLower = ladderSortKey.toLowerCase();
       const idx = headerIndex[keyLower];
       if (typeof idx === "number") {
@@ -398,7 +320,6 @@ export default function BriarsPage() {
           const av = num(a.cols[idx]);
           const bv = num(b.cols[idx]);
           if (av === bv) {
-            // keep tie-breaker stable: Pts desc, GD desc
             const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
             const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
             if (bPts !== aPts) return bPts - aPts;
@@ -409,22 +330,13 @@ export default function BriarsPage() {
 
             return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
           }
-          return ladderSortDir === "desc" ? (bv - av) : (av - bv);
+          return ladderSortDir === "desc" ? bv - av : av - bv;
         });
       }
     }
 
     return rows;
-  }, [
-    ladderRows,
-    ladderHeaders.join("|"),
-    ladderSortKey,
-    ladderSortDir,
-    idxPts,
-    idxGD,
-    idxGF,
-    headerIndex,
-  ]);
+  }, [ladderRows, ladderHeaders.join("|"), ladderSortKey, ladderSortDir, headerIndex, idxPts, idxGD, idxGF]);
 
   function onLadderHeaderClick(h: string) {
     const upper = h.toUpperCase();
@@ -436,197 +348,13 @@ export default function BriarsPage() {
     }
   }
 
-  // ----- UI -----
-  const shell = { maxWidth: 1120, margin: "0 auto", padding: 16 };
+  // UI helpers
+  const showLogin = !loginComplete;
 
-  const next = nextGame
-    ? (() => {
-        const dt = new Date(nextGame.kickoffISO);
-        const ms = dt.getTime() - now.getTime();
-        const counts = countsByKey[makeSourceKey(nextGame)] || { yes: 0, no: 0, maybe: 0 };
-        const homeLogo = CLUB_LOGOS[clubKey(nextGame.home)];
-        const awayLogo = CLUB_LOGOS[clubKey(nextGame.away)];
-
-        return (
-          <Card>
-            <div style={{ padding: 16 }}>
-              <div className="rowTop">
-                <Pill><Trophy size={16} /> Next game</Pill>
-                <Pill subtle>Starts in <b style={{ color: "rgba(17,24,39,0.92)" }}>{formatCountdown(ms)}</b></Pill>
-              </div>
-
-              <div className="vsGrid">
-                <div className="team">
-                  <Logo url={homeLogo} />
-                  <div>
-                    <div className="teamName">{nextGame.home}</div>
-                    <div className="sub">Home</div>
-                  </div>
-                </div>
-
-                <div className="mid">
-                  <div className="vs">VS</div>
-                  <div className="sub">{nextGame.roundLabel || "Fixture"}</div>
-                </div>
-
-                <div className="team right">
-                  <div>
-                    <div className="teamName">{nextGame.away}</div>
-                    <div className="sub">Away</div>
-                  </div>
-                  <Logo url={awayLogo} />
-                </div>
-              </div>
-
-              <div className="chips">
-                <Pill><CalendarDays size={16} /> {dt.toLocaleDateString()}</Pill>
-                <Pill><Clock3 size={16} /> {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Pill>
-                <Pill><MapPin size={16} /> {nextGame.venue || "—"}</Pill>
-                <Pill><Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}</Pill>
-
-                {/* Weather chip */}
-                {weather?.ok && (
-                  <Pill>
-                    <CloudSun size={16} />
-                    {weather.tempC?.toFixed?.(0)}°C
-                    <span style={{ opacity: 0.65 }}>·</span>
-                    <Droplets size={16} />
-                    {weather.precipMM?.toFixed?.(0)}mm
-                    <span style={{ opacity: 0.65 }}>·</span>
-                    <Wind size={16} />
-                    {weather.windKmh?.toFixed?.(0)}km/h
-                  </Pill>
-                )}
-              </div>
-
-              <div className="divider" />
-
-              <details className="details">
-                <summary className="summary">
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                    <Users size={18} /> Mark availability
-                  </span>
-                  <span className="summaryRight">
-                    Expand <ChevronDown size={16} />
-                  </span>
-                </summary>
-
-                <div className="btnRow">
-                  <Button onClick={() => setStatus(nextGame, "yes")}>✅ Yes</Button>
-                  <Button onClick={() => setStatus(nextGame, "maybe")}>❓ Maybe</Button>
-                  <Button onClick={() => setStatus(nextGame, "no")}>❌ No</Button>
-                </div>
-              </details>
-            </div>
-
-            <style jsx>{`
-              .rowTop{
-                display:flex;
-                justify-content:space-between;
-                gap:10px;
-                flex-wrap:wrap;
-                align-items:center;
-              }
-              .vsGrid{
-                display:grid;
-                grid-template-columns: 1fr auto 1fr;
-                gap:14px;
-                align-items:center;
-                margin-top:14px;
-              }
-              .team{
-                display:flex;
-                gap:12px;
-                align-items:center;
-              }
-              .team.right{
-                justify-content:flex-end;
-                text-align:right;
-              }
-              .teamName{
-                font-size:18px;
-                font-weight:950;
-                letter-spacing:-0.2px;
-              }
-              .mid{
-                text-align:center;
-                color: rgba(17,24,39,0.65);
-                font-weight:900;
-              }
-              .vs{
-                font-size:14px;
-                letter-spacing:2px;
-              }
-              .sub{
-                font-size:13px;
-                color: rgba(17,24,39,0.45);
-                font-weight:800;
-                margin-top:2px;
-              }
-              .chips{
-                display:flex;
-                flex-wrap:wrap;
-                gap:10px;
-                margin-top:14px;
-              }
-              .divider{
-                height:1px;
-                background: rgba(17,24,39,0.10);
-                margin:14px 0;
-              }
-              .details{
-                border:1px solid rgba(17,24,39,0.10);
-                background: rgba(17,24,39,0.02);
-                border-radius:14px;
-                padding:12px;
-              }
-              .summary{
-                cursor:pointer;
-                list-style:none;
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:12px;
-                font-weight:950;
-              }
-              .summaryRight{
-                color: rgba(17,24,39,0.55);
-                font-weight:850;
-                display:inline-flex;
-                align-items:center;
-                gap:6px;
-              }
-              .btnRow{
-                display:flex;
-                gap:10px;
-                flex-wrap:wrap;
-                margin-top:12px;
-              }
-
-              /* Mobile stack for hero */
-              @media (max-width: 740px){
-                .vsGrid{
-                  grid-template-columns: 1fr;
-                  gap:12px;
-                }
-                .mid{ display:none; }
-                .team.right{
-                  justify-content:flex-start;
-                  text-align:left;
-                  flex-direction: row-reverse;
-                }
-              }
-            `}</style>
-          </Card>
-        );
-      })()
-    : null;
-
-  // Upcoming preview (mobile-friendly cards)
   const upcomingPreview = upcoming.slice(0, 5);
   const upcomingAll = upcoming;
 
-  function GameRowCard({ g }: { g: Game }) {
+  function GameCard({ g }: { g: Game }) {
     const dt = new Date(g.kickoffISO);
     const ms = dt.getTime() - now.getTime();
     const counts = countsByKey[makeSourceKey(g)] || { yes: 0, no: 0, maybe: 0 };
@@ -634,127 +362,61 @@ export default function BriarsPage() {
     const awayLogo = CLUB_LOGOS[clubKey(g.away)];
 
     return (
-      <div className="gcard">
-        <div className="top">
-          <div className="match">
+      <div className={styles.gcard}>
+        <div className={styles.gTop}>
+          <div className={styles.gMatch}>
             <Logo url={homeLogo} />
-            <span className="vs">vs</span>
+            <span className={styles.gVs}>vs</span>
             <Logo url={awayLogo} />
-            <div className="names">
-              <div className="title">{g.home} vs {g.away}</div>
-              <div className="sub">{g.roundLabel || "Fixture"}</div>
+            <div className={styles.gNames}>
+              <div className={styles.gTitle}>{g.home} vs {g.away}</div>
+              <div className={styles.gSub}>{g.roundLabel || "Fixture"}</div>
             </div>
           </div>
-
           <Pill subtle>{formatCountdown(ms)}</Pill>
         </div>
 
-        <div className="meta">
-          <span className="m"><Clock3 size={16} /> {dt.toLocaleDateString()} · {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-          <span className="m"><MapPin size={16} /> {g.venue || "—"}</span>
+        <div className={styles.gMeta}>
+          <span className={styles.gMetaItem}>
+            <Clock3 size={16} /> {dt.toLocaleDateString()} · {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+          <span className={styles.gMetaItem}>
+            <MapPin size={16} /> {g.venue || "—"}
+          </span>
         </div>
 
-        <details className="details">
-          <summary className="summary">
+        <details className={styles.details}>
+          <summary className={styles.summary}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
               <Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}
             </span>
             <ChevronDown size={16} />
           </summary>
-          <div className="btns">
+          <div className={styles.btnRow}>
             <Button onClick={() => setStatus(g, "yes")}>✅ Yes</Button>
             <Button onClick={() => setStatus(g, "maybe")}>❓ Maybe</Button>
             <Button onClick={() => setStatus(g, "no")}>❌ No</Button>
           </div>
         </details>
-
-        <style jsx>{`
-          .gcard{
-            border:1px solid rgba(17,24,39,0.10);
-            background:white;
-            border-radius:16px;
-            padding:14px;
-            box-shadow: 0 4px 18px rgba(17,24,39,0.06);
-          }
-          .top{
-            display:flex;
-            justify-content:space-between;
-            gap:12px;
-            align-items:flex-start;
-            flex-wrap:wrap;
-          }
-          .match{
-            display:flex;
-            align-items:center;
-            gap:10px;
-          }
-          .vs{
-            font-weight:900;
-            color: rgba(17,24,39,0.45);
-          }
-          .names{ margin-left: 2px; }
-          .title{ font-weight:950; letter-spacing:-0.2px; }
-          .sub{ font-size:13px; color: rgba(17,24,39,0.45); font-weight:800; margin-top:2px; }
-          .meta{
-            display:flex;
-            gap:14px;
-            flex-wrap:wrap;
-            margin-top:10px;
-            color: rgba(17,24,39,0.70);
-            font-weight:800;
-            font-size:13px;
-          }
-          .m{ display:inline-flex; align-items:center; gap:8px; }
-          .details{
-            margin-top:12px;
-            border:1px solid rgba(17,24,39,0.10);
-            background: rgba(17,24,39,0.02);
-            border-radius:14px;
-            padding:10px;
-          }
-          .summary{
-            cursor:pointer;
-            list-style:none;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:10px;
-            font-weight:950;
-          }
-          .btns{
-            margin-top:10px;
-            display:flex;
-            gap:10px;
-            flex-wrap:wrap;
-          }
-
-          @media (max-width: 560px){
-            .match{ align-items:flex-start; }
-            .title{ max-width: 220px; }
-          }
-        `}</style>
       </div>
     );
   }
 
-  const showLogin = !loginComplete;
-
   return (
     <main>
-      <div style={shell}>
-        {/* Header */}
-        <div className="header">
+      <div className={styles.shell}>
+        <div className={styles.header}>
           <div>
-            <div className="h1">Briars Legends</div>
-            <div className="sub">
+            <div className={styles.h1}>Briars Legends</div>
+            <div className={styles.sub}>
               Last refresh{" "}
-              <span className="strong">
+              <span className={styles.strong}>
                 {data?.refreshedAt ? new Date(data.refreshedAt).toLocaleString() : "—"}
               </span>
             </div>
           </div>
 
-          <div className="actions">
+          <div className={styles.actions}>
             <Button onClick={() => (window.location.href = "/api/calendar/all")}>
               <SiGooglecalendar size={18} />
               Add to calendar
@@ -774,7 +436,7 @@ export default function BriarsPage() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
-                    fontWeight: 900,
+                    fontWeight: 950,
                     color: "rgba(17,24,39,0.70)",
                   }}
                   title="Log out PIN on this device"
@@ -788,109 +450,145 @@ export default function BriarsPage() {
           </div>
         </div>
 
-        {loading && <div style={{ color: "rgba(17,24,39,0.60)", fontWeight: 800 }}>Loading…</div>}
+        {loading && <div className={styles.sub}>Loading…</div>}
 
         {!loading && (
           <>
-            {/* Login (auto-hide) */}
             {showLogin && (
-              <Card>
-                <div style={{ padding: 16 }}>
-                  <div className="loginGrid">
-                    <div>
-                      <div className="label">Your name</div>
-                      <input
-                        value={playerName}
-                        onChange={(e) => persistName(e.target.value)}
-                        onBlur={(e) => persistName(e.target.value)}
-                        placeholder="e.g. Joel"
-                        className="input"
-                      />
-                      <div className="hint">Saved automatically on this device.</div>
-                    </div>
+              <div className={`${styles.card} ${styles.cardPad}`}>
+                <div className={styles.loginGrid}>
+                  <div>
+                    <div className={styles.label}>Your name</div>
+                    <input
+                      value={playerName}
+                      onChange={(e) => persistName(e.target.value)}
+                      onBlur={(e) => persistName(e.target.value)}
+                      placeholder="e.g. Joel"
+                      className={styles.input}
+                    />
+                    <div className={styles.hint}>Saved automatically on this device.</div>
+                  </div>
 
-                    <div>
-                      <div className="label">Team PIN</div>
-                      {!pinOk ? (
-                        <div className="pinRow">
-                          <input
-                            value={pinInput}
-                            onChange={(e) => setPinInput(e.target.value)}
-                            placeholder="Enter PIN"
-                            type="password"
-                            className="input"
-                          />
-                          <Button onClick={rememberPin}>
-                            <ShieldCheck size={18} />
-                            Remember
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="pinRow">
-                          <Pill><ShieldCheck size={16} /> Unlocked on this device</Pill>
-                          <Button kind="soft" onClick={logout}>Log out</Button>
-                        </div>
-                      )}
-                    </div>
+                  <div>
+                    <div className={styles.label}>Team PIN</div>
+                    {!pinOk ? (
+                      <div className={styles.pinRow}>
+                        <input
+                          value={pinInput}
+                          onChange={(e) => setPinInput(e.target.value)}
+                          placeholder="Enter PIN"
+                          type="password"
+                          className={styles.input}
+                        />
+                        <Button onClick={rememberPin}>
+                          <ShieldCheck size={18} />
+                          Remember
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className={styles.pinRow}>
+                        <Pill><ShieldCheck size={16} /> Unlocked on this device</Pill>
+                        <Button kind="soft" onClick={logout}>Log out</Button>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                <style jsx>{`
-                  .loginGrid{
-                    display:grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 12px;
-                  }
-                  .label{
-                    font-size:13px;
-                    font-weight:950;
-                    color: rgba(17,24,39,0.62);
-                    margin-bottom: 8px;
-                  }
-                  .hint{
-                    margin-top:6px;
-                    font-size:12px;
-                    color: rgba(17,24,39,0.45);
-                    font-weight:800;
-                  }
-                  .pinRow{
-                    display:flex;
-                    gap:10px;
-                    flex-wrap:wrap;
-                    align-items:center;
-                  }
-                  .input{
-                    width:100%;
-                    padding:12px;
-                    border-radius:12px;
-                    border:1px solid rgba(17,24,39,0.14);
-                    background:white;
-                    outline:none;
-                    box-shadow: 0 4px 18px rgba(17,24,39,0.06);
-                    font-weight:850;
-                    color: rgba(17,24,39,0.92);
-                  }
-                  @media (max-width: 860px){
-                    .loginGrid{ grid-template-columns: 1fr; }
-                  }
-                `}</style>
-              </Card>
+              </div>
             )}
 
             {/* Next game */}
-            <div style={{ marginTop: showLogin ? 14 : 0 }}>
-              {next}
-            </div>
+            {(() => {
+              if (!nextGame) return null;
 
-            {/* Upcoming preview + Show all pill */}
+              const dt = new Date(nextGame.kickoffISO);
+              const ms = dt.getTime() - now.getTime();
+              const counts = countsByKey[makeSourceKey(nextGame)] || { yes: 0, no: 0, maybe: 0 };
+              const homeLogo = CLUB_LOGOS[clubKey(nextGame.home)];
+              const awayLogo = CLUB_LOGOS[clubKey(nextGame.away)];
+
+              return (
+                <div style={{ marginTop: showLogin ? 14 : 0 }}>
+                  <div className={styles.card}>
+                    <div className={styles.cardPad}>
+                      <div className={styles.rowTop}>
+                        <Pill><Trophy size={16} /> Next game</Pill>
+                        <Pill subtle>
+                          Starts in <b style={{ color: "var(--text)" }}>{formatCountdown(ms)}</b>
+                        </Pill>
+                      </div>
+
+                      <div className={styles.vsGrid}>
+                        <div className={styles.team}>
+                          <Logo url={homeLogo} />
+                          <div>
+                            <div className={styles.teamName}>{nextGame.home}</div>
+                            <div className={styles.subMini}>Home</div>
+                          </div>
+                        </div>
+
+                        <div className={styles.mid}>
+                          <div className={styles.vs}>VS</div>
+                          <div className={styles.subMini}>{nextGame.roundLabel || "Fixture"}</div>
+                        </div>
+
+                        <div className={`${styles.team} ${styles.teamRight}`}>
+                          <div>
+                            <div className={styles.teamName}>{nextGame.away}</div>
+                            <div className={styles.subMini}>Away</div>
+                          </div>
+                          <Logo url={awayLogo} />
+                        </div>
+                      </div>
+
+                      <div className={styles.chips}>
+                        <Pill><CalendarDays size={16} /> {dt.toLocaleDateString()}</Pill>
+                        <Pill><Clock3 size={16} /> {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Pill>
+                        <Pill><MapPin size={16} /> {nextGame.venue || "—"}</Pill>
+                        <Pill><Users size={16} /> ✅ {counts.yes} ❓ {counts.maybe} ❌ {counts.no}</Pill>
+
+                        {weather?.ok && (
+                          <Pill>
+                            <CloudSun size={16} />
+                            {weather.tempC?.toFixed?.(0)}°C
+                            <span style={{ opacity: 0.65 }}>·</span>
+                            <Droplets size={16} />
+                            {weather.precipMM?.toFixed?.(0)}mm
+                            <span style={{ opacity: 0.65 }}>·</span>
+                            <Wind size={16} />
+                            {weather.windKmh?.toFixed?.(0)}km/h
+                          </Pill>
+                        )}
+                      </div>
+
+                      <div className={styles.divider} />
+
+                      <details className={styles.details}>
+                        <summary className={styles.summary}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                            <Users size={18} /> Mark availability
+                          </span>
+                          <span className={styles.summaryRight}>
+                            Expand <ChevronDown size={16} />
+                          </span>
+                        </summary>
+
+                        <div className={styles.btnRow}>
+                          <Button onClick={() => setStatus(nextGame, "yes")}>✅ Yes</Button>
+                          <Button onClick={() => setStatus(nextGame, "maybe")}>❓ Maybe</Button>
+                          <Button onClick={() => setStatus(nextGame, "no")}>❌ No</Button>
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Upcoming fixtures */}
             <div style={{ marginTop: 18 }}>
-              <div className="sectionTop">
-                <div className="sectionTitle">Upcoming fixtures</div>
-
-                <button
-                  className="pillBtn"
-                  onClick={() => setShowAllUpcoming((v) => !v)}
-                >
+              <div className={styles.sectionTop}>
+                <div className={styles.sectionTitle}>Upcoming fixtures</div>
+                <button className={styles.pillBtn} onClick={() => setShowAllUpcoming((v) => !v)}>
                   {showAllUpcoming ? (
                     <>
                       <ChevronUp size={16} /> Hide full list
@@ -903,69 +601,29 @@ export default function BriarsPage() {
                 </button>
               </div>
 
-              <div className="grid">
+              <div className={styles.grid}>
                 {(showAllUpcoming ? upcomingAll : upcomingPreview).map((g, i) => (
-                  <GameRowCard key={`${g.kickoffISO}-${i}`} g={g} />
+                  <GameCard key={`${g.kickoffISO}-${i}`} g={g} />
                 ))}
               </div>
 
               {upcomingAll.length === 0 && (
-                <Card>
-                  <div style={{ padding: 14, color: "rgba(17,24,39,0.60)", fontWeight: 850 }}>
-                    No upcoming games found.
-                  </div>
-                </Card>
+                <div className={`${styles.card} ${styles.cardPad}`}>
+                  <div className={styles.sub}>No upcoming games found.</div>
+                </div>
               )}
-
-              <style jsx>{`
-                .sectionTop{
-                  display:flex;
-                  justify-content:space-between;
-                  align-items:center;
-                  gap:12px;
-                  flex-wrap:wrap;
-                  margin-bottom: 10px;
-                }
-                .sectionTitle{
-                  font-size:18px;
-                  font-weight:950;
-                  letter-spacing:-0.2px;
-                }
-                .pillBtn{
-                  display:inline-flex;
-                  align-items:center;
-                  gap:8px;
-                  padding: 10px 12px;
-                  border-radius:999px;
-                  border:1px solid rgba(17,24,39,0.10);
-                  background: rgba(17,24,39,0.02);
-                  cursor:pointer;
-                  font-weight:950;
-                  color: rgba(17,24,39,0.74);
-                }
-                .grid{
-                  display:grid;
-                  gap: 12px;
-                  grid-template-columns: 1fr 1fr;
-                }
-                @media (max-width: 900px){
-                  .grid{ grid-template-columns: 1fr; }
-                }
-              `}</style>
             </div>
 
             {/* Ladder */}
             <div style={{ marginTop: 18 }}>
-              <div className="sectionTop">
-                <div className="sectionTitle">Snr Masters Ladder</div>
-                <Pill subtle>
-                  Default: Pts ↓ then GD ↓
-                </Pill>
+              <div className={styles.sectionTop}>
+                <div className={styles.sectionTitle}>Snr Masters Ladder</div>
+                <Pill subtle>Default: Pts ↓ then GD ↓</Pill>
               </div>
 
-              <Card>
-                <div style={{ overflowX: "auto" }}>
-                  <table className="ladder">
+              <div className={styles.card}>
+                <div className={styles.ladderWrap}>
+                  <table className={styles.ladder}>
                     <thead>
                       <tr>
                         {ladderHeaders.map((h) => {
@@ -974,8 +632,15 @@ export default function BriarsPage() {
                           return (
                             <th
                               key={h}
-                              onClick={() => onLadderHeaderClick(h)}
-                              className={isActive ? "active" : ""}
+                              className={`${styles.ladderTh} ${isActive ? styles.ladderThActive : ""}`}
+                              onClick={() => {
+                                if (ladderSortKey === upper) {
+                                  setLadderSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                                } else {
+                                  setLadderSortKey(upper);
+                                  setLadderSortDir("desc");
+                                }
+                              }}
                               title="Click to sort"
                             >
                               {h}
@@ -989,9 +654,9 @@ export default function BriarsPage() {
                       {sortedLadderRows.map((r, idx) => {
                         const isBriars = /briars/i.test(r.cols[0] || "");
                         return (
-                          <tr key={`${r.team}-${idx}`} className={isBriars ? "briars" : ""}>
+                          <tr key={`${r.team}-${idx}`} className={isBriars ? styles.ladderBriars : ""}>
                             {r.cols.map((c, i) => (
-                              <td key={i}>{c}</td>
+                              <td key={i} className={styles.ladderTd}>{c}</td>
                             ))}
                           </tr>
                         );
@@ -999,7 +664,7 @@ export default function BriarsPage() {
 
                       {sortedLadderRows.length === 0 && (
                         <tr>
-                          <td style={{ padding: 14, color: "rgba(17,24,39,0.60)", fontWeight: 850 }} colSpan={Math.max(ladderHeaders.length, 1)}>
+                          <td className={styles.ladderTd} colSpan={Math.max(ladderHeaders.length, 1)}>
                             Ladder not found on source page (or headers changed).
                           </td>
                         </tr>
@@ -1007,131 +672,40 @@ export default function BriarsPage() {
                     </tbody>
                   </table>
                 </div>
-              </Card>
-
-              <style jsx>{`
-                .sectionTop{
-                  display:flex;
-                  justify-content:space-between;
-                  align-items:center;
-                  gap:12px;
-                  flex-wrap:wrap;
-                  margin-bottom: 10px;
-                }
-                .sectionTitle{
-                  font-size:18px;
-                  font-weight:950;
-                  letter-spacing:-0.2px;
-                }
-                table.ladder{
-                  width: 100%;
-                  border-collapse: collapse;
-                  min-width: 760px;
-                }
-                .ladder th, .ladder td{
-                  padding: 12px 14px;
-                  border-bottom: 1px solid rgba(17,24,39,0.08);
-                  text-align: left;
-                  font-weight: 850;
-                  color: rgba(17,24,39,0.84);
-                  white-space: nowrap;
-                }
-                .ladder th{
-                  font-size: 12px;
-                  text-transform: uppercase;
-                  letter-spacing: 0.6px;
-                  color: rgba(17,24,39,0.55);
-                  cursor: pointer;
-                  user-select: none;
-                  background: rgba(17,24,39,0.015);
-                  position: sticky;
-                  top: 0;
-                }
-                .ladder th.active{
-                  color: rgba(17,24,39,0.92);
-                }
-                .ladder tr.briars td{
-                  background: rgba(37,99,235,0.04);
-                }
-              `}</style>
+              </div>
             </div>
 
             {/* Past results */}
             <div style={{ marginTop: 18, paddingBottom: 38 }}>
-              <div style={{ fontSize: 18, fontWeight: 950, marginBottom: 10 }}>Past results</div>
+              <div className={styles.sectionTitle} style={{ marginBottom: 10 }}>Past results</div>
 
-              <div className="pastGrid">
+              <div className={styles.pastGrid}>
                 {past.slice(0, 12).map((g, idx) => {
                   const dt = new Date(g.kickoffISO);
                   return (
-                    <Card key={idx}>
-                      <div style={{ padding: 14 }}>
+                    <div key={idx} className={styles.card}>
+                      <div className={styles.cardPad}>
                         <div style={{ fontWeight: 950 }}>{g.home} vs {g.away}</div>
-                        <div style={{ marginTop: 4, color: "rgba(17,24,39,0.50)", fontWeight: 850, fontSize: 13 }}>
+                        <div className={styles.hint} style={{ marginTop: 4 }}>
                           {g.roundLabel ? `${g.roundLabel} • ` : ""}{dt.toLocaleString()} • {g.venue}
                         </div>
                         <div style={{ marginTop: 10 }}>
-                          <Pill>
-                            <Trophy size={16} /> Final: <span style={{ color: "rgba(17,24,39,0.92)" }}>{g.score}</span>
-                          </Pill>
+                          <Pill><Trophy size={16} /> Final: <span style={{ color: "var(--text)" }}>{g.score}</span></Pill>
                         </div>
                       </div>
-                    </Card>
+                    </div>
                   );
                 })}
 
                 {past.length === 0 && (
-                  <Card>
-                    <div style={{ padding: 14, color: "rgba(17,24,39,0.60)", fontWeight: 850 }}>No past games found.</div>
-                  </Card>
+                  <div className={`${styles.card} ${styles.cardPad}`}>
+                    <div className={styles.sub}>No past games found.</div>
+                  </div>
                 )}
               </div>
-
-              <style jsx>{`
-                .pastGrid{
-                  display:grid;
-                  gap:12px;
-                  grid-template-columns: 1fr 1fr;
-                }
-                @media (max-width: 900px){
-                  .pastGrid{ grid-template-columns: 1fr; }
-                }
-              `}</style>
             </div>
           </>
         )}
-
-        <style jsx>{`
-          .header{
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-            gap:12px;
-            flex-wrap:wrap;
-            margin: 6px 0 14px;
-          }
-          .h1{
-            font-size:30px;
-            font-weight:950;
-            letter-spacing:-0.4px;
-          }
-          .sub{
-            margin-top:6px;
-            font-size:14px;
-            color: rgba(17,24,39,0.60);
-            font-weight:850;
-          }
-          .strong{
-            color: rgba(17,24,39,0.92);
-            font-weight:950;
-          }
-          .actions{
-            display:flex;
-            gap:10px;
-            flex-wrap:wrap;
-            align-items:center;
-          }
-        `}</style>
       </div>
     </main>
   );

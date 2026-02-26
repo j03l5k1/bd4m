@@ -7,23 +7,40 @@ function normTeam(s: string) {
   return String(s || "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, " ")
     .replace(/[()]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripGradeSuffix(s: string) {
+  // "briars 3" -> "briars"
+  // "macquarie uni 2" -> "macquarie uni"
+  // also handles "briars iii" etc
+  return String(s || "")
+    .replace(/\b(1st|2nd|3rd|4th|5th)\b/gi, "")
+    .replace(/\b(i|ii|iii|iv|v|vi|vii|viii|ix|x)\b/gi, "")
+    .replace(/\b\d+\b/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 function sameTeam(a: string, b: string) {
-  const A = normTeam(a);
-  const B = normTeam(b);
+  const A0 = normTeam(a);
+  const B0 = normTeam(b);
 
-  if (!A || !B) return false;
-  if (A === B) return true;
+  if (!A0 || !B0) return false;
+  if (A0 === B0) return true;
 
-  // More forgiving matching for shortened labels like:
-  // "Macquarie" vs "Macquarie Uni 2"
+  // try without grade suffixes
+  const A = normTeam(stripGradeSuffix(A0));
+  const B = normTeam(stripGradeSuffix(B0));
+  if (A && B && A === B) return true;
+
+  // prefix matching (macquarie vs macquarie uni 2)
+  if (A0.startsWith(B0) || B0.startsWith(A0)) return true;
   if (A.startsWith(B) || B.startsWith(A)) return true;
 
-  // Also allow first-word matching as a fallback
+  // first-word fallback
   const aFirst = A.split(" ")[0];
   const bFirst = B.split(" ")[0];
   if (aFirst && bFirst && aFirst === bFirst) return true;
@@ -32,7 +49,6 @@ function sameTeam(a: string, b: string) {
 }
 
 function parseScore(score: string): { a: number; b: number } | null {
-  // supports: "2-1", "2–1", "2 — 1", "2 : 1" etc
   const cleaned = String(score || "")
     .replace(/[^\d\-–: ]/g, "")
     .replace(/\s+/g, " ")
@@ -115,11 +131,54 @@ function pct(n: number, d: number) {
   return Math.round((n / d) * 100);
 }
 
-/**
- * Ladder rows can vary a bit in naming depending on your scraper/source.
- * This helper tries a bunch of common keys.
- */
 type LadderRow = Record<string, any>;
+
+function asArrayLadder(input: any): LadderRow[] {
+  if (!input) return [];
+  if (Array.isArray(input)) return input;
+  if (Array.isArray(input.rows)) return input.rows;
+  if (Array.isArray(input.data)) return input.data;
+  if (Array.isArray(input.ladder)) return input.ladder;
+  return [];
+}
+
+function getTeamLabel(row: LadderRow | undefined) {
+  if (!row) return "";
+
+  // 1) exact common keys first
+  const direct =
+    row.team ??
+    row.Team ??
+    row.teamName ??
+    row.TeamName ??
+    row["Team Name"] ??
+    row.name ??
+    row.Name ??
+    row.club ??
+    row.Club ??
+    row["Club Name"] ??
+    row["Club"] ??
+    row["TEAM"] ??
+    row["Team"];
+
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+
+  // 2) any key that looks like team/club/name
+  for (const k of Object.keys(row)) {
+    const lk = k.toLowerCase();
+    if (lk.includes("team") || lk.includes("club") || lk === "name") {
+      const v = row[k];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+  }
+
+  // 3) first string value in the row
+  for (const v of Object.values(row)) {
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+
+  return "";
+}
 
 function getNum(row: LadderRow | undefined, keys: string[], fallback = 0) {
   if (!row) return fallback;
@@ -130,24 +189,22 @@ function getNum(row: LadderRow | undefined, keys: string[], fallback = 0) {
     const n = typeof v === "number" ? v : Number(String(v).trim());
     if (Number.isFinite(n)) return n;
   }
+
+  // last-ditch: try case-insensitive match on keys
+  const lowerMap = new Map<string, any>();
+  for (const [k, v] of Object.entries(row)) lowerMap.set(k.toLowerCase(), v);
+  for (const k of keys) {
+    const v = lowerMap.get(String(k).toLowerCase());
+    if (v === 0) return 0;
+    if (v === null || v === undefined) continue;
+    const n = typeof v === "number" ? v : Number(String(v).trim());
+    if (Number.isFinite(n)) return n;
+  }
+
   return fallback;
 }
 
-function getTeamLabel(row: LadderRow | undefined) {
-  if (!row) return "";
-  return (
-    row.team ??
-    row.Team ??
-    row.name ??
-    row.Name ??
-    row.club ??
-    row.Club ??
-    ""
-  );
-}
-
-function findLadderRow(ladder: LadderRow[] | undefined, team: string) {
-  if (!ladder?.length) return undefined;
+function findLadderRow(ladder: LadderRow[], team: string) {
   return ladder.find((r) => sameTeam(getTeamLabel(r), team));
 }
 
@@ -158,49 +215,50 @@ export default function HeadToHead({
   teamB,
 }: {
   allGames: Game[];
-  ladder?: LadderRow[];
+  ladder?: any; // accept array OR wrapper object
   teamA: string;
   teamB: string;
 }) {
-  // --- Ladder comparison (season-to-date team stats) ---
-  const aRow = findLadderRow(ladder, teamA);
-  const bRow = findLadderRow(ladder, teamB);
+  const ladderArr = asArrayLadder(ladder);
 
+  const aRow = findLadderRow(ladderArr, teamA);
+  const bRow = findLadderRow(ladderArr, teamB);
+
+  const ladderReady = !!aRow && !!bRow;
+
+  // Debug if ladder isn’t matching (check browser console)
+  if (!ladderReady && ladderArr.length) {
+    // logs first row keys so we can see the schema
+    console.warn("[HeadToHead] Ladder match failed", {
+      teamA,
+      teamB,
+      ladderFirstRowKeys: Object.keys(ladderArr[0] || {}),
+      sampleTeamLabels: ladderArr.slice(0, 5).map((r) => getTeamLabel(r)),
+    });
+  }
+  if (!ladderArr.length) {
+    console.warn("[HeadToHead] Ladder missing/empty — ensure you pass `ladder` prop");
+  }
+
+  // ladder numbers
   const aW = getNum(aRow, ["w", "W", "wins", "Wins", "won", "Won"]);
   const aD = getNum(aRow, ["d", "D", "draws", "Draws", "drawn", "Drawn"]);
   const aL = getNum(aRow, ["l", "L", "losses", "Losses", "lost", "Lost"]);
-  const aGF = getNum(aRow, ["gf", "GF", "goalsFor", "Goals For", "goals_for"]);
-  const aGA = getNum(
-    aRow,
-    ["ga", "GA", "goalsAgainst", "Goals Against", "goals_against"]
-  );
-  const aGD = getNum(
-    aRow,
-    ["gd", "GD", "diff", "Diff", "goalDiff", "Goal Diff", "goal_diff"],
-    aGF - aGA
-  );
+  const aGF = getNum(aRow, ["gf", "GF", "goalsfor", "goalsFor", "Goals For", "goals_for"]);
+  const aGA = getNum(aRow, ["ga", "GA", "goalsagainst", "goalsAgainst", "Goals Against", "goals_against"]);
+  const aGD = getNum(aRow, ["gd", "GD", "diff", "Diff", "goaldiff", "goalDiff", "Goal Diff", "goal_diff"], aGF - aGA);
   const aPts = getNum(aRow, ["pts", "PTS", "points", "Points", "P"]);
 
   const bW = getNum(bRow, ["w", "W", "wins", "Wins", "won", "Won"]);
   const bD = getNum(bRow, ["d", "D", "draws", "Draws", "drawn", "Drawn"]);
   const bL = getNum(bRow, ["l", "L", "losses", "Losses", "lost", "Lost"]);
-  const bGF = getNum(bRow, ["gf", "GF", "goalsFor", "Goals For", "goals_for"]);
-  const bGA = getNum(
-    bRow,
-    ["ga", "GA", "goalsAgainst", "Goals Against", "goals_against"]
-  );
-  const bGD = getNum(
-    bRow,
-    ["gd", "GD", "diff", "Diff", "goalDiff", "Goal Diff", "goal_diff"],
-    bGF - bGA
-  );
+  const bGF = getNum(bRow, ["gf", "GF", "goalsfor", "goalsFor", "Goals For", "goals_for"]);
+  const bGA = getNum(bRow, ["ga", "GA", "goalsagainst", "goalsAgainst", "Goals Against", "goals_against"]);
+  const bGD = getNum(bRow, ["gd", "GD", "diff", "Diff", "goaldiff", "goalDiff", "Goal Diff", "goal_diff"], bGF - bGA);
   const bPts = getNum(bRow, ["pts", "PTS", "points", "Points", "P"]);
 
-  const ladderReady = !!aRow && !!bRow;
-
-  // --- True head-to-head (previous meetings with scores) ---
+  // true H2H from scored fixtures between them
   const h2h = computeH2H(allGames, teamA, teamB);
-
   const aWinPct = pct(h2h.aWins, h2h.played);
   const bWinPct = pct(h2h.bWins, h2h.played);
 
@@ -209,17 +267,13 @@ export default function HeadToHead({
       <summary className={styles.summary}>
         <span>Head-to-head</span>
         <span className={styles.summaryRight}>
-          {h2h.played > 0
-            ? `${h2h.played} meetings • ${h2h.aWins}-${h2h.draws}-${h2h.bWins}`
-            : ladderReady
-            ? "Season comparison"
-            : "Comparison pending"}
+          {ladderReady ? "Season comparison" : "Comparison pending"}
         </span>
       </summary>
 
       <div className={styles.detailsBody}>
         <div className={styles.h2hGrid}>
-          {/* Season comparison (LADDER-BASED) */}
+          {/* Season comparison (ladder-based) */}
           <div className={styles.h2hCard}>
             <div className={styles.h2hLabel}>Season comparison</div>
 
@@ -291,7 +345,7 @@ export default function HeadToHead({
             )}
           </div>
 
-          {/* Previous meetings (FIXTURE-SCORED H2H) */}
+          {/* Previous meetings (fixture-scored H2H) */}
           <div className={styles.h2hCard}>
             <div className={styles.h2hLabel}>Previous meetings</div>
 

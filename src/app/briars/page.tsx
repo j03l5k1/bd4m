@@ -474,7 +474,7 @@ export default function BriarsPage() {
   }, [ladderRows, ladderHeaders.join("|"), ladderSortKey, ladderSortDir, headerIndex, idxPts, idxGD, idxGF]);
 
   const showLogin = !loginComplete;
-  const upcomingPreview = upcoming.slice(0, 5);
+  const upcomingPreview = upcoming.slice(0, 4);
   const upcomingAll = upcoming;
 
   function AvailabilityNames({ g }: { g: Game }) {

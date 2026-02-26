@@ -79,7 +79,65 @@ function clubKey(teamName: string) {
 }
 
 function makeSourceKey(g: Game) {
+  return `${g.date}|${g.time}|${g.home}|${g.away}|${g.venue}`;
+}
+
+function makeLegacySourceKey(g: Game) {
   return `${g.kickoffISO}|${g.home}|${g.away}`;
+}
+
+function normaliseName(s: string) {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function mergeUnique(a: string[], b: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...a, ...b]) {
+    const k = normaliseName(item);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(item);
+  }
+  return out;
+}
+
+function mergeNames(a?: Partial<NamesByStatus>, b?: Partial<NamesByStatus>): NamesByStatus {
+  return {
+    yes: mergeUnique(a?.yes || [], b?.yes || []),
+    maybe: mergeUnique(a?.maybe || [], b?.maybe || []),
+    no: mergeUnique(a?.no || [], b?.no || []),
+  };
+}
+
+function mergeCounts(a?: Partial<Counts>, b?: Partial<Counts>): Counts {
+  const names = mergeNames(
+    {
+      yes: new Array(a?.yes || 0).fill("x"),
+      maybe: new Array(a?.maybe || 0).fill("x"),
+      no: new Array(a?.no || 0).fill("x"),
+    },
+    {
+      yes: new Array(b?.yes || 0).fill("y"),
+      maybe: new Array(b?.maybe || 0).fill("y"),
+      no: new Array(b?.no || 0).fill("y"),
+    }
+  );
+
+  return {
+    yes: names.yes.length,
+    maybe: names.maybe.length,
+    no: names.no.length,
+  };
+}
+
+function statusFromNames(names: NamesByStatus, playerName: string): "yes" | "maybe" | "no" | undefined {
+  const needle = normaliseName(playerName);
+  if (!needle) return undefined;
+  if (names.yes.some((n) => normaliseName(n) === needle)) return "yes";
+  if (names.maybe.some((n) => normaliseName(n) === needle)) return "maybe";
+  if (names.no.some((n) => normaliseName(n) === needle)) return "no";
+  return undefined;
 }
 
 function formatCountdown(ms: number) {
@@ -128,6 +186,26 @@ function num(x: string | undefined) {
   if (!x) return 0;
   const n = Number(String(x).replace(/[^\d.-]/g, ""));
   return Number.isFinite(n) ? n : 0;
+}
+
+function ordinal(n: number) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n}st`;
+  if (mod10 === 2 && mod100 !== 12) return `${n}nd`;
+  if (mod10 === 3 && mod100 !== 13) return `${n}rd`;
+  return `${n}th`;
+}
+
+function rankEmoji(rank?: number) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return "";
+}
+
+function normaliseTeamName(team: string) {
+  return team.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function Pill({
@@ -249,43 +327,82 @@ export default function BriarsPage() {
     return { upcoming: u, past: p, nextGame: u[0] || null };
   }, [data, now]);
 
-  async function loadNames(sourceKey: string) {
+  async function fetchSummary(sourceKey: string) {
     try {
-      const res = await fetch(`/api/availability/names?source_key=${encodeURIComponent(sourceKey)}`, { cache: "no-store" });
+      const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(sourceKey)}`, {
+        cache: "no-store",
+      });
       const json = await res.json();
-      if (json?.ok) {
-        setNamesByKey((prev) => ({ ...prev, [sourceKey]: json.names as NamesByStatus }));
-      }
+      if (json?.ok) return json.counts as Counts;
     } catch {
       //
+    }
+    return undefined;
+  }
+
+  async function fetchNames(sourceKey: string) {
+    try {
+      const res = await fetch(`/api/availability/names?source_key=${encodeURIComponent(sourceKey)}`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+      if (json?.ok) return json.names as NamesByStatus;
+    } catch {
+      //
+    }
+    return undefined;
+  }
+
+  async function loadAvailabilityForGame(g: Game) {
+    const stableKey = makeSourceKey(g);
+    const legacyKey = makeLegacySourceKey(g);
+
+    const [stableCounts, legacyCounts, stableNames, legacyNames] = await Promise.all([
+      fetchSummary(stableKey),
+      legacyKey !== stableKey ? fetchSummary(legacyKey) : Promise.resolve(undefined),
+      fetchNames(stableKey),
+      legacyKey !== stableKey ? fetchNames(legacyKey) : Promise.resolve(undefined),
+    ]);
+
+    const mergedNames = mergeNames(stableNames, legacyNames);
+    const mergedCounts =
+      mergedNames.yes.length || mergedNames.maybe.length || mergedNames.no.length
+        ? {
+            yes: mergedNames.yes.length,
+            maybe: mergedNames.maybe.length,
+            no: mergedNames.no.length,
+          }
+        : mergeCounts(stableCounts, legacyCounts);
+
+    setNamesByKey((prev) => ({ ...prev, [stableKey]: mergedNames }));
+    setCountsByKey((prev) => ({ ...prev, [stableKey]: mergedCounts }));
+
+    const mine = statusFromNames(mergedNames, playerName);
+    if (mine) {
+      setMyStatusByKey((prev) => ({ ...prev, [stableKey]: mine }));
     }
   }
 
   useEffect(() => {
     (async () => {
-      const next: Record<string, Counts> = {};
       for (const g of upcoming.slice(0, 30)) {
-        const key = makeSourceKey(g);
-        try {
-          const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
-          const json = await res.json();
-          if (json?.ok) next[key] = json.counts;
-        } catch {
-          //
-        }
+        await loadAvailabilityForGame(g);
       }
-      setCountsByKey(next);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upcoming.length]);
 
   useEffect(() => {
-    (async () => {
-      const targets = [nextGame, ...upcoming.slice(0, 4)].filter(Boolean) as Game[];
-      for (const g of targets) {
-        await loadNames(makeSourceKey(g));
-      }
-    })();
-  }, [nextGame?.kickoffISO, upcoming.length]);
+    const name = playerName.trim();
+    if (!name) return;
+
+    const next: Record<string, "yes" | "no" | "maybe"> = {};
+    for (const [key, names] of Object.entries(namesByKey)) {
+      const mine = statusFromNames(names, name);
+      if (mine) next[key] = mine;
+    }
+    setMyStatusByKey((prev) => ({ ...prev, ...next }));
+  }, [playerName, namesByKey]);
 
   useEffect(() => {
     (async () => {
@@ -341,8 +458,8 @@ export default function BriarsPage() {
     const n = playerName.trim();
     if (n.length < 2) return flash("Enter your name first.", 2500);
 
-    const source_key = makeSourceKey(g);
-    setSavingKey(source_key);
+    const stableKey = makeSourceKey(g);
+    setSavingKey(stableKey);
 
     try {
       const res = await fetch("/api/availability/set", {
@@ -353,11 +470,14 @@ export default function BriarsPage() {
           playerName: n,
           status,
           game: {
-            source_key,
+            source_key: stableKey,
+            legacy_source_key: makeLegacySourceKey(g),
             kickoff_iso: g.kickoffISO,
             home: g.home,
             away: g.away,
             venue: g.venue,
+            date: g.date,
+            time: g.time,
           },
         }),
       });
@@ -365,16 +485,10 @@ export default function BriarsPage() {
       const json = await res.json();
       if (!json?.ok) throw new Error(json?.error || "Failed to save");
 
-      setMyStatusByKey((prev) => ({ ...prev, [source_key]: status }));
+      setMyStatusByKey((prev) => ({ ...prev, [stableKey]: status }));
       flash("Saved ✓");
 
-      const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, {
-        cache: "no-store",
-      }).then((r) => r.json());
-
-      if (sum?.ok) setCountsByKey((prev) => ({ ...prev, [source_key]: sum.counts }));
-
-      await loadNames(source_key);
+      await loadAvailabilityForGame(g);
     } catch (e: any) {
       flash(e?.message || "Something went wrong", 3000);
     } finally {
@@ -394,8 +508,48 @@ export default function BriarsPage() {
     return map;
   }, [ladderHeaders]);
 
-  const sortedLadderRows = useMemo(() => {
+  function findIndexByNames(names: string[]) {
+    for (const n of names) {
+      const idx = headerIndex[n.toLowerCase()];
+      if (typeof idx === "number") return idx;
+    }
+    return -1;
+  }
+
+  const idxTeam = 0;
+  const idxPts = findIndexByNames(["pts", "points"]);
+  const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
+  const idxGF = findIndexByNames(["gf", "for", "g+"]);
+  const idxGA = findIndexByNames(["ga", "against", "g-"]);
+  const idxP = findIndexByNames(["p", "pld", "played", "games"]);
+  const idxW = findIndexByNames(["w", "won", "wins", "win"]);
+  const idxD = findIndexByNames(["d", "draw", "draws"]);
+  const idxL = findIndexByNames(["l", "loss", "losses"]);
+
+  const rankedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
+
+    rows.sort((a, b) => {
+      const aPts = idxPts >= 0 ? num(a.cols[idxPts]) : 0;
+      const bPts = idxPts >= 0 ? num(b.cols[idxPts]) : 0;
+      if (bPts !== aPts) return bPts - aPts;
+
+      const aGD = idxGD >= 0 ? num(a.cols[idxGD]) : 0;
+      const bGD = idxGD >= 0 ? num(b.cols[idxGD]) : 0;
+      if (bGD !== aGD) return bGD - aGD;
+
+      const aGFv = idxGF >= 0 ? num(a.cols[idxGF]) : 0;
+      const bGFv = idxGF >= 0 ? num(b.cols[idxGF]) : 0;
+      if (bGFv !== aGFv) return bGFv - aGFv;
+
+      return String(a.cols[idxTeam]).localeCompare(String(b.cols[idxTeam]));
+    });
+
+    return rows;
+  }, [ladderRows, idxPts, idxGD, idxGF]);
+
+  const sortedLadderRows = useMemo(() => {
+    const rows = [...rankedLadderRows];
     if (!ladderSortKey) return rows;
 
     const idx = headerIndex[ladderSortKey.toLowerCase()];
@@ -413,10 +567,53 @@ export default function BriarsPage() {
     });
 
     return rows;
-  }, [ladderRows, ladderSortKey, ladderSortDir, headerIndex]);
+  }, [rankedLadderRows, ladderSortKey, ladderSortDir, headerIndex]);
 
-  const upcomingPreview = upcoming.slice(0, 4);
-  const upcomingList = showAllUpcoming ? upcoming : upcomingPreview;
+  const teamRankMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    rankedLadderRows.forEach((row, index) => {
+      const name = String(row.cols[idxTeam] || row.team || "");
+      if (!name) return;
+      map[normaliseTeamName(name)] = index + 1;
+    });
+    return map;
+  }, [rankedLadderRows]);
+
+  function findLadderRowForTeam(teamName: string) {
+    const needle = normaliseTeamName(teamName);
+
+    const direct = rankedLadderRows.find(
+      (row) => normaliseTeamName(String(row.cols[idxTeam] || row.team || "")) === needle
+    );
+    if (direct) return direct;
+
+    const short = shortTeamName(teamName).toLowerCase();
+    return rankedLadderRows.find((row) => {
+      const rowName = String(row.cols[idxTeam] || row.team || "").toLowerCase();
+      return rowName.includes(short);
+    });
+  }
+
+  function getTeamRank(teamName: string) {
+    const direct = teamRankMap[normaliseTeamName(teamName)];
+    if (direct) return direct;
+
+    const row = findLadderRowForTeam(teamName);
+    if (!row) return undefined;
+
+    const rowName = String(row.cols[idxTeam] || row.team || "");
+    return teamRankMap[normaliseTeamName(rowName)];
+  }
+
+  function teamDisplayLabel(teamName: string) {
+    const short = shortTeamName(teamName);
+    const rank = getTeamRank(teamName);
+
+    if (!rank) return short;
+
+    const emoji = rankEmoji(rank);
+    return `${short} ${emoji ? `${emoji} ` : ""}(${ordinal(rank)})`;
+  }
 
   function AvailabilityBlock({ g }: { g: Game }) {
     const key = makeSourceKey(g);
@@ -472,6 +669,265 @@ export default function BriarsPage() {
     );
   }
 
+  function HeadToHead({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) {
+    const homeRow = findLadderRowForTeam(homeTeam);
+    const awayRow = findLadderRowForTeam(awayTeam);
+
+    if (!homeRow || !awayRow) {
+      return (
+        <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
+          Comparison not available yet.
+        </div>
+      );
+    }
+
+    const homeRank = getTeamRank(homeTeam);
+    const awayRank = getTeamRank(awayTeam);
+
+    const metrics = [
+      {
+        key: "position",
+        label: "Ladder position",
+        home: homeRank ?? 0,
+        away: awayRank ?? 0,
+        lowWins: true,
+        format: (v: number) => (v ? ordinal(v) : "—"),
+      },
+      { key: "games", label: "Games played", home: idxP >= 0 ? num(homeRow.cols[idxP]) : 0, away: idxP >= 0 ? num(awayRow.cols[idxP]) : 0 },
+      { key: "wins", label: "Wins", home: idxW >= 0 ? num(homeRow.cols[idxW]) : 0, away: idxW >= 0 ? num(awayRow.cols[idxW]) : 0 },
+      { key: "draws", label: "Draws", home: idxD >= 0 ? num(homeRow.cols[idxD]) : 0, away: idxD >= 0 ? num(awayRow.cols[idxD]) : 0 },
+      { key: "losses", label: "Losses", home: idxL >= 0 ? num(homeRow.cols[idxL]) : 0, away: idxL >= 0 ? num(awayRow.cols[idxL]) : 0, lowWins: true },
+      { key: "gf", label: "Goals for", home: idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0, away: idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0 },
+      { key: "ga", label: "Goals against", home: idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0, away: idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0, lowWins: true },
+      { key: "gd", label: "Goal difference", home: idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0, away: idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0 },
+      { key: "pts", label: "Points", home: idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0, away: idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0 },
+    ];
+
+    function isHomeBetter(metric: (typeof metrics)[number]) {
+      return metric.lowWins ? metric.home < metric.away : metric.home > metric.away;
+    }
+
+    function isAwayBetter(metric: (typeof metrics)[number]) {
+      return metric.lowWins ? metric.away < metric.home : metric.away > metric.home;
+    }
+
+    function getStrengths(metric: (typeof metrics)[number]) {
+      const a = metric.home;
+      const b = metric.away;
+
+      if (a === 0 && b === 0) return { homePct: 50, awayPct: 50 };
+
+      if (metric.lowWins) {
+        const maxVal = Math.max(a, b, 1);
+        const homeScore = maxVal - a + 1;
+        const awayScore = maxVal - b + 1;
+        const maxScore = Math.max(homeScore, awayScore, 1);
+        return {
+          homePct: Math.max(18, (homeScore / maxScore) * 100),
+          awayPct: Math.max(18, (awayScore / maxScore) * 100),
+        };
+      }
+
+      const maxVal = Math.max(a, b, 1);
+      return {
+        homePct: Math.max(18, (a / maxVal) * 100),
+        awayPct: Math.max(18, (b / maxVal) * 100),
+      };
+    }
+
+    return (
+      <details className={styles.details} style={{ marginTop: 14 }}>
+        <summary className={styles.summary}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <Trophy size={18} /> Head-to-head
+          </span>
+          <span className={styles.summaryRight}>
+            Compare <ChevronDown size={16} />
+          </span>
+        </summary>
+
+        <div style={{ marginTop: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              gap: 10,
+              alignItems: "center",
+              padding: "4px 2px 14px",
+              borderBottom: "1px solid var(--stroke)",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Home</div>
+              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(homeTeam)}</div>
+            </div>
+
+            <div
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border: "1px solid var(--stroke)",
+                background: "rgba(17,24,39,0.03)",
+                fontSize: 12,
+                fontWeight: 950,
+                color: "var(--muted)",
+              }}
+            >
+              vs
+            </div>
+
+            <div style={{ minWidth: 0, textAlign: "right" }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Away</div>
+              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(awayTeam)}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+            {metrics.map((m) => {
+              const homeBetter = isHomeBetter(m);
+              const awayBetter = isAwayBetter(m);
+              const { homePct, awayPct } = getStrengths(m);
+
+              const homeValue = m.format ? m.format(m.home) : String(m.home);
+              const awayValue = m.format ? m.format(m.away) : String(m.away);
+
+              return (
+                <div
+                  key={m.key}
+                  style={{
+                    border: "1px solid var(--stroke)",
+                    borderRadius: 16,
+                    padding: 12,
+                    background:
+                      homeBetter || awayBetter
+                        ? "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%)"
+                        : "rgba(255,255,255,0.9)",
+                    boxShadow: "0 8px 22px rgba(17,24,39,0.04)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 950,
+                      fontSize: 12,
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                      color: "var(--muted)",
+                      marginBottom: 10,
+                    }}
+                  >
+                    {m.label}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr auto",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        minWidth: 58,
+                        textAlign: "left",
+                        fontWeight: 950,
+                        fontSize: 18,
+                        color: homeBetter ? "rgb(21,128,61)" : "var(--text)",
+                      }}
+                    >
+                      {homeValue}
+                    </div>
+
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div
+                          style={{
+                            position: "relative",
+                            height: 12,
+                            borderRadius: 999,
+                            background: "rgba(17,24,39,0.06)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: `${homePct}%`,
+                              borderRadius: 999,
+                              background: homeBetter
+                                ? "linear-gradient(90deg, rgba(34,197,94,0.38), rgba(34,197,94,0.88))"
+                                : "linear-gradient(90deg, rgba(148,163,184,0.28), rgba(148,163,184,0.62))",
+                            }}
+                          />
+                        </div>
+
+                        <div
+                          style={{
+                            position: "relative",
+                            height: 12,
+                            borderRadius: 999,
+                            background: "rgba(17,24,39,0.06)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: `${awayPct}%`,
+                              borderRadius: 999,
+                              background: awayBetter
+                                ? "linear-gradient(90deg, rgba(59,130,246,0.88), rgba(59,130,246,0.38))"
+                                : "linear-gradient(90deg, rgba(148,163,184,0.62), rgba(148,163,184,0.28))",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 8,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          color: "var(--muted)",
+                        }}
+                      >
+                        <div>Home</div>
+                        <div style={{ textAlign: "right" }}>Away</div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        minWidth: 58,
+                        textAlign: "right",
+                        fontWeight: 950,
+                        fontSize: 18,
+                        color: awayBetter ? "rgb(29,78,216)" : "var(--text)",
+                      }}
+                    >
+                      {awayValue}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </details>
+    );
+  }
+
+  const upcomingPreview = upcoming.slice(0, 4);
+  const upcomingList = showAllUpcoming ? upcoming : upcomingPreview;
+
   return (
     <div className={styles.shell}>
       <div className={styles.header}>
@@ -526,9 +982,7 @@ export default function BriarsPage() {
         </div>
       ) : null}
 
-      {loading ? (
-        <div className={`${styles.card} ${styles.cardPad}`}>Loading fixtures…</div>
-      ) : null}
+      {loading ? <div className={`${styles.card} ${styles.cardPad}`}>Loading fixtures…</div> : null}
 
       {!loading && nextGame ? (
         <div className={`${styles.card} ${styles.cardPad} ${styles.nextGameCard}`}>
@@ -590,6 +1044,8 @@ export default function BriarsPage() {
               </Pill>
             </div>
           ) : null}
+
+          <HeadToHead homeTeam={nextGame.home} awayTeam={nextGame.away} />
 
           <div className={styles.divider} />
 

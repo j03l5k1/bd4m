@@ -120,7 +120,8 @@ export default function HeroMatch({
   isActiveUpcoming: boolean;
 
   onToast: (msg: string) => void;
-  ladder?: LadderPayload;
+
+  ladder?: LadderPayload; // ✅ ADD
 }) {
   const heroCountdown = formatCountdown(
     new Date(activeGame.kickoffISO).getTime() - now.getTime()
@@ -230,7 +231,9 @@ export default function HeroMatch({
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.home)]} />
             <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>{shortTeamName(activeGame.home)}</div>
+              <div className={styles.teamNameLg}>
+                {shortTeamName(activeGame.home)}
+              </div>
               <div className={styles.teamSub}>Home</div>
             </div>
           </div>
@@ -240,7 +243,9 @@ export default function HeroMatch({
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.away)]} />
             <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>{shortTeamName(activeGame.away)}</div>
+              <div className={styles.teamNameLg}>
+                {shortTeamName(activeGame.away)}
+              </div>
               <div className={styles.teamSub}>Away</div>
             </div>
           </div>
@@ -279,12 +284,9 @@ export default function HeroMatch({
           </div>
         ) : null}
 
+        {/* ✅ Head-to-head now gets ladder */}
         <div className={styles.heroSection}>
-          <HeadToHead
-            teamA={activeGame.home}
-            teamB={activeGame.away}
-            ladder={ladder}
-          />
+          <HeadToHead teamA={activeGame.home} teamB={activeGame.away} ladder={ladder} />
         </div>
 
         <div className={styles.heroSection}>

@@ -355,9 +355,10 @@ export default function BriarsPage() {
       setToast("Saved ✓");
       setTimeout(() => setToast(null), 1800);
 
-      const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, { cache: "no-store" }).then((r) =>
-        r.json()
-      );
+      const sum = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(source_key)}`, {
+        cache: "no-store",
+      }).then((r) => r.json());
+
       if (sum?.ok) setCountsByKey((prev) => ({ ...prev, [source_key]: sum.counts }));
 
       await loadNames(source_key);
@@ -388,14 +389,14 @@ export default function BriarsPage() {
   }
 
   const idxTeam = 0;
-const idxPts = findIndexByNames(["pts", "points"]);
-const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
-const idxGF = findIndexByNames(["gf", "for", "g+"]);
-const idxGA = findIndexByNames(["ga", "against", "g-"]);
-const idxP = findIndexByNames(["p", "pld", "played", "games"]);
-const idxW = findIndexByNames(["w", "won", "wins", "win"]);
-const idxD = findIndexByNames(["d", "draw", "draws"]);
-const idxL = findIndexByNames(["l", "loss", "losses"]);
+  const idxPts = findIndexByNames(["pts", "points"]);
+  const idxGD = findIndexByNames(["gd", "goal difference", "+/-"]);
+  const idxGF = findIndexByNames(["gf", "for", "g+"]);
+  const idxGA = findIndexByNames(["ga", "against", "g-"]);
+  const idxP = findIndexByNames(["p", "pld", "played", "games"]);
+  const idxW = findIndexByNames(["w", "won", "wins", "win"]);
+  const idxD = findIndexByNames(["d", "draw", "draws"]);
+  const idxL = findIndexByNames(["l", "loss", "losses"]);
 
   const rankedLadderRows = useMemo(() => {
     const rows = [...ladderRows];
@@ -460,7 +461,9 @@ const idxL = findIndexByNames(["l", "loss", "losses"]);
 
   function findLadderRowForTeam(teamName: string) {
     const needle = normaliseTeamName(teamName);
-    const direct = rankedLadderRows.find((row) => normaliseTeamName(String(row.cols[idxTeam] || row.team || "")) === needle);
+    const direct = rankedLadderRows.find(
+      (row) => normaliseTeamName(String(row.cols[idxTeam] || row.team || "")) === needle
+    );
     if (direct) return direct;
 
     const short = shortTeamName(teamName).toLowerCase();
@@ -548,195 +551,337 @@ const idxL = findIndexByNames(["l", "loss", "losses"]);
   }
 
   function HeadToHead({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) {
-  const homeRow = findLadderRowForTeam(homeTeam);
-  const awayRow = findLadderRowForTeam(awayTeam);
+    const homeRow = findLadderRowForTeam(homeTeam);
+    const awayRow = findLadderRowForTeam(awayTeam);
 
-  if (!homeRow || !awayRow) {
+    if (!homeRow || !awayRow) {
+      return (
+        <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
+          Comparison not available yet.
+        </div>
+      );
+    }
+
+    const homeRank = getTeamRank(homeTeam);
+    const awayRank = getTeamRank(awayTeam);
+
+    const metrics = [
+      {
+        key: "position",
+        label: "Ladder position",
+        home: homeRank ?? 0,
+        away: awayRank ?? 0,
+        lowWins: true,
+        format: (v: number) => (v ? ordinal(v) : "—"),
+      },
+      {
+        key: "games",
+        label: "Games played",
+        home: idxP >= 0 ? num(homeRow.cols[idxP]) : 0,
+        away: idxP >= 0 ? num(awayRow.cols[idxP]) : 0,
+      },
+      {
+        key: "wins",
+        label: "Wins",
+        home: idxW >= 0 ? num(homeRow.cols[idxW]) : 0,
+        away: idxW >= 0 ? num(awayRow.cols[idxW]) : 0,
+      },
+      {
+        key: "draws",
+        label: "Draws",
+        home: idxD >= 0 ? num(homeRow.cols[idxD]) : 0,
+        away: idxD >= 0 ? num(awayRow.cols[idxD]) : 0,
+      },
+      {
+        key: "losses",
+        label: "Losses",
+        home: idxL >= 0 ? num(homeRow.cols[idxL]) : 0,
+        away: idxL >= 0 ? num(awayRow.cols[idxL]) : 0,
+        lowWins: true,
+      },
+      {
+        key: "gf",
+        label: "Goals for",
+        home: idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0,
+        away: idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0,
+      },
+      {
+        key: "ga",
+        label: "Goals against",
+        home: idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0,
+        away: idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0,
+        lowWins: true,
+      },
+      {
+        key: "gd",
+        label: "Goal difference",
+        home: idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0,
+        away: idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0,
+      },
+      {
+        key: "pts",
+        label: "Points",
+        home: idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0,
+        away: idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0,
+      },
+    ];
+
+    function isHomeBetter(metric: (typeof metrics)[number]) {
+      return metric.lowWins ? metric.home < metric.away : metric.home > metric.away;
+    }
+
+    function isAwayBetter(metric: (typeof metrics)[number]) {
+      return metric.lowWins ? metric.away < metric.home : metric.away > metric.home;
+    }
+
+    function getStrengths(metric: (typeof metrics)[number]) {
+      const a = metric.home;
+      const b = metric.away;
+
+      if (a === 0 && b === 0) {
+        return { homePct: 50, awayPct: 50 };
+      }
+
+      if (metric.lowWins) {
+        const maxVal = Math.max(a, b, 1);
+        const homeScore = maxVal - a + 1;
+        const awayScore = maxVal - b + 1;
+        const maxScore = Math.max(homeScore, awayScore, 1);
+        return {
+          homePct: Math.max(18, (homeScore / maxScore) * 100),
+          awayPct: Math.max(18, (awayScore / maxScore) * 100),
+        };
+      }
+
+      const maxVal = Math.max(a, b, 1);
+      return {
+        homePct: Math.max(18, (a / maxVal) * 100),
+        awayPct: Math.max(18, (b / maxVal) * 100),
+      };
+    }
+
     return (
-      <div style={{ marginTop: 12, color: "var(--muted)", fontWeight: 850 }}>
-        Comparison not available yet.
-      </div>
+      <details className={styles.details} style={{ marginTop: 12 }}>
+        <summary className={styles.summary}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <Trophy size={18} /> Head-to-head
+          </span>
+          <span className={styles.summaryRight}>
+            Compare <ChevronDown size={16} />
+          </span>
+        </summary>
+
+        <div style={{ marginTop: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              gap: 10,
+              alignItems: "center",
+              padding: "4px 2px 14px",
+              borderBottom: "1px solid var(--stroke)",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Home</div>
+              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(homeTeam)}</div>
+            </div>
+
+            <div
+              style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                border: "1px solid var(--stroke)",
+                background: "rgba(17,24,39,0.03)",
+                fontSize: 12,
+                fontWeight: 950,
+                color: "var(--muted)",
+              }}
+            >
+              vs
+            </div>
+
+            <div style={{ minWidth: 0, textAlign: "right" }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)", marginBottom: 4 }}>Away</div>
+              <div style={{ fontWeight: 950, fontSize: 16, lineHeight: 1.15 }}>{teamDisplayLabel(awayTeam)}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+            {metrics.map((m) => {
+              const homeBetter = isHomeBetter(m);
+              const awayBetter = isAwayBetter(m);
+              const { homePct, awayPct } = getStrengths(m);
+
+              const homeValue = m.format ? m.format(m.home) : String(m.home);
+              const awayValue = m.format ? m.format(m.away) : String(m.away);
+
+              return (
+                <div
+                  key={m.key}
+                  style={{
+                    border: "1px solid var(--stroke)",
+                    borderRadius: 16,
+                    padding: 12,
+                    background:
+                      homeBetter || awayBetter
+                        ? "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%)"
+                        : "rgba(255,255,255,0.9)",
+                    boxShadow: "0 8px 22px rgba(17,24,39,0.04)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 950,
+                        fontSize: 12,
+                        letterSpacing: 0.4,
+                        textTransform: "uppercase",
+                        color: "var(--muted)",
+                      }}
+                    >
+                      {m.label}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 950,
+                        padding: "5px 8px",
+                        borderRadius: 999,
+                        border: "1px solid var(--stroke)",
+                        background: homeBetter
+                          ? "rgba(34,197,94,0.10)"
+                          : awayBetter
+                          ? "rgba(59,130,246,0.10)"
+                          : "rgba(17,24,39,0.03)",
+                        color: homeBetter
+                          ? "rgb(21,128,61)"
+                          : awayBetter
+                          ? "rgb(29,78,216)"
+                          : "var(--muted)",
+                      }}
+                    >
+                      {homeBetter ? "Home edge" : awayBetter ? "Away edge" : "Even"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr auto",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        minWidth: 58,
+                        textAlign: "left",
+                        fontWeight: 950,
+                        fontSize: 18,
+                        color: homeBetter ? "rgb(21,128,61)" : "var(--text)",
+                      }}
+                    >
+                      {homeValue}
+                    </div>
+
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <div
+                          style={{
+                            position: "relative",
+                            height: 12,
+                            borderRadius: 999,
+                            background: "rgba(17,24,39,0.06)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: `${homePct}%`,
+                              borderRadius: 999,
+                              background: homeBetter
+                                ? "linear-gradient(90deg, rgba(34,197,94,0.38), rgba(34,197,94,0.88))"
+                                : "linear-gradient(90deg, rgba(148,163,184,0.28), rgba(148,163,184,0.62))",
+                              boxShadow: homeBetter ? "0 0 18px rgba(34,197,94,0.18)" : "none",
+                            }}
+                          />
+                        </div>
+
+                        <div
+                          style={{
+                            position: "relative",
+                            height: 12,
+                            borderRadius: 999,
+                            background: "rgba(17,24,39,0.06)",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: `${awayPct}%`,
+                              borderRadius: 999,
+                              background: awayBetter
+                                ? "linear-gradient(90deg, rgba(59,130,246,0.88), rgba(59,130,246,0.38))"
+                                : "linear-gradient(90deg, rgba(148,163,184,0.62), rgba(148,163,184,0.28))",
+                              boxShadow: awayBetter ? "0 0 18px rgba(59,130,246,0.16)" : "none",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 8,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          color: "var(--muted)",
+                        }}
+                      >
+                        <div>Home</div>
+                        <div style={{ textAlign: "right" }}>Away</div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        minWidth: 58,
+                        textAlign: "right",
+                        fontWeight: 950,
+                        fontSize: 18,
+                        color: awayBetter ? "rgb(29,78,216)" : "var(--text)",
+                      }}
+                    >
+                      {awayValue}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </details>
     );
   }
-
-  const homeRank = getTeamRank(homeTeam);
-  const awayRank = getTeamRank(awayTeam);
-
-  const metrics = [
-    {
-      label: "Ladder position",
-      home: homeRank ? homeRank : "—",
-      away: awayRank ? awayRank : "—",
-      lowWins: true,
-    },
-    {
-      label: "Games",
-      home: idxP >= 0 ? num(homeRow.cols[idxP]) : 0,
-      away: idxP >= 0 ? num(awayRow.cols[idxP]) : 0,
-    },
-    {
-      label: "Wins",
-      home: idxW >= 0 ? num(homeRow.cols[idxW]) : 0,
-      away: idxW >= 0 ? num(awayRow.cols[idxW]) : 0,
-    },
-    {
-      label: "Draws",
-      home: idxD >= 0 ? num(homeRow.cols[idxD]) : 0,
-      away: idxD >= 0 ? num(awayRow.cols[idxD]) : 0,
-    },
-    {
-      label: "Losses",
-      home: idxL >= 0 ? num(homeRow.cols[idxL]) : 0,
-      away: idxL >= 0 ? num(awayRow.cols[idxL]) : 0,
-      lowWins: true,
-    },
-    {
-      label: "Goals for",
-      home: idxGF >= 0 ? num(homeRow.cols[idxGF]) : 0,
-      away: idxGF >= 0 ? num(awayRow.cols[idxGF]) : 0,
-    },
-    {
-      label: "Goals against",
-      home: idxGA >= 0 ? num(homeRow.cols[idxGA]) : 0,
-      away: idxGA >= 0 ? num(awayRow.cols[idxGA]) : 0,
-      lowWins: true,
-    },
-    {
-      label: "Goal diff",
-      home: idxGD >= 0 ? num(homeRow.cols[idxGD]) : 0,
-      away: idxGD >= 0 ? num(awayRow.cols[idxGD]) : 0,
-    },
-    {
-      label: "Points",
-      home: idxPts >= 0 ? num(homeRow.cols[idxPts]) : 0,
-      away: idxPts >= 0 ? num(awayRow.cols[idxPts]) : 0,
-    },
-  ];
-
-  function isHomeBetter(metric: (typeof metrics)[number]) {
-    if (typeof metric.home !== "number" || typeof metric.away !== "number") return false;
-    return metric.lowWins ? metric.home < metric.away : metric.home > metric.away;
-  }
-
-  function isAwayBetter(metric: (typeof metrics)[number]) {
-    if (typeof metric.home !== "number" || typeof metric.away !== "number") return false;
-    return metric.lowWins ? metric.away < metric.home : metric.away > metric.home;
-  }
-
-  return (
-    <details className={styles.details} style={{ marginTop: 12 }}>
-      <summary className={styles.summary}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <Trophy size={18} /> Head-to-head
-        </span>
-        <span className={styles.summaryRight}>
-          Compare <ChevronDown size={16} />
-        </span>
-      </summary>
-
-      <div style={{ marginTop: 14 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto 1fr",
-            gap: 10,
-            alignItems: "center",
-            padding: "0 2px 12px",
-            borderBottom: "1px solid var(--stroke)",
-          }}
-        >
-          <div style={{ fontWeight: 950 }}>
-            {teamDisplayLabel(homeTeam)}
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 900, color: "var(--muted)" }}>
-            vs
-          </div>
-          <div style={{ fontWeight: 950, textAlign: "right" }}>
-            {teamDisplayLabel(awayTeam)}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-          {metrics.map((m) => {
-            const homeBetter = isHomeBetter(m);
-            const awayBetter = isAwayBetter(m);
-
-            return (
-              <div
-                key={m.label}
-                style={{
-                  border: "1px solid var(--stroke)",
-                  borderRadius: 14,
-                  padding: 12,
-                  background: "rgba(17,24,39,0.02)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: "var(--muted)",
-                    marginBottom: 8,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.4,
-                  }}
-                >
-                  {m.label}
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto 1fr",
-                    gap: 10,
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 950,
-                      color: homeBetter ? "rgb(21, 128, 61)" : "var(--text)",
-                      background: homeBetter ? "rgba(34,197,94,0.10)" : "transparent",
-                      border: homeBetter ? "1px solid rgba(34,197,94,0.18)" : "1px solid transparent",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    {typeof m.home === "number" && m.label === "Ladder position" ? ordinal(m.home) : m.home}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 900,
-                      color: "var(--muted)",
-                    }}
-                  >
-                    {homeBetter ? "ahead" : awayBetter ? "behind" : "even"}
-                  </div>
-
-                  <div
-                    style={{
-                      fontWeight: 950,
-                      textAlign: "right",
-                      color: awayBetter ? "rgb(21, 128, 61)" : "var(--text)",
-                      background: awayBetter ? "rgba(34,197,94,0.10)" : "transparent",
-                      border: awayBetter ? "1px solid rgba(34,197,94,0.18)" : "1px solid transparent",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                    }}
-                  >
-                    {typeof m.away === "number" && m.label === "Ladder position" ? ordinal(m.away) : m.away}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </details>
-  );
-}
 
   function GameCard({ g }: { g: Game }) {
     const dt = new Date(g.kickoffISO);

@@ -17,6 +17,7 @@
   font-size: 30px;
   font-weight: 950;
   letter-spacing: -0.4px;
+  line-height: 1.02;
 }
 
 .sub {
@@ -24,6 +25,7 @@
   font-size: 14px;
   color: var(--muted);
   font-weight: 850;
+  line-height: 1.35;
 }
 
 .strong {
@@ -58,6 +60,7 @@
 
 .nextGameCard {
   box-shadow: 0 14px 36px rgba(17, 24, 39, 0.07);
+  overflow: hidden;
 }
 
 .cardPad {
@@ -67,6 +70,7 @@
 .pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 9px 12px;
   border-radius: 999px;
@@ -116,8 +120,10 @@
   border: 1px solid var(--stroke2);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  text-align: center;
 }
 
 .btnPrimary {
@@ -270,12 +276,14 @@
 .availabilityTitle {
   font-weight: 950;
   font-size: 16px;
+  line-height: 1.15;
 }
 
 .statusLine {
   margin-top: 10px;
   color: var(--muted);
   font-weight: 850;
+  line-height: 1.35;
 }
 
 .statusStrong {
@@ -306,6 +314,7 @@
 .nameColTitle {
   font-weight: 950;
   margin-bottom: 6px;
+  line-height: 1.2;
 }
 
 .nameColBody {
@@ -358,6 +367,7 @@
 .pillBtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 10px 12px;
   border-radius: 999px;
@@ -414,6 +424,7 @@
 .gTitle {
   font-weight: 950;
   letter-spacing: -0.2px;
+  line-height: 1.2;
 }
 
 .gSub {
@@ -541,31 +552,6 @@
 }
 
 @media (max-width: 740px) {
-  .vsGrid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .team,
-  .teamRight {
-    justify-content: flex-start;
-    text-align: left;
-  }
-
-  .mid {
-    text-align: left;
-  }
-
-  .availabilityNamesGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .summary {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-@media (max-width: 740px) {
   .shell {
     padding: 12px;
   }
@@ -580,12 +566,18 @@
 
   .h1 {
     font-size: 24px;
-    line-height: 1.05;
   }
 
   .sub {
     font-size: 13px;
-    line-height: 1.35;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions .btn {
+    width: 100%;
   }
 
   .rowTop {
@@ -597,247 +589,37 @@
 
   .rowTop .pill {
     width: 100%;
-    justify-content: center;
     min-width: 0;
   }
 
   .vsGrid {
     grid-template-columns: 1fr;
     gap: 14px;
-    margin-top: 14px;
-  }
-
-  .team,
-  .teamRight {
-    justify-content: flex-start;
-    text-align: left;
-  }
-
-  .team {
-    display: grid;
-    grid-template-columns: 54px 1fr;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .teamRight {
-    grid-template-columns: 1fr 54px;
-  }
-
-  .teamRight .logo {
-    order: 2;
-  }
-
-  .teamRight > div:first-child {
-    order: 1;
-  }
-
-  .mid {
-    text-align: left;
-    padding: 2px 0;
-  }
-
-  .vs {
-    font-size: 13px;
-    letter-spacing: 1.5px;
-  }
-
-  .teamName {
-    font-size: 16px;
-    line-height: 1.15;
-  }
-
-  .chips {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 14px;
-  }
-
-  .chips .pill {
-    width: 100%;
-    justify-content: center;
-    min-width: 0;
-  }
-
-  .chips .pill:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .weatherRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    margin-top: 12px;
-  }
-
-  .weatherRow .pill {
-    width: 100%;
-    min-width: 0;
-    justify-content: center;
-    padding: 10px 8px;
-    font-size: 12px;
-  }
-
-  .details {
-    margin-top: 12px;
-  }
-
-  .summary {
-    padding: 12px 14px;
-    gap: 8px;
-    align-items: center;
-    flex-direction: row;
-  }
-
-  .summaryRight {
-    font-size: 12px;
-    margin-left: auto;
-  }
-
-  .availabilityBox {
-    padding: 12px;
-  }
-
-  .availabilityTop {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    align-items: stretch;
-  }
-
-  .availabilityTop .pill {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .availabilityTitle {
-    font-size: 15px;
-  }
-
-  .statusLine {
-    margin-top: 8px;
-    font-size: 14px;
-  }
-
-  .btnRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 14px;
-  }
-
-  .btnRow .btn {
-    width: 100%;
-    justify-content: center;
-    min-height: 52px;
-    font-size: 15px;
-  }
-
-  .btnRow .btn:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .availabilityNamesGrid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .nameCol {
-    padding-top: 2px;
-  }
-
-  .nameColBody {
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .sectionTop {
-    align-items: stretch;
-  }
-
-  .pillBtn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .gcard {
-    padding: 14px;
-  }
-
-  .gTop {
-    gap: 10px;
-  }
-
-  .gTop .pill {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .gMatch {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .gMeta {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-    margin-top: 12px;
-    margin-bottom: 12px;
-  }
-
-  .gMetaItem {
-    width: 100%;
-  }
-}
-@media (max-width: 740px) {
-  /* NEXT GAME CARD */
-  .nextGameCard {
-    overflow: hidden;
-  }
-
-  .vsGrid {
-    grid-template-columns: 1fr;
-    gap: 12px;
     margin-top: 16px;
   }
 
   .team,
   .teamRight {
-    display: flex;
-    align-items: center;
+    width: 100%;
     justify-content: center;
     text-align: center;
-    gap: 12px;
-    width: 100%;
-  }
-
-  .team {
-    flex-direction: row;
   }
 
   .teamRight {
     flex-direction: row;
   }
 
-  .team > div,
-  .teamRight > div {
-    min-width: 0;
+  .mid {
+    text-align: center;
+    padding: 2px 0;
   }
 
   .teamName {
     font-size: 16px;
-    line-height: 1.15;
   }
 
   .subMini {
     font-size: 12px;
-  }
-
-  .mid {
-    text-align: center;
-    padding: 2px 0;
   }
 
   .vs {
@@ -849,13 +631,12 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
   .chips .pill {
     width: 100%;
     min-width: 0;
-    justify-content: center;
     text-align: center;
   }
 
@@ -867,23 +648,23 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
+    margin-top: 12px;
   }
 
   .weatherRow .pill {
     width: 100%;
     min-width: 0;
-    justify-content: center;
+    padding: 10px 8px;
+    font-size: 12px;
     text-align: center;
   }
 
-  /* HEAD TO HEAD ROW */
   .details {
     margin-top: 12px;
-    border-radius: 18px;
   }
 
   .summary {
-    padding: 14px 16px;
+    padding: 14px;
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 10px;
@@ -891,12 +672,10 @@
   }
 
   .summaryRight {
-    justify-self: end;
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
   }
 
-  /* AVAILABILITY BOX */
   .availabilityBox {
     padding: 14px;
     border-radius: 18px;
@@ -911,7 +690,8 @@
 
   .availabilityTop .pill {
     width: 100%;
-    justify-content: center;
+    min-width: 0;
+    padding: 12px 14px;
     text-align: center;
   }
 
@@ -925,14 +705,17 @@
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-top: 14px;
+    width: 100%;
   }
 
   .btnRow .btn {
     width: 100%;
-    min-height: 54px;
-    justify-content: center;
-    font-size: 15px;
+    min-height: 52px;
+    padding: 12px;
     border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.2;
+    white-space: normal;
   }
 
   .btnRow .btn:last-child {
@@ -940,7 +723,6 @@
   }
 
   .availabilityNamesGrid {
-    display: grid;
     grid-template-columns: 1fr;
     gap: 12px;
     margin-top: 16px;
@@ -950,7 +732,7 @@
   .nameCol {
     border: 1px solid var(--stroke);
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.72);
     padding: 12px;
   }
 
@@ -965,17 +747,24 @@
     color: var(--text);
   }
 
-  /* UPCOMING CARDS */
+  .sectionTop {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .pillBtn {
+    width: 100%;
+  }
+
   .gcard {
     padding: 16px;
-    border-radius: 18px;
   }
 
   .gTop {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    gap: 12px;
   }
 
   .gMatch {
@@ -986,18 +775,17 @@
 
   .gTop .pill {
     width: 100%;
-    justify-content: center;
     text-align: center;
   }
 
   .gNames {
+    width: 100%;
     margin-top: 10px;
     text-align: center;
   }
 
   .gTitle {
     font-size: 15px;
-    line-height: 1.2;
   }
 
   .gSub {
@@ -1008,6 +796,7 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
+    width: 100%;
     margin-top: 14px;
     margin-bottom: 14px;
   }
@@ -1030,250 +819,12 @@
 
   .gcard > div:last-child .pill {
     width: 100%;
-    justify-content: center;
     text-align: center;
   }
 
-  /* GENERAL MOBILE POLISH */
   .logo {
     width: 56px;
     height: 56px;
     border-radius: 16px;
-  }
-
-  .pill {
-    padding: 11px 12px;
-  }
-
-  .sectionTop {
-    gap: 10px;
-  }
-
-  .pillBtn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 740px) {
-  /* FIX NEXT GAME LAYOUT */
-  .vsGrid {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 14px !important;
-    margin-top: 16px !important;
-  }
-
-  .team,
-  .teamRight {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    gap: 12px !important;
-    width: 100% !important;
-  }
-
-  .teamRight {
-    justify-content: center !important;
-  }
-
-  .mid {
-    text-align: center !important;
-    width: 100% !important;
-    padding: 0 !important;
-  }
-
-  .chips {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    width: 100% !important;
-    margin-top: 16px !important;
-  }
-
-  .chips .pill {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
-  }
-
-  .chips .pill:last-child {
-    grid-column: 1 / -1 !important;
-  }
-
-  .weatherRow {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .weatherRow .pill {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 10px 8px !important;
-  }
-
-  /* FIX AVAILABILITY BOX */
-  .availabilityBox {
-    display: block !important;
-    padding: 14px !important;
-  }
-
-  .availabilityTop {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 10px !important;
-  }
-
-  .availabilityTitle {
-    display: block !important;
-    width: 100% !important;
-    font-size: 15px !important;
-    line-height: 1.2 !important;
-  }
-
-  .availabilityTop .pill {
-    display: flex !important;
-    width: 100% !important;
-    max-width: none !important;
-    min-height: 0 !important;
-    height: auto !important;
-    padding: 12px 14px !important;
-    border-radius: 999px !important;
-    justify-content: center !important;
-    align-items: center !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-  }
-
-  .statusLine {
-    display: block !important;
-    width: 100% !important;
-    margin-top: 10px !important;
-    font-size: 14px !important;
-    line-height: 1.35 !important;
-  }
-
-  .btnRow {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    margin-top: 14px !important;
-    width: 100% !important;
-  }
-
-  .btnRow .btn {
-    display: inline-flex !important;
-    width: 100% !important;
-    min-height: 52px !important;
-    height: auto !important;
-    padding: 12px !important;
-    justify-content: center !important;
-    align-items: center !important;
-    text-align: center !important;
-    border-radius: 16px !important;
-    font-size: 15px !important;
-    line-height: 1.2 !important;
-    white-space: normal !important;
-  }
-
-  .btnRow .btn:last-child {
-    grid-column: 1 / -1 !important;
-  }
-
-  .availabilityNamesGrid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-    width: 100% !important;
-    margin-top: 16px !important;
-    padding-top: 16px !important;
-  }
-
-  .nameCol {
-    display: block !important;
-    width: 100% !important;
-    padding: 12px !important;
-    border: 1px solid var(--stroke) !important;
-    border-radius: 14px !important;
-    background: rgba(255, 255, 255, 0.72) !important;
-  }
-
-  .nameColTitle {
-    margin-bottom: 8px !important;
-    font-size: 14px !important;
-    line-height: 1.2 !important;
-  }
-
-  .nameColBody {
-    font-size: 15px !important;
-    line-height: 1.45 !important;
-    color: var(--text) !important;
-    word-break: break-word !important;
-  }
-
-  /* FIX UPCOMING CARDS */
-  .gcard {
-    padding: 16px !important;
-  }
-
-  .gTop {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 12px !important;
-  }
-
-  .gMatch {
-    display: flex !important;
-    width: 100% !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 14px !important;
-  }
-
-  .gTop .pill {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
-  }
-
-  .gNames {
-    text-align: center !important;
-    width: 100% !important;
-    margin-top: 10px !important;
-  }
-
-  .gMeta {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-    width: 100% !important;
-    margin-top: 14px !important;
-    margin-bottom: 14px !important;
-  }
-
-  .gMetaItem {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
-  }
-
-  .gcard > div:last-child {
-    display: flex !important;
-    justify-content: center !important;
-    margin-top: 14px !important;
-  }
-
-  .gcard > div:last-child .pill {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
   }
 }

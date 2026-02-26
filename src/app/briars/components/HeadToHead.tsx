@@ -4,7 +4,31 @@ import styles from "../briars.module.css";
 import type { Game } from "../page";
 
 function normTeam(s: string) {
-  return s.trim().toLowerCase();
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[()]/g, "")
+    .trim();
+}
+
+function sameTeam(a: string, b: string) {
+  const A = normTeam(a);
+  const B = normTeam(b);
+
+  if (!A || !B) return false;
+  if (A === B) return true;
+
+  // More forgiving matching for shortened labels like:
+  // "Macquarie" vs "Macquarie Uni 2"
+  if (A.startsWith(B) || B.startsWith(A)) return true;
+
+  // Also allow first-word matching as a fallback
+  const aFirst = A.split(" ")[0];
+  const bFirst = B.split(" ")[0];
+  if (aFirst && bFirst && aFirst === bFirst) return true;
+
+  return false;
 }
 
 function parseScore(score: string): { a: number; b: number } | null {
@@ -35,32 +59,38 @@ type H2H = {
 };
 
 function computeH2H(allGames: Game[], teamA: string, teamB: string): H2H {
-  const A = normTeam(teamA);
-  const B = normTeam(teamB);
-
   const relevant = allGames.filter((g) => {
-    const h = normTeam(g.home);
-    const a = normTeam(g.away);
-    return (h === A && a === B) || (h === B && a === A);
+    const homeVsAway =
+      sameTeam(g.home, teamA) && sameTeam(g.away, teamB);
+
+    const awayVsHome =
+      sameTeam(g.home, teamB) && sameTeam(g.away, teamA);
+
+    return homeVsAway || awayVsHome;
   });
 
-  let out: H2H = { played: 0, aWins: 0, bWins: 0, draws: 0, aGF: 0, aGA: 0, bGF: 0, bGA: 0 };
+  let out: H2H = {
+    played: 0,
+    aWins: 0,
+    bWins: 0,
+    draws: 0,
+    aGF: 0,
+    aGA: 0,
+    bGF: 0,
+    bGA: 0,
+  };
 
   for (const g of relevant) {
     const s = parseScore(g.score);
     if (!s) continue;
 
-    // Determine score relative to A/B regardless of home/away orientation
-    const h = normTeam(g.home);
-    const a = normTeam(g.away);
-
     let scoreA = 0;
     let scoreB = 0;
 
-    if (h === A && a === B) {
+    if (sameTeam(g.home, teamA) && sameTeam(g.away, teamB)) {
       scoreA = s.a;
       scoreB = s.b;
-    } else if (h === B && a === A) {
+    } else if (sameTeam(g.home, teamB) && sameTeam(g.away, teamA)) {
       scoreA = s.b;
       scoreB = s.a;
     } else {
@@ -97,7 +127,6 @@ export default function HeadToHead({
 }) {
   const h2h = computeH2H(allGames, teamA, teamB);
 
-  // If we have no scored matches, keep it clean
   if (h2h.played === 0) {
     return (
       <details className={styles.details}>
@@ -106,7 +135,9 @@ export default function HeadToHead({
           <span className={styles.summaryRight}>No scored matches yet</span>
         </summary>
         <div className={styles.detailsBody}>
-          <div className={styles.h2hEmpty}>Once scores are available, you’ll see a clean comparison here.</div>
+          <div className={styles.h2hEmpty}>
+            Once scores are available, you’ll see a clean comparison here.
+          </div>
         </div>
       </details>
     );
@@ -136,8 +167,14 @@ export default function HeadToHead({
 
             <div className={styles.h2hBarWrap}>
               <div className={styles.h2hBarTrack}>
-                <div className={styles.h2hBarFillA} style={{ width: `${aWinPct}%` }} />
-                <div className={styles.h2hBarFillB} style={{ width: `${bWinPct}%` }} />
+                <div
+                  className={styles.h2hBarFillA}
+                  style={{ width: `${aWinPct}%` }}
+                />
+                <div
+                  className={styles.h2hBarFillB}
+                  style={{ width: `${bWinPct}%` }}
+                />
               </div>
               <div className={styles.h2hBarLegend}>
                 <span>{teamA}: {aWinPct}% wins</span>
@@ -151,17 +188,23 @@ export default function HeadToHead({
 
             <div className={styles.h2hStatRow}>
               <span>Wins</span>
-              <span className={styles.h2hStatNums}>{h2h.aWins} : {h2h.bWins}</span>
+              <span className={styles.h2hStatNums}>
+                {h2h.aWins} : {h2h.bWins}
+              </span>
             </div>
 
             <div className={styles.h2hStatRow}>
               <span>Goals for</span>
-              <span className={styles.h2hStatNums}>{h2h.aGF} : {h2h.bGF}</span>
+              <span className={styles.h2hStatNums}>
+                {h2h.aGF} : {h2h.bGF}
+              </span>
             </div>
 
             <div className={styles.h2hStatRow}>
               <span>Goals against</span>
-              <span className={styles.h2hStatNums}>{h2h.aGA} : {h2h.bGA}</span>
+              <span className={styles.h2hStatNums}>
+                {h2h.aGA} : {h2h.bGA}
+              </span>
             </div>
 
             <div className={styles.h2hStatRow}>

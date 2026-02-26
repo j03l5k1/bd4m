@@ -221,6 +221,11 @@ export default function HeroMatch({
           </div>
         ) : null}
 
+        {/* Head-to-head (collapsed by default) */}
+<div className={styles.heroSection}>
+  <HeadToHead allGames={gamesSorted} teamA={activeGame.home} teamB={activeGame.away} />
+</div>
+
         {/* Block 3 call-in */}
         <div className={styles.heroSection}>
           <AvailabilityBlock game={activeGame} onToast={onToast} />

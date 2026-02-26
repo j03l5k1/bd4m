@@ -1,12 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/refresh",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/refresh",
-      "schedule": "0 12 * * *"
+      "path": "/api/cron/ingest-legends",
+      "schedule": "0 3 * * *"
     }
   ]
 }

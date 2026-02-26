@@ -1,9 +1,8 @@
-
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 function clean(s: string) {
-  return s.replace(/\s+/g, " ").trim();
+  return String(s || "").replace(/\s+/g, " ").trim();
 }
 
 function parseSourceKey(sourceKey: string) {
@@ -34,6 +33,7 @@ function buildLegacyIsoCandidates(kickoffISO: string) {
 
     candidates.add(new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`).toISOString());
 
+    // legacy timezone offsets that may exist in old source_key strings
     candidates.add(new Date(d.getTime() + 10 * 60 * 60 * 1000).toISOString());
     candidates.add(new Date(d.getTime() + 11 * 60 * 60 * 1000).toISOString());
     candidates.add(new Date(d.getTime() - 10 * 60 * 60 * 1000).toISOString());
@@ -44,11 +44,9 @@ function buildLegacyIsoCandidates(kickoffISO: string) {
 }
 
 async function findMatchingGameIds(source_key: string) {
-  const exact = await supabaseAdmin
-    .from("games")
-    .select("id")
-    .eq("source_key", source_key);
+  const sb = supabaseAdmin();
 
+  const exact = await sb.from("games").select("id").eq("source_key", source_key);
   if (exact.error) throw new Error(exact.error.message);
 
   const ids = new Set<string>((exact.data || []).map((g: any) => g.id));
@@ -59,11 +57,7 @@ async function findMatchingGameIds(source_key: string) {
   const isoCandidates = buildLegacyIsoCandidates(parsed.kickoffISO);
   const sourceKeyCandidates = isoCandidates.map((iso) => `${iso}|${parsed.home}|${parsed.away}`);
 
-  const legacy = await supabaseAdmin
-    .from("games")
-    .select("id")
-    .in("source_key", sourceKeyCandidates);
-
+  const legacy = await sb.from("games").select("id").in("source_key", sourceKeyCandidates);
   if (legacy.error) throw new Error(legacy.error.message);
 
   for (const row of legacy.data || []) {
@@ -74,6 +68,8 @@ async function findMatchingGameIds(source_key: string) {
 }
 
 export async function GET(req: Request) {
+  const sb = supabaseAdmin();
+
   const { searchParams } = new URL(req.url);
   const source_key = searchParams.get("source_key");
   const playerName = clean(searchParams.get("playerName") || "");
@@ -87,7 +83,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { data: player, error: playerErr } = await supabaseAdmin
+    const { data: player, error: playerErr } = await sb
       .from("players")
       .select("id")
       .eq("name", playerName)
@@ -107,7 +103,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: true, status: null });
     }
 
-    const { data: rows, error: rowsErr } = await supabaseAdmin
+    const { data: rows, error: rowsErr } = await sb
       .from("availability")
       .select("status")
       .eq("player_id", player.id)
@@ -123,6 +119,9 @@ export async function GET(req: Request) {
       status: rows?.[0]?.status ?? null,
     });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: e?.message || "Server error" },
+      { status: 500 }
+    );
   }
 }

@@ -293,23 +293,6 @@ export default function BriarsPage() {
   }, []);
 
   useEffect(() => {
-  (async () => {
-    const next: Record<string, Counts> = {};
-    for (const g of upcoming.slice(0, 30)) {
-      const key = makeSourceKey(g);
-      try {
-        const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(key)}`, { cache: "no-store" });
-        const json = await res.json();
-        if (json?.ok) next[key] = json.counts;
-      } catch {
-        //
-      }
-    }
-    setCountsByKey(next);
-  })();
-}, [upcoming.length]);
-
-  useEffect(() => {
     setPinOk(localStorage.getItem(LS_PIN_OK) === "1");
     setPlayerName(localStorage.getItem(LS_PLAYER_NAME) || "");
   }, []);
@@ -326,34 +309,6 @@ export default function BriarsPage() {
       }
     })();
   }, []);
-
-  useEffect(() => {
-  (async () => {
-    const n = playerName.trim();
-    if (!n) return;
-
-    const next: Record<string, "yes" | "no" | "maybe"> = {};
-    const targets = upcoming.slice(0, 30);
-
-    for (const g of targets) {
-      const key = makeSourceKey(g);
-      try {
-        const res = await fetch(
-          `/api/availability/my-status?source_key=${encodeURIComponent(key)}&playerName=${encodeURIComponent(n)}`,
-          { cache: "no-store" }
-        );
-        const json = await res.json();
-        if (json?.ok && json?.status) {
-          next[key] = json.status;
-        }
-      } catch {
-        //
-      }
-    }
-
-    setMyStatusByKey(next);
-  })();
-}, [playerName, upcoming.length]);
 
   const { upcoming, past, nextGame } = useMemo(() => {
     const games = data?.games ?? [];
@@ -446,12 +401,17 @@ export default function BriarsPage() {
       const mine = statusFromNames(names, name);
       if (mine) next[key] = mine;
     }
+
     setMyStatusByKey((prev) => ({ ...prev, ...next }));
   }, [playerName, namesByKey]);
 
   useEffect(() => {
     (async () => {
-      if (!nextGame) return setWeather(null);
+      if (!nextGame) {
+        setWeather(null);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/weather/homebush?kickoffISO=${encodeURIComponent(nextGame.kickoffISO)}`, {
           cache: "no-store",
@@ -500,6 +460,7 @@ export default function BriarsPage() {
 
   async function setStatus(g: Game, status: "yes" | "no" | "maybe") {
     if (!pinOk) return flash("Enter the team PIN first.", 2500);
+
     const n = playerName.trim();
     if (n.length < 2) return flash("Enter your name first.", 2500);
 
@@ -540,7 +501,6 @@ export default function BriarsPage() {
       setSavingKey(null);
     }
   }
-
   const ladder = data?.ladder;
   const ladderHeaders = ladder?.headers || [];
   const ladderRows = ladder?.rows || [];

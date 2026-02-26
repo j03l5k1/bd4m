@@ -1,11 +1,14 @@
 :root{
   --bg: #ffffff;
-  --card: #ffffff;
+  --text: rgba(17,24,39,0.92);
   --muted: rgba(17,24,39,0.62);
   --muted2: rgba(17,24,39,0.45);
-  --text: rgba(17,24,39,0.92);
+
   --stroke: rgba(17,24,39,0.10);
   --stroke2: rgba(17,24,39,0.14);
+
+  --card: rgba(255,255,255,0.92);
+  --card2: rgba(17,24,39,0.02);
 
   --shadow: 0 10px 30px rgba(17,24,39,0.10);
   --shadow2: 0 4px 18px rgba(17,24,39,0.08);
@@ -17,9 +20,10 @@
 html, body {
   padding: 0;
   margin: 0;
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(37,99,235,0.06), transparent 55%),
-              radial-gradient(900px 500px at 90% 0%, rgba(16,185,129,0.05), transparent 60%),
-              var(--bg);
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(37,99,235,0.06), transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, rgba(16,185,129,0.05), transparent 60%),
+    var(--bg);
   color: var(--text);
   font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
@@ -28,10 +32,4 @@ html, body {
 
 a { color: inherit; text-decoration: none; }
 
-button, input {
-  font: inherit;
-}
-
-::selection{
-  background: rgba(37,99,235,0.14);
-}
+button, input { font: inherit; }

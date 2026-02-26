@@ -70,6 +70,27 @@ function Logo({ url }: { url?: string }) {
   );
 }
 
+function posEmoji(pos?: number) {
+  if (!pos) return "";
+  if (pos === 1) return "🥇";
+  if (pos === 2) return "🥈";
+  if (pos === 3) return "🥉";
+  return "";
+}
+
+function fmtPosShort(pos?: number) {
+  if (!pos) return "";
+  const mod100 = pos % 100;
+  const mod10 = pos % 10;
+  let suf = "th";
+  if (mod100 < 11 || mod100 > 13) {
+    if (mod10 === 1) suf = "st";
+    else if (mod10 === 2) suf = "nd";
+    else if (mod10 === 3) suf = "rd";
+  }
+  return `${pos}${suf}`;
+}
+
 /** ✅ Ladder → stats (matches your LadderTable header assumptions) */
 function toNum(s: string) {
   const n = Number(String(s ?? "").replace(/[^\d.-]/g, ""));
@@ -132,6 +153,7 @@ function getTeamStatsFromLadder(ladder: LadderPayload | undefined, teamLabel: st
 export default function HeroMatch({
   activeGame,
   gamesSorted,
+  allGames,
   activeIndex,
   setActiveIndex,
   setUserPinnedSelection,
@@ -146,6 +168,7 @@ export default function HeroMatch({
 }: {
   activeGame: Game;
   gamesSorted: Game[];
+  allGames: Game[];
   activeIndex: number;
   setActiveIndex: (n: number) => void;
   setUserPinnedSelection: (v: boolean) => void;
@@ -236,8 +259,14 @@ export default function HeroMatch({
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.home)]} />
             <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>{shortTeamName(activeGame.home)}</div>
-              <div className={styles.teamSub}>Home</div>
+              <div className={styles.teamNameLg}>
+                {shortTeamName(activeGame.home)}
+                {teamAStats?.position ? (
+                  <span className={styles.teamPosPill}>
+                    {posEmoji(teamAStats.position)} {fmtPosShort(teamAStats.position)}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -246,8 +275,14 @@ export default function HeroMatch({
           <div className={styles.matchTeamRow}>
             <Logo url={CLUB_LOGOS[clubKey(activeGame.away)]} />
             <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>{shortTeamName(activeGame.away)}</div>
-              <div className={styles.teamSub}>Away</div>
+              <div className={styles.teamNameLg}>
+                {shortTeamName(activeGame.away)}
+                {teamBStats?.position ? (
+                  <span className={styles.teamPosPill}>
+                    {posEmoji(teamBStats.position)} {fmtPosShort(teamBStats.position)}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -285,7 +320,7 @@ export default function HeroMatch({
 
         <div className={styles.heroSection}>
           <HeadToHead
-            allGames={gamesSorted}
+            allGames={allGames}
             teamA={activeGame.home}
             teamB={activeGame.away}
             teamAStats={teamAStats}

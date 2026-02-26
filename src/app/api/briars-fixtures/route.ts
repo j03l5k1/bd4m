@@ -77,7 +77,8 @@ export async function GET() {
   const $ = cheerio.load(html);
 
   let currentRound = "";
-  const games: Game[] = [];
+  const allGames: Game[] = [];
+  const briarsGames: Game[] = [];
 
   $("tr").each((_, tr) => {
     const rowText = clean($(tr).text());
@@ -96,10 +97,7 @@ export async function GET() {
     const venue = clean($(tds[4]).text());
     const score = clean($(tds[5]).text()) || "-";
 
-    const isBriars = /briars/i.test(home) || /briars/i.test(away);
-    if (!isBriars) return;
-
-    games.push({
+    const game: Game = {
       date,
       time,
       venue,
@@ -108,10 +106,16 @@ export async function GET() {
       away,
       score,
       kickoffISO: parseKickoffISO(date, time),
-    });
+    };
+
+    allGames.push(game);
+
+    const isBriars = /briars/i.test(home) || /briars/i.test(away);
+    if (isBriars) briarsGames.push(game);
   });
 
-  games.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
+  allGames.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
+  briarsGames.sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
 
   let ladderHeaders: string[] = [];
   const ladderRows: LadderRow[] = [];
@@ -155,7 +159,10 @@ export async function GET() {
     team: "Briars",
     source: url,
     refreshedAt: new Date().toISOString(),
-    games,
+    // fixtures to show on the Briars page
+    games: briarsGames,
+    // full comp dataset so we can compute opponent form / h2h without breaking on UI truncation
+    allGames,
     ladder: {
       headers: ladderHeaders,
       rows: ladderRows,

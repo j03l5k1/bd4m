@@ -1,8 +1,9 @@
 "use client";
-import styles from "../availability.module.css";
+
 import { useEffect, useMemo, useState } from "react";
 import { Users } from "lucide-react";
-import styles from "../briars.module.css";
+import ui from "../briars.module.css";
+import styles from "../availability.module.css";
 import type { Counts, Game, NamesByStatus } from "../page";
 
 const LS_PIN_OK = "briars_pin_ok";
@@ -12,6 +13,7 @@ const LS_TEAM_PIN = "briars_team_pin";
 function makeSourceKey(g: Game) {
   return `${g.date}|${g.time}|${g.home}|${g.away}|${g.venue}`;
 }
+
 function makeLegacySourceKey(g: Game) {
   return `${g.kickoffISO}|${g.home}|${g.away}`;
 }
@@ -19,7 +21,11 @@ function makeLegacySourceKey(g: Game) {
 function normaliseName(s: string) {
   return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
-function statusFromNames(names: NamesByStatus, playerName: string): "yes" | "maybe" | "no" | undefined {
+
+function statusFromNames(
+  names: NamesByStatus,
+  playerName: string
+): "yes" | "maybe" | "no" | undefined {
   const needle = normaliseName(playerName);
   if (!needle) return undefined;
   if (names.yes.some((n) => normaliseName(n) === needle)) return "yes";
@@ -27,6 +33,7 @@ function statusFromNames(names: NamesByStatus, playerName: string): "yes" | "may
   if (names.no.some((n) => normaliseName(n) === needle)) return "no";
   return undefined;
 }
+
 function mergeUnique(a: string[], b: string[]) {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -38,13 +45,18 @@ function mergeUnique(a: string[], b: string[]) {
   }
   return out;
 }
-function mergeNames(a?: Partial<NamesByStatus>, b?: Partial<NamesByStatus>): NamesByStatus {
+
+function mergeNames(
+  a?: Partial<NamesByStatus>,
+  b?: Partial<NamesByStatus>
+): NamesByStatus {
   return {
     yes: mergeUnique(a?.yes || [], b?.yes || []),
     maybe: mergeUnique(a?.maybe || [], b?.maybe || []),
     no: mergeUnique(a?.no || [], b?.no || []),
   };
 }
+
 function mergeCounts(a?: Partial<Counts>, b?: Partial<Counts>): Counts {
   return {
     yes: (a?.yes || 0) + (b?.yes || 0),
@@ -55,19 +67,22 @@ function mergeCounts(a?: Partial<Counts>, b?: Partial<Counts>): Counts {
 
 async function fetchSummary(sourceKey: string) {
   try {
-    const res = await fetch(`/api/availability/summary?source_key=${encodeURIComponent(sourceKey)}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `/api/availability/summary?source_key=${encodeURIComponent(sourceKey)}`,
+      { cache: "no-store" }
+    );
     const json = await res.json();
     if (json?.ok) return json.counts as Counts;
   } catch {}
   return undefined;
 }
+
 async function fetchNames(sourceKey: string) {
   try {
-    const res = await fetch(`/api/availability/names?source_key=${encodeURIComponent(sourceKey)}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `/api/availability/names?source_key=${encodeURIComponent(sourceKey)}`,
+      { cache: "no-store" }
+    );
     const json = await res.json();
     if (json?.ok) return json.names as NamesByStatus;
   } catch {}
@@ -97,8 +112,14 @@ export default function AvailabilityBlock({
   const [saving, setSaving] = useState<null | "yes" | "maybe" | "no">(null);
 
   const [counts, setCounts] = useState<Counts>({ yes: 0, maybe: 0, no: 0 });
-  const [names, setNames] = useState<NamesByStatus>({ yes: [], maybe: [], no: [] });
-  const [myStatus, setMyStatus] = useState<"yes" | "maybe" | "no" | undefined>(undefined);
+  const [names, setNames] = useState<NamesByStatus>({
+    yes: [],
+    maybe: [],
+    no: [],
+  });
+  const [myStatus, setMyStatus] = useState<
+    "yes" | "maybe" | "no" | undefined
+  >(undefined);
 
   function toast(msg: string, ms = 1800) {
     onToast?.(msg);
@@ -112,27 +133,31 @@ export default function AvailabilityBlock({
 
   useEffect(() => {
     (async () => {
-      const [stableCounts, legacyCounts, stableNames, legacyNames] = await Promise.all([
-        fetchSummary(key),
-        legacyKey !== key ? fetchSummary(legacyKey) : Promise.resolve(undefined),
-        fetchNames(key),
-        legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
-      ]);
+      const [stableCounts, legacyCounts, stableNames, legacyNames] =
+        await Promise.all([
+          fetchSummary(key),
+          legacyKey !== key ? fetchSummary(legacyKey) : Promise.resolve(undefined),
+          fetchNames(key),
+          legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
+        ]);
 
       const mergedNames = mergeNames(stableNames, legacyNames);
       const mergedCounts =
-        mergedNames.yes.length || mergedNames.maybe.length || mergedNames.no.length
-          ? { yes: mergedNames.yes.length, maybe: mergedNames.maybe.length, no: mergedNames.no.length }
+        mergedNames.yes.length ||
+        mergedNames.maybe.length ||
+        mergedNames.no.length
+          ? {
+              yes: mergedNames.yes.length,
+              maybe: mergedNames.maybe.length,
+              no: mergedNames.no.length,
+            }
           : mergeCounts(stableCounts, legacyCounts);
 
       setNames(mergedNames);
       setCounts(mergedCounts);
-
-      const mine = statusFromNames(mergedNames, playerName);
-      setMyStatus(mine);
+      setMyStatus(statusFromNames(mergedNames, playerName));
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, legacyKey]);
+  }, [key, legacyKey, playerName]);
 
   useEffect(() => {
     const n = playerName.trim();
@@ -153,6 +178,7 @@ export default function AvailabilityBlock({
 
   async function setStatus(status: "yes" | "maybe" | "no") {
     if (!pinOk) return toast("Enter the team PIN first.", 2500);
+
     const n = playerName.trim();
     if (n.length < 2) return toast("Enter your name first.", 2500);
 
@@ -189,9 +215,14 @@ export default function AvailabilityBlock({
         fetchNames(key),
         legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
       ]);
+
       const mergedNames = mergeNames(stableNames, legacyNames);
       setNames(mergedNames);
-      setCounts({ yes: mergedNames.yes.length, maybe: mergedNames.maybe.length, no: mergedNames.no.length });
+      setCounts({
+        yes: mergedNames.yes.length,
+        maybe: mergedNames.maybe.length,
+        no: mergedNames.no.length,
+      });
     } catch (e: any) {
       toast(e?.message || "Something went wrong", 3000);
     } finally {
@@ -209,9 +240,9 @@ export default function AvailabilityBlock({
 
           <div className={styles.loginGrid}>
             <div>
-              <div className={styles.label}>Your name</div>
+              <div className={ui.label}>Your name</div>
               <input
-                className={styles.input}
+                className={ui.input}
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 placeholder="Your name"
@@ -220,32 +251,40 @@ export default function AvailabilityBlock({
             </div>
 
             <div>
-              <div className={styles.label}>Team PIN</div>
-              <div className={styles.inlineRow}>
+              <div className={ui.label}>Team PIN</div>
+              <div className={ui.inlineRow}>
                 <input
-                  className={styles.input}
+                  className={ui.input}
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
                   placeholder="Enter team PIN"
                   inputMode="text"
                 />
-                <button className={`${styles.btn} ${styles.btnPrimary}`} type="button" onClick={rememberPin}>
+                <button
+                  className={`${ui.btn} ${ui.btnPrimary}`}
+                  type="button"
+                  onClick={rememberPin}
+                >
                   Save
                 </button>
               </div>
             </div>
           </div>
 
-          <div className={styles.availHint}>Your name + PIN are saved on this device for next time.</div>
+          <div className={styles.availHint}>
+            Your name + PIN are saved on this device for next time.
+          </div>
         </div>
       ) : null}
 
       <div className={styles.availabilityHeader}>
         <div className={styles.availLeft}>
-          <div className={styles.eyebrow}>Availability</div>
+          <div className={ui.eyebrow}>Availability</div>
           <div className={styles.availabilityTitle}>
             {statusLabel(myStatus)}
-            {saving ? <span className={styles.availSaving}> • saving…</span> : null}
+            {saving ? (
+              <span className={styles.availSaving}> • saving…</span>
+            ) : null}
           </div>
         </div>
 
@@ -311,27 +350,33 @@ export default function AvailabilityBlock({
         </button>
       </div>
 
-      <details className={styles.details}>
-        <summary className={styles.summary}>
+      <details className={ui.details}>
+        <summary className={ui.summary}>
           <span>View squad status</span>
-          <span className={styles.summaryRight}>
+          <span className={ui.summaryRight}>
             <Users size={15} /> {responses} response{responses === 1 ? "" : "s"}
           </span>
         </summary>
 
-        <div className={styles.detailsBody}>
+        <div className={ui.detailsBody}>
           <div className={styles.availabilityNamesGrid}>
             <div>
               <div className={styles.nameColTitle}>✅ In</div>
-              <div className={styles.nameColBody}>{names.yes.length ? names.yes.join(", ") : "—"}</div>
+              <div className={styles.nameColBody}>
+                {names.yes.length ? names.yes.join(", ") : "—"}
+              </div>
             </div>
             <div>
               <div className={styles.nameColTitle}>❓ Maybe</div>
-              <div className={styles.nameColBody}>{names.maybe.length ? names.maybe.join(", ") : "—"}</div>
+              <div className={styles.nameColBody}>
+                {names.maybe.length ? names.maybe.join(", ") : "—"}
+              </div>
             </div>
             <div>
               <div className={styles.nameColTitle}>❌ Out</div>
-              <div className={styles.nameColBody}>{names.no.length ? names.no.join(", ") : "—"}</div>
+              <div className={styles.nameColBody}>
+                {names.no.length ? names.no.join(", ") : "—"}
+              </div>
             </div>
           </div>
         </div>

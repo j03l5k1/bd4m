@@ -1,5 +1,5 @@
 "use client";
-
+import styles from "../availability.module.css";
 import { useEffect, useMemo, useState } from "react";
 import { Users } from "lucide-react";
 import styles from "../briars.module.css";

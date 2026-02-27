@@ -6,27 +6,27 @@ export type TeamMeta = {
 export const TEAM_META: Record<string, TeamMeta> = {
   "Briars 3": {
     shortName: "Briars",
-    logoUrl: "https://smhockey.com.au/legends/assets/teams/briars.png",
+    logoUrl: "https://smhockey.com.au/wireframe/assets/images/briars_logo.jpg",
   },
   "Macquarie Uni 2": {
     shortName: "Macquarie",
-    logoUrl: "https://smhockey.com.au/legends/assets/teams/macquarie.png",
+    logoUrl: "https://smhockey.com.au/wireframe/assets/images/mac_uni.png",
   },
   "Manly GNS 4": {
     shortName: "Manly",
-    logoUrl: "https://smhockey.com.au/legends/assets/teams/manly.png",
+    logoUrl: "https://smhockey.com.au/wireframe/assets/images/manly_logo.jpg",
   },
   Penrith: {
     shortName: "Penrith",
-    logoUrl: "https://smhockey.com.au/legends/assets/teams/penrith.png",
+    logoUrl: "https://smhockey.com.au/wireframe/assets/images/penrith_logo.jpg",
   },
   "Ryde HH 4": {
     shortName: "Ryde",
-    logoUrl: "https://smhockey.com.au/legends/assets/teams/ryde.png",
+    logoUrl: "https://smhockey.com.au/wireframe/assets/images/ryde_logo.png",
   },
   "Macarthur 2": {
     shortName: "Macarthur",
-    logoUrl: "https://smhockey.com.au/legends/assets/teams/macarthur.png",
+    logoUrl: "https://smhockey.com.au/wireframe/assets/images/mac_logo.png",
   },
 };
 

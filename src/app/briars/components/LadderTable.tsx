@@ -1,58 +1,49 @@
 "use client";
 
 import styles from "../briars.module.css";
-import type { LadderPayload } from "../page";
+import type { LadderPayload } from "../../../lib/briars/types";
 
-function toNum(s: string) {
-  const n = Number(String(s).replace(/[^\d.-]/g, ""));
+function safeNum(v: string | undefined) {
+  const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
 
-export default function LadderTable({ ladder }: { ladder?: LadderPayload }) {
-  if (!ladder?.rows?.length) return null;
+export default function LadderTable({
+  ladder,
+}: {
+  ladder?: LadderPayload;
+}) {
+  if (!ladder?.headers?.length || !ladder?.rows?.length) return null;
 
-  const headers = ladder.headers || [];
-  const rows = ladder.rows || [];
+  const briarsRow = ladder.rows.find((r) =>
+    r.team.toLowerCase().includes("briars")
+  );
 
-  // Find Briars row for the “tally”
-  const briarsRow =
-    rows.find((r) => (r.cols?.[0] || r.team || "").toLowerCase().includes("briars")) || null;
-
-  // Attempt to infer points if there’s a POINTS column
-  const pointsIdx = headers.findIndex((h) => h.toLowerCase().includes("point"));
-  const gamesIdx = headers.findIndex((h) => h.toLowerCase() === "games" || h.toLowerCase().includes("played"));
-  const winIdx = headers.findIndex((h) => h.toLowerCase() === "win");
-  const drawIdx = headers.findIndex((h) => h.toLowerCase() === "draw");
-  const lossIdx = headers.findIndex((h) => h.toLowerCase() === "loss");
-
-  const briarsStats = briarsRow?.cols
-    ? {
-        games: gamesIdx >= 0 ? toNum(briarsRow.cols[gamesIdx]) : null,
-        win: winIdx >= 0 ? toNum(briarsRow.cols[winIdx]) : null,
-        draw: drawIdx >= 0 ? toNum(briarsRow.cols[drawIdx]) : null,
-        loss: lossIdx >= 0 ? toNum(briarsRow.cols[lossIdx]) : null,
-        points: pointsIdx >= 0 ? toNum(briarsRow.cols[pointsIdx]) : null,
-      }
-    : null;
-
-  function isBriars(teamCell: string) {
-    return (teamCell || "").toLowerCase().includes("briars");
-  }
+  const briarsPts = briarsRow ? safeNum(briarsRow.cols[8]) : null;
+  const briarsPlayed = briarsRow ? safeNum(briarsRow.cols[1]) : null;
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHead}>
         <h2 className={styles.sectionTitle}>Ladder</h2>
 
-        {briarsStats ? (
-          <div className={styles.tallyStrip} aria-label="Briars tally">
-            {briarsStats.games !== null ? <span className={styles.tallyPill}>GP {briarsStats.games}</span> : null}
-            {briarsStats.win !== null ? <span className={styles.tallyPill}>W {briarsStats.win}</span> : null}
-            {briarsStats.draw !== null ? <span className={styles.tallyPill}>D {briarsStats.draw}</span> : null}
-            {briarsStats.loss !== null ? <span className={styles.tallyPill}>L {briarsStats.loss}</span> : null}
-            {briarsStats.points !== null ? <span className={styles.tallyPillStrong}>PTS {briarsStats.points}</span> : null}
-          </div>
-        ) : null}
+        <div className={styles.tallyStrip}>
+          <span className={styles.tallyPill}>
+            Teams {ladder.rows.length}
+          </span>
+
+          {briarsPlayed !== null ? (
+            <span className={styles.tallyPill}>
+              Briars P {briarsPlayed}
+            </span>
+          ) : null}
+
+          {briarsPts !== null ? (
+            <span className={styles.tallyPillStrong}>
+              Briars Pts {briarsPts}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className={styles.ladderCard}>
@@ -60,7 +51,8 @@ export default function LadderTable({ ladder }: { ladder?: LadderPayload }) {
           <table className={styles.ladder}>
             <thead>
               <tr>
-                {headers.map((h) => (
+                <th className={styles.ladderTh}>#</th>
+                {ladder.headers.map((h) => (
                   <th key={h} className={styles.ladderTh}>
                     {h}
                   </th>
@@ -69,13 +61,18 @@ export default function LadderTable({ ladder }: { ladder?: LadderPayload }) {
             </thead>
 
             <tbody>
-              {rows.map((r, idx) => {
-                const teamCell = r.cols?.[0] || r.team || "";
+              {ladder.rows.map((row, idx) => {
+                const isBriars = row.team.toLowerCase().includes("briars");
+
                 return (
-                  <tr key={`${teamCell}-${idx}`} className={isBriars(teamCell) ? styles.ladderBriars : ""}>
-                    {(r.cols || []).map((c, j) => (
-                      <td key={`${idx}-${j}`} className={styles.ladderTd}>
-                        {c}
+                  <tr
+                    key={`${row.team}-${idx}`}
+                    className={isBriars ? styles.ladderBriars : ""}
+                  >
+                    <td className={styles.ladderTd}>{idx + 1}</td>
+                    {row.cols.map((col, colIdx) => (
+                      <td key={`${row.team}-${colIdx}`} className={styles.ladderTd}>
+                        {col}
                       </td>
                     ))}
                   </tr>

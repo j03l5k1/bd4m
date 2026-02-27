@@ -80,7 +80,8 @@
   transition:
     border-color 0.16s ease,
     background 0.16s ease,
-    transform 0.16s ease;
+    transform 0.16s ease,
+    opacity 0.16s ease;
 }
 
 .fixtureTab:hover,
@@ -121,17 +122,17 @@
 }
 
 .heroShowcase {
-  margin-top: 22px;
+  margin-top: 28px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 16px;
+  gap: 20px;
   align-items: center;
 }
 
 .teamSide {
   display: grid;
   justify-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .teamLogoWrap {
@@ -139,7 +140,11 @@
   height: clamp(82px, 18vw, 132px);
   border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.14);
-  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(248, 250, 252, 0.96) 100%
+  );
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -202,6 +207,7 @@
   display: grid;
   justify-items: center;
   gap: 10px;
+  min-width: 220px;
 }
 
 .vsWord {
@@ -222,60 +228,30 @@
   color: rgba(15, 23, 42, 0.78);
 }
 
-.infoGrid {
-  margin-top: 22px;
+.matchMeta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 4px;
+  margin-top: 2px;
+  text-align: center;
 }
 
-.infoCard {
-  min-width: 0;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.03);
-  border-radius: 16px;
-  padding: 12px 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 850;
-  color: rgba(15, 23, 42, 0.8);
+.matchMetaLine {
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.64);
+  letter-spacing: -0.01em;
 }
 
-.infoCard svg {
-  flex: 0 0 auto;
-}
-
-.infoRoundBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 950;
-}
-
-.weatherGrid {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.weatherCard {
-  min-width: 0;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.03);
-  border-radius: 16px;
-  padding: 12px 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 900;
-  color: #0f172a;
+.matchMetaSub {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 800;
+  color: rgba(15, 23, 42, 0.48);
 }
 
 .heroSection {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .upcomingList {
@@ -308,7 +284,11 @@
 
 .fixtureRowActive {
   border-color: rgba(37, 99, 235, 0.22);
-  background: linear-gradient(180deg, rgba(239, 246, 255, 0.7) 0%, #ffffff 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(239, 246, 255, 0.7) 0%,
+    #ffffff 100%
+  );
 }
 
 .fixtureRowTitle {
@@ -364,15 +344,16 @@
 
   .heroShowcase {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 20px;
   }
 
   .vsColumn {
+    min-width: 0;
     order: 2;
   }
 
-  .infoGrid {
-    grid-template-columns: 1fr 1fr;
+  .matchMeta {
+    max-width: 320px;
   }
 
   .fixtureRow {
@@ -403,17 +384,11 @@
     font-size: 34px;
   }
 
-  .infoGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .weatherGrid {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-  }
-
-  .weatherCard {
-    padding: 10px 8px;
+  .matchMetaLine {
     font-size: 12px;
+  }
+
+  .matchMetaSub {
+    font-size: 11px;
   }
 }

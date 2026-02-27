@@ -74,6 +74,13 @@ async function fetchNames(sourceKey: string) {
   return undefined;
 }
 
+function statusLabel(s?: "yes" | "maybe" | "no") {
+  if (s === "yes") return "You’re in";
+  if (s === "maybe") return "You’re maybe";
+  if (s === "no") return "You’re out";
+  return "Set your status";
+}
+
 export default function AvailabilityBlock({
   game,
   onToast,
@@ -95,10 +102,7 @@ export default function AvailabilityBlock({
 
   function toast(msg: string, ms = 1800) {
     onToast?.(msg);
-    if (!onToast) {
-      // fallback: no-op
-      void ms;
-    }
+    if (!onToast) void ms;
   }
 
   useEffect(() => {
@@ -107,7 +111,6 @@ export default function AvailabilityBlock({
   }, []);
 
   useEffect(() => {
-    // Load availability for THIS game (and merge legacy key data)
     (async () => {
       const [stableCounts, legacyCounts, stableNames, legacyNames] = await Promise.all([
         fetchSummary(key),
@@ -182,7 +185,6 @@ export default function AvailabilityBlock({
       toast("Saved ✓");
       setMyStatus(status);
 
-      // refresh names + counts after save
       const [stableNames, legacyNames] = await Promise.all([
         fetchNames(key),
         legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
@@ -197,85 +199,115 @@ export default function AvailabilityBlock({
     }
   }
 
-  return (
-    <div className={styles.availabilityBox}>
-      {!pinOk || !playerName.trim() ? (
-        <div className={styles.loginGrid}>
-          <div>
-            <div className={styles.label}>Your name</div>
-            <input
-              className={styles.input}
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Joel A"
-            />
-          </div>
+  const responses = counts.yes + counts.maybe + counts.no;
 
-          <div>
-            <div className={styles.label}>Team PIN</div>
-            <div className={styles.inlineRow}>
+  return (
+    <section className={styles.availabilityBox} aria-label="Availability">
+      {!pinOk || !playerName.trim() ? (
+        <div className={styles.availGate}>
+          <div className={styles.availGateTitle}>Quick check-in</div>
+
+          <div className={styles.loginGrid}>
+            <div>
+              <div className={styles.label}>Your name</div>
               <input
                 className={styles.input}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="Enter team PIN"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Your name"
+                autoComplete="name"
               />
-              <button className={`${styles.btn} ${styles.btnPrimary}`} type="button" onClick={rememberPin}>
-                Save
-              </button>
+            </div>
+
+            <div>
+              <div className={styles.label}>Team PIN</div>
+              <div className={styles.inlineRow}>
+                <input
+                  className={styles.input}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Enter team PIN"
+                  inputMode="text"
+                />
+                <button className={`${styles.btn} ${styles.btnPrimary}`} type="button" onClick={rememberPin}>
+                  Save
+                </button>
+              </div>
             </div>
           </div>
+
+          <div className={styles.availHint}>Your name + PIN are saved on this device for next time.</div>
         </div>
       ) : null}
 
-      <div className={styles.availabilityTop}>
-        <div>
+      <div className={styles.availabilityHeader}>
+        <div className={styles.availLeft}>
           <div className={styles.eyebrow}>Availability</div>
           <div className={styles.availabilityTitle}>
-            {myStatus === "yes"
-              ? "You’re in"
-              : myStatus === "maybe"
-              ? "You’re maybe"
-              : myStatus === "no"
-              ? "You’re out"
-              : "Set your status"}
-            {saving ? " • saving..." : ""}
+            {statusLabel(myStatus)}
+            {saving ? <span className={styles.availSaving}> • saving…</span> : null}
           </div>
         </div>
 
-        <div className={styles.countsWrap}>
-          <span className={`${styles.pill} ${styles.pillGreen}`}>✅ {counts.yes}</span>
-          <span className={`${styles.pill} ${styles.pillGold}`}>❓ {counts.maybe}</span>
-          <span className={`${styles.pill} ${styles.pillSoft}`}>❌ {counts.no}</span>
+        <div className={styles.countsGrid} aria-label="Squad totals">
+          <div className={`${styles.countCard} ${styles.countYes}`}>
+            <div className={styles.countTop}>
+              <span className={styles.countIcon}>✅</span>
+              <span className={styles.countLabel}>In</span>
+            </div>
+            <div className={styles.countNum}>{counts.yes}</div>
+          </div>
+
+          <div className={`${styles.countCard} ${styles.countMaybe}`}>
+            <div className={styles.countTop}>
+              <span className={styles.countIcon}>❓</span>
+              <span className={styles.countLabel}>Maybe</span>
+            </div>
+            <div className={styles.countNum}>{counts.maybe}</div>
+          </div>
+
+          <div className={`${styles.countCard} ${styles.countNo}`}>
+            <div className={styles.countTop}>
+              <span className={styles.countIcon}>❌</span>
+              <span className={styles.countLabel}>Out</span>
+            </div>
+            <div className={styles.countNum}>{counts.no}</div>
+          </div>
         </div>
       </div>
 
-      <div className={styles.btnRow}>
+      <div className={styles.availSeg} role="group" aria-label="Set your availability">
         <button
-          className={`${styles.btn} ${styles.btnPrimary} ${myStatus === "yes" ? styles.btnActive : ""}`}
+          className={`${styles.availSegBtn} ${myStatus === "yes" ? styles.availSegBtnActive : ""}`}
           type="button"
           onClick={() => setStatus("yes")}
           disabled={!!saving}
         >
-          ✅ I’m in
+          <span className={styles.availSegIcon}>✅</span>
+          <span className={styles.availSegText}>I’m in</span>
+          {myStatus === "yes" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
 
         <button
-          className={`${styles.btn} ${styles.btnSoft} ${myStatus === "maybe" ? styles.btnActive : ""}`}
+          className={`${styles.availSegBtn} ${myStatus === "maybe" ? styles.availSegBtnActive : ""}`}
           type="button"
           onClick={() => setStatus("maybe")}
           disabled={!!saving}
         >
-          ❓ Maybe
+          <span className={styles.availSegIcon}>❓</span>
+          <span className={styles.availSegText}>Maybe</span>
+          {myStatus === "maybe" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
 
         <button
-          className={`${styles.btn} ${styles.btnSoft} ${myStatus === "no" ? styles.btnActive : ""}`}
+          className={`${styles.availSegBtn} ${myStatus === "no" ? styles.availSegBtnActive : ""}`}
           type="button"
           onClick={() => setStatus("no")}
           disabled={!!saving}
         >
-          ❌ Out
+          <span className={styles.availSegIcon}>❌</span>
+          <span className={styles.availSegText}>Out</span>
+          {myStatus === "no" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
       </div>
 
@@ -283,7 +315,7 @@ export default function AvailabilityBlock({
         <summary className={styles.summary}>
           <span>View squad status</span>
           <span className={styles.summaryRight}>
-            <Users size={15} /> {counts.yes + counts.maybe + counts.no} responses
+            <Users size={15} /> {responses} response{responses === 1 ? "" : "s"}
           </span>
         </summary>
 
@@ -304,6 +336,6 @@ export default function AvailabilityBlock({
           </div>
         </div>
       </details>
-    </div>
+    </section>
   );
 }

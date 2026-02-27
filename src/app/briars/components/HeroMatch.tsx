@@ -1,6 +1,7 @@
 "use client";
 
-import styles from "../briars.module.css";
+import ui from "../briars.module.css";
+import styles from "../hero.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
 import HeadToHead from "./HeadToHead";
 
@@ -75,19 +76,19 @@ export default function HeroMatch({
 
   return (
     <>
-      <section className={`${styles.card} ${styles.heroCard}`}>
-        <div className={styles.cardPad}>
+      <section className={`${ui.card} ${styles.heroCard}`}>
+        <div className={ui.cardPad}>
           <div className={styles.heroTop}>
             <div className={styles.heroLabels}>
-              <span className={`${styles.pill} ${styles.pillGold}`}>
+              <span className={`${ui.pill} ${ui.pillGold}`}>
                 {isActiveUpcoming ? "Next game" : "Latest result"}
               </span>
 
-              <span className={`${styles.pill} ${styles.pillBlue}`}>
+              <span className={`${ui.pill} ${ui.pillBlue}`}>
                 {formatDayDateFromSource(activeGame.date)}
               </span>
 
-              <span className={`${styles.pill} ${styles.pillSoft}`}>
+              <span className={`${ui.pill} ${ui.pillSoft}`}>
                 {formatTimeFromSource(activeGame.time)}
               </span>
             </div>
@@ -95,7 +96,7 @@ export default function HeroMatch({
             <div className={styles.heroNav}>
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSoft}`}
+                className={`${ui.btn} ${ui.btnSoft}`}
                 onClick={() => {
                   const next = Math.max(activeIndex - 1, 0);
                   setActiveIndex(next);
@@ -108,7 +109,7 @@ export default function HeroMatch({
 
               <button
                 type="button"
-                className={`${styles.btn} ${styles.btnSoft}`}
+                className={`${ui.btn} ${ui.btnSoft}`}
                 onClick={() => {
                   const next = Math.min(activeIndex + 1, gamesSorted.length - 1);
                   setActiveIndex(next);
@@ -123,7 +124,7 @@ export default function HeroMatch({
 
           <div className={styles.fixtureTabsWrap}>
             <div className={styles.fixtureTabs}>
-              {visibleTabs.map((game, idx) => {
+              {visibleTabs.map((game) => {
                 const originalIndex = gamesSorted.findIndex(
                   (g) =>
                     g.kickoffISO === game.kickoffISO &&
@@ -217,13 +218,13 @@ export default function HeroMatch({
           {weather?.ok && isActiveUpcoming ? (
             <div className={styles.weatherRow}>
               {typeof weather.tempC === "number" ? (
-                <span className={styles.pill}>{weather.tempC}°C</span>
+                <span className={ui.pill}>{weather.tempC}°C</span>
               ) : null}
               {typeof weather.precipMM === "number" ? (
-                <span className={styles.pill}>{weather.precipMM}mm rain</span>
+                <span className={ui.pill}>{weather.precipMM}mm rain</span>
               ) : null}
               {typeof weather.windKmh === "number" ? (
-                <span className={styles.pill}>{weather.windKmh}km/h wind</span>
+                <span className={ui.pill}>{weather.windKmh}km/h wind</span>
               ) : null}
             </div>
           ) : null}
@@ -233,9 +234,9 @@ export default function HeroMatch({
           </div>
         </div>
 
-        <div className={styles.cardPad}>
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Upcoming fixtures</h2>
+        <div className={ui.cardPad}>
+          <section className={ui.section}>
+            <h2 className={ui.sectionTitle}>Upcoming fixtures</h2>
 
             <div className={styles.upcomingList}>
               {upcomingGames.length ? (

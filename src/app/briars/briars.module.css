@@ -1,4 +1,5 @@
-@import "./availability.module.css";
+
+import styles from "../availability.module.css";
 
 /* ======================================================
    DESIGN TOKENS (single source of truth)

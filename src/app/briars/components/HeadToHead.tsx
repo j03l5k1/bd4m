@@ -1,6 +1,7 @@
 "use client";
 
-import styles from "../briars.module.css";
+import ui from "../briars.module.css";
+import styles from "../h2h.module.css";
 import { parseScore } from "../../../lib/briars/format";
 import type { Game } from "../../../lib/briars/types";
 
@@ -23,14 +24,6 @@ type H2HStats = {
   aGF: number;
   bGF: number;
 };
-
-function isSameFixture(a: Game, b: Game) {
-  return (
-    a.kickoffISO === b.kickoffISO &&
-    a.home === b.home &&
-    a.away === b.away
-  );
-}
 
 function calcTeamSeasonStats(allGames: Game[], teamName: string): TeamSeasonStats {
   let played = 0;
@@ -140,20 +133,14 @@ function MetricRow({
   a: number;
   b: number;
 }) {
-  const pct = clampPct(a, b);
+  const pct = clampPct(Math.max(a, 0), Math.max(b, 0));
 
   return (
     <div className={styles.h2hCompareRow}>
       <div className={styles.h2hCompareBar}>
         <div className={styles.h2hCompareTrack} />
-        <div
-          className={styles.h2hCompareFillA}
-          style={{ width: `${pct.a}%` }}
-        />
-        <div
-          className={styles.h2hCompareFillB}
-          style={{ width: `${pct.b}%` }}
-        />
+        <div className={styles.h2hCompareFillA} style={{ width: `${pct.a}%` }} />
+        <div className={styles.h2hCompareFillB} style={{ width: `${pct.b}%` }} />
       </div>
 
       <div className={styles.h2hCompareRowInner}>
@@ -182,8 +169,8 @@ export default function HeadToHead({
   const recent = lastMeetings(allGames, teamA, teamB);
 
   return (
-    <section className={styles.section}>
-      <h2 className={styles.sectionTitle}>Head to head</h2>
+    <section className={ui.section}>
+      <h2 className={ui.sectionTitle}>Head to head</h2>
 
       <div className={styles.h2hCard} style={{ marginTop: 10 }}>
         <div className={styles.h2hCompare}>

@@ -1,153 +1,35 @@
 "use client";
 
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock3, CloudSun, Droplets, MapPin, Wind } from "lucide-react";
 import styles from "../briars.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
-import type { Game, Weather, LadderPayload } from "../page";
-import HeadToHead from "./HeadToHead";
 
-const CLUB_LOGOS: Record<string, string> = {
-  briars: "https://smhockey.com.au/wireframe/assets/images/briars_logo.jpg",
-  macarthur: "https://smhockey.com.au/wireframe/assets/images/mac_logo.png",
-  macquarie: "https://smhockey.com.au/wireframe/assets/images/mac_uni.png",
-  manly: "https://smhockey.com.au/wireframe/assets/images/manly_logo.jpg",
-  penrith: "https://smhockey.com.au/wireframe/assets/images/penrith_logo.jpg",
-  ryde: "https://smhockey.com.au/wireframe/assets/images/ryde_logo.png",
-};
+import {
+  formatDayDateFromSource,
+  formatLongDateFromSource,
+  formatTimeFromSource,
+} from "../../../lib/briars/format";
+import type { Game, LadderPayload, Weather } from "../../../lib/briars/types";
 
-function clubKey(teamName: string) {
-  const s = teamName.toLowerCase();
-  if (s.includes("briars")) return "briars";
-  if (s.includes("macarthur")) return "macarthur";
-  if (s.includes("macquarie")) return "macquarie";
-  if (s.includes("manly") || s.includes("gns")) return "manly";
-  if (s.includes("penrith")) return "penrith";
-  if (s.includes("ryde")) return "ryde";
-  return "";
-}
-
-function makeSourceKey(g: Game) {
-  return `${g.date}|${g.time}|${g.home}|${g.away}|${g.venue}`;
-}
-
-function parseSourceDate(dateStr: string) {
-  const [dd, mm, yyyy] = dateStr.split("/").map(Number);
-  return new Date(yyyy, (mm || 1) - 1, dd || 1);
-}
-function formatDayDateFromSource(dateStr: string) {
-  const d = parseSourceDate(dateStr);
-  const day = d.toLocaleDateString("en-AU", { weekday: "short" });
-  const [dd, mm] = dateStr.split("/");
-  return `${day} ${dd}/${mm}`;
-}
-function formatLongDateFromSource(dateStr: string) {
-  const d = parseSourceDate(dateStr);
-  return d.toLocaleDateString("en-AU", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
-}
-function formatTimeFromSource(timeStr: string) {
-  const [hour24 = 0, minute = 0] = timeStr.split(":").map(Number);
-  const suffix = hour24 >= 12 ? "pm" : "am";
-  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
-}
-function shortTeamName(team: string) {
-  return team.trim().split(/\s+/)[0] || team;
-}
-function formatCountdown(ms: number) {
-  if (ms <= 0) return "Started";
-  const totalMins = Math.floor(ms / 60000);
-  const days = Math.floor(totalMins / (60 * 24));
-  const hours = Math.floor((totalMins - days * 60 * 24) / 60);
-  const mins = totalMins - days * 60 * 24 - hours * 60;
-  return `${days}d ${hours}h ${mins}m`;
-}
-
-function Logo({ url }: { url?: string }) {
-  return (
-    <div className={styles.logo}>
-      {url ? <img className={styles.logoImg} src={url} alt="" /> : <span className={styles.logoFallback}>—</span>}
-    </div>
-  );
-}
-
-function posEmoji(pos?: number) {
-  if (!pos) return "";
-  if (pos === 1) return "🥇";
-  if (pos === 2) return "🥈";
-  if (pos === 3) return "🥉";
-  return "";
-}
-
-function fmtPosShort(pos?: number) {
-  if (!pos) return "";
-  const mod100 = pos % 100;
-  const mod10 = pos % 10;
-  let suf = "th";
-  if (mod100 < 11 || mod100 > 13) {
-    if (mod10 === 1) suf = "st";
-    else if (mod10 === 2) suf = "nd";
-    else if (mod10 === 3) suf = "rd";
-  }
-  return `${pos}${suf}`;
-}
-
-/** ✅ Ladder → stats (matches your LadderTable header assumptions) */
-function toNum(s: string) {
-  const n = Number(String(s ?? "").replace(/[^\d.-]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-}
-function norm(s: string) {
-  return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-function baseTeam(s: string) {
-  // "Macquarie Uni 2" => "macquarie uni"
-  return norm(s).replace(/\s+\d+$/, "");
-}
-function findTeamRow(ladder: LadderPayload | undefined, teamLabel: string) {
+function getTeamPosition(ladder: LadderPayload | undefined, teamName: string) {
   if (!ladder?.rows?.length) return null;
-  const want = norm(teamLabel);
-  const wantBase = baseTeam(teamLabel);
-
-  return (
-    ladder.rows.find((r) => {
-      const teamCell = r.cols?.[0] || r.team || "";
-      return norm(teamCell) === want || baseTeam(teamCell) === wantBase;
-    }) || null
-  );
+  const idx = ladder.rows.findIndex((r) => r.team === teamName);
+  if (idx === -1) return null;
+  return idx + 1;
 }
 
-function getTeamStatsFromLadder(ladder: LadderPayload | undefined, teamLabel: string) {
-  if (!ladder?.rows?.length) return null;
+function positionLabel(pos: number | null) {
+  if (!pos) return null;
+  if (pos === 1) return "🥇 1st";
+  if (pos === 2) return "🥈 2nd";
+  if (pos === 3) return "🥉 3rd";
+  if (pos === 21 || pos === 31) return `${pos}st`;
+  if (pos === 22 || pos === 32) return `${pos}nd`;
+  if (pos === 23 || pos === 33) return `${pos}rd`;
+  return `${pos}th`;
+}
 
-  const headers = ladder.headers || [];
-  const row = findTeamRow(ladder, teamLabel);
-  if (!row?.cols?.length) return null;
-
-  const h = headers.map((x) => String(x || "").toLowerCase());
-  const cols = row.cols;
-
-  const gamesIdx = h.findIndex((x) => x === "games" || x.includes("played") || x === "gp");
-  const winIdx = h.findIndex((x) => x === "win" || x === "wins" || x === "w");
-  const drawIdx = h.findIndex((x) => x === "draw" || x === "draws" || x === "d");
-  const lossIdx = h.findIndex((x) => x === "loss" || x === "losses" || x === "l");
-  const gfIdx = h.findIndex((x) => x === "gf" || x.includes("goals for") || x === "for");
-  const gaIdx = h.findIndex((x) => x === "ga" || x.includes("goals against") || x === "against");
-  const gdIdx = h.findIndex((x) => x === "gd" || x.includes("diff"));
-  const ptsIdx = h.findIndex((x) => x.includes("point") || x === "pts" || x === "p");
-
-  const played = gamesIdx >= 0 ? toNum(cols[gamesIdx]) : 0;
-  const wins = winIdx >= 0 ? toNum(cols[winIdx]) : 0;
-  const draws = drawIdx >= 0 ? toNum(cols[drawIdx]) : 0;
-  const losses = lossIdx >= 0 ? toNum(cols[lossIdx]) : 0;
-  const gf = gfIdx >= 0 ? toNum(cols[gfIdx]) : 0;
-  const ga = gaIdx >= 0 ? toNum(cols[gaIdx]) : 0;
-  const gd = gdIdx >= 0 ? toNum(cols[gdIdx]) : gf - ga;
-  const points = ptsIdx >= 0 ? toNum(cols[ptsIdx]) : 0;
-
-  // position = row order in ladder
-  const position = ladder.rows.findIndex((r) => (r.cols?.[0] || r.team || "") === (row.cols?.[0] || row.team || "")) + 1;
-
-  return { team: teamLabel, position, played, wins, draws, losses, gf, ga, gd, points };
+function shortTeamName(name: string) {
+  return String(name || "").split(" ").slice(0, 2).join(" ");
 }
 
 export default function HeroMatch({
@@ -170,86 +52,109 @@ export default function HeroMatch({
   gamesSorted: Game[];
   allGames: Game[];
   activeIndex: number;
-  setActiveIndex: (n: number) => void;
-  setUserPinnedSelection: (v: boolean) => void;
-
+  setActiveIndex: (value: number) => void;
+  setUserPinnedSelection: (value: boolean) => void;
   upcomingGames: Game[];
   showAllFixtureTabs: boolean;
-  setShowAllFixtureTabs: (v: boolean) => void;
-
+  setShowAllFixtureTabs: (value: boolean) => void;
   now: Date;
   weather: Weather | null;
   isActiveUpcoming: boolean;
-
-  onToast: (msg: string) => void;
+  onToast?: (msg: string) => void;
   ladder?: LadderPayload;
 }) {
-  const heroCountdown = formatCountdown(new Date(activeGame.kickoffISO).getTime() - now.getTime());
+  const homePos = getTeamPosition(ladder, activeGame.home);
+  const awayPos = getTeamPosition(ladder, activeGame.away);
 
-  const canPrev = activeIndex > 0;
-  const canNext = activeIndex < gamesSorted.length - 1;
+  const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
 
-  function selectIndex(idx: number) {
-    const safe = Math.min(Math.max(idx, 0), gamesSorted.length - 1);
-    setUserPinnedSelection(true);
-    setActiveIndex(safe);
-  }
-
-  const teamAStats = getTeamStatsFromLadder(ladder, activeGame.home);
-  const teamBStats = getTeamStatsFromLadder(ladder, activeGame.away);
+  const hasPastGames = gamesSorted.some(
+    (g) => new Date(g.kickoffISO).getTime() < now.getTime()
+  );
 
   return (
     <section className={`${styles.card} ${styles.heroCard}`}>
       <div className={styles.cardPad}>
         <div className={styles.heroTop}>
           <div className={styles.heroLabels}>
-            <span className={`${styles.pill} ${styles.pillGold}`}>{activeGame.roundLabel || "Round"}</span>
-            <span className={`${styles.pill} ${styles.pillBlue}`}>{heroCountdown}</span>
-            {!isActiveUpcoming ? <span className={`${styles.pill} ${styles.pillSoft}`}>Final</span> : null}
+            <span className={`${styles.pill} ${styles.pillGold}`}>
+              {isActiveUpcoming ? "Next game" : "Latest result"}
+            </span>
+
+            <span className={`${styles.pill} ${styles.pillBlue}`}>
+              {formatDayDateFromSource(activeGame.date)}
+            </span>
+
+            <span className={`${styles.pill} ${styles.pillSoft}`}>
+              {formatTimeFromSource(activeGame.time)}
+            </span>
           </div>
 
           <div className={styles.heroNav}>
-            <button className={`${styles.btn} ${styles.btnSoft}`} type="button" disabled={!canPrev} onClick={() => selectIndex(activeIndex - 1)}>
-              <ChevronLeft size={16} /> Prior
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSoft}`}
+              onClick={() => {
+                const next = Math.max(activeIndex - 1, 0);
+                setActiveIndex(next);
+                setUserPinnedSelection(true);
+              }}
+              disabled={activeIndex <= 0}
+            >
+              Prev
             </button>
-            <button className={`${styles.btn} ${styles.btnSoft}`} type="button" disabled={!canNext} onClick={() => selectIndex(activeIndex + 1)}>
-              Next <ChevronRight size={16} />
+
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnSoft}`}
+              onClick={() => {
+                const next = Math.min(activeIndex + 1, gamesSorted.length - 1);
+                setActiveIndex(next);
+                setUserPinnedSelection(true);
+              }}
+              disabled={activeIndex >= gamesSorted.length - 1}
+            >
+              Next
             </button>
           </div>
         </div>
 
         <div className={styles.fixtureTabsWrap}>
           <div className={styles.fixtureTabs}>
-            {(showAllFixtureTabs ? upcomingGames : upcomingGames.slice(0, 6)).map((g) => {
-              const isActive = makeSourceKey(g) === makeSourceKey(activeGame);
+            {visibleTabs.map((game, idx) => {
+              const originalIndex = gamesSorted.findIndex(
+                (g) => g.kickoffISO === game.kickoffISO && g.home === game.home && g.away === game.away
+              );
+
+              const isActive = originalIndex === activeIndex;
+
               return (
                 <button
-                  key={makeSourceKey(g)}
+                  key={`${game.kickoffISO}-${game.home}-${game.away}`}
                   type="button"
-                  onClick={() => {
-                    setUserPinnedSelection(true);
-                    const idx = gamesSorted.findIndex((x) => makeSourceKey(x) === makeSourceKey(g));
-                    if (idx >= 0) setActiveIndex(idx);
-                  }}
                   className={`${styles.fixtureTab} ${isActive ? styles.fixtureTabActive : ""}`}
+                  onClick={() => {
+                    setActiveIndex(originalIndex);
+                    setUserPinnedSelection(true);
+                  }}
                 >
-                  <span className={styles.fixtureTabTop}>{g.roundLabel || "Round"}</span>
-                  <span className={styles.fixtureTabBottom}>{formatDayDateFromSource(g.date)}</span>
+                  <span className={styles.fixtureTabTop}>
+                    {formatDayDateFromSource(game.date)}
+                  </span>
+                  <span className={styles.fixtureTabBottom}>
+                    {shortTeamName(game.home)} v {shortTeamName(game.away)}
+                  </span>
                 </button>
               );
             })}
 
-            {upcomingGames.length > 6 ? (
-              <button className={styles.fixtureMore} type="button" onClick={() => { setUserPinnedSelection(true); setShowAllFixtureTabs(!showAllFixtureTabs); }}>
-                {showAllFixtureTabs ? (
-                  <>
-                    Less <ChevronUp size={15} />
-                  </>
-                ) : (
-                  <>
-                    More <ChevronDown size={15} />
-                  </>
-                )}
+            {gamesSorted.length > 6 ? (
+              <button
+                type="button"
+                className={styles.fixtureMore}
+                onClick={() => setShowAllFixtureTabs(!showAllFixtureTabs)}
+              >
+                {showAllFixtureTabs ? "Show less" : `Show all (${gamesSorted.length})`}
               </button>
             ) : null}
           </div>
@@ -257,80 +162,126 @@ export default function HeroMatch({
 
         <div className={styles.matchStack}>
           <div className={styles.matchTeamRow}>
-            <Logo url={CLUB_LOGOS[clubKey(activeGame.home)]} />
+            <div className={styles.logo}>
+              <div className={styles.logoFallback}>H</div>
+            </div>
+
             <div className={styles.matchTeamText}>
               <div className={styles.teamNameLg}>
-                {shortTeamName(activeGame.home)}
-                {teamAStats?.position ? (
-                  <span className={styles.teamPosPill}>
-                    {posEmoji(teamAStats.position)} {fmtPosShort(teamAStats.position)}
-                  </span>
+                {activeGame.home}
+                {homePos ? (
+                  <span className={styles.teamPosPill}>{positionLabel(homePos)}</span>
                 ) : null}
               </div>
+              <div className={styles.teamSub}>Home</div>
             </div>
           </div>
 
           <div className={styles.matchVs}>VS</div>
 
-          <div className={styles.matchTeamRow}>
-            <Logo url={CLUB_LOGOS[clubKey(activeGame.away)]} />
-            <div className={styles.matchTeamText}>
-              <div className={styles.teamNameLg}>
-                {shortTeamName(activeGame.away)}
-                {teamBStats?.position ? (
-                  <span className={styles.teamPosPill}>
-                    {posEmoji(teamBStats.position)} {fmtPosShort(teamBStats.position)}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+          <div className={styles.resultPill}>
+            {activeGame.score && activeGame.score !== "-" ? activeGame.score : "vs"}
           </div>
 
-          {!isActiveUpcoming && activeGame.score ? <div className={styles.resultPill}>Result: {activeGame.score}</div> : null}
+          <div className={styles.matchTeamRow}>
+            <div className={styles.logo}>
+              <div className={styles.logoFallback}>A</div>
+            </div>
+
+            <div className={styles.matchTeamText}>
+              <div className={styles.teamNameLg}>
+                {activeGame.away}
+                {awayPos ? (
+                  <span className={styles.teamPosPill}>{positionLabel(awayPos)}</span>
+                ) : null}
+              </div>
+              <div className={styles.teamSub}>Away</div>
+            </div>
+          </div>
         </div>
 
         <div className={styles.metaStrip}>
-          <div className={styles.metaItem}>
-            <CalendarDays size={15} />
-            {formatLongDateFromSource(activeGame.date)}
-          </div>
-          <div className={styles.metaItem}>
-            <Clock3 size={15} />
-            {formatTimeFromSource(activeGame.time)}
-          </div>
-          <div className={styles.metaItem}>
-            <MapPin size={15} />
-            {activeGame.venue}
-          </div>
+          <div className={styles.metaItem}>{formatLongDateFromSource(activeGame.date)}</div>
+          <div className={styles.metaItem}>{formatTimeFromSource(activeGame.time)}</div>
+          <div className={styles.metaItem}>{activeGame.venue || "TBC"}</div>
+          {activeGame.roundLabel ? (
+            <div className={styles.metaItem}>{activeGame.roundLabel}</div>
+          ) : null}
         </div>
 
-        {weather?.ok ? (
+        {weather?.ok && isActiveUpcoming ? (
           <div className={styles.weatherRow}>
-            <span className={`${styles.pill} ${styles.pillSoft}`}>
-              <CloudSun size={14} /> {weather.tempC ?? "—"}°C
-            </span>
-            <span className={`${styles.pill} ${styles.pillSoft}`}>
-              <Droplets size={14} /> {weather.precipMM ?? "—"}mm
-            </span>
-            <span className={`${styles.pill} ${styles.pillSoft}`}>
-              <Wind size={14} /> {weather.windKmh ?? "—"}km/h
-            </span>
+            {typeof weather.tempC === "number" ? (
+              <span className={styles.pill}>{weather.tempC}°C</span>
+            ) : null}
+            {typeof weather.precipMM === "number" ? (
+              <span className={styles.pill}>{weather.precipMM}mm rain</span>
+            ) : null}
+            {typeof weather.windKmh === "number" ? (
+              <span className={styles.pill}>{weather.windKmh}km/h wind</span>
+            ) : null}
           </div>
         ) : null}
 
         <div className={styles.heroSection}>
-          <HeadToHead
-            allGames={allGames}
-            teamA={activeGame.home}
-            teamB={activeGame.away}
-            teamAStats={teamAStats}
-            teamBStats={teamBStats}
-          />
-        </div>
-
-        <div className={styles.heroSection}>
           <AvailabilityBlock game={activeGame} onToast={onToast} />
         </div>
+      </div>
+
+      <div className={styles.cardPad}>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Upcoming fixtures</h2>
+
+          <div className={styles.upcomingList}>
+            {upcomingGames.length ? (
+              upcomingGames.slice(0, 6).map((game) => {
+                const isActive =
+                  game.kickoffISO === activeGame.kickoffISO &&
+                  game.home === activeGame.home &&
+                  game.away === activeGame.away;
+
+                const idx = gamesSorted.findIndex(
+                  (g) =>
+                    g.kickoffISO === game.kickoffISO &&
+                    g.home === game.home &&
+                    g.away === game.away
+                );
+
+                return (
+                  <button
+                    key={`${game.kickoffISO}-${game.home}-${game.away}-row`}
+                    type="button"
+                    className={`${styles.fixtureRow} ${isActive ? styles.fixtureRowActive : ""}`}
+                    onClick={() => {
+                      setActiveIndex(idx);
+                      setUserPinnedSelection(true);
+                    }}
+                  >
+                    <div>
+                      <div className={styles.fixtureRowTitle}>
+                        {game.home} vs {game.away}
+                      </div>
+                      <div className={styles.fixtureRowSub}>
+                        {formatDayDateFromSource(game.date)} • {formatTimeFromSource(game.time)} •{" "}
+                        {game.venue}
+                      </div>
+                    </div>
+
+                    <div className={styles.fixtureRowSide}>
+                      <div className={styles.fixtureMiniStatus}>
+                        <span>{isActive ? "Viewing now" : "Tap to view"}</span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className={styles.hint}>
+                {hasPastGames ? "No future games loaded yet." : "No fixtures available."}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </section>
   );

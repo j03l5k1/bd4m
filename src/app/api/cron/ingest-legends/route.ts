@@ -261,7 +261,7 @@ export async function GET(req: Request) {
   });
 
   // 5) Upsert into Supabase
-  const sb = supabaseAdmin();
+  const sb = supabaseAdmin;
 
   // teams upsert (from ladder, safest “truth” list)
   const teamsPayload = ladderParsed.map((r) => ({

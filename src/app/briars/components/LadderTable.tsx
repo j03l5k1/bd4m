@@ -1,6 +1,7 @@
 "use client";
 
-import styles from "../briars.module.css";
+import ui from "../briars.module.css";
+import styles from "../ladder.module.css";
 import type { LadderPayload } from "../../../lib/briars/types";
 
 function safeNum(v: string | undefined) {
@@ -23,25 +24,19 @@ export default function LadderTable({
   const briarsPlayed = briarsRow ? safeNum(briarsRow.cols[1]) : null;
 
   return (
-    <section className={styles.section}>
+    <section className={ui.section}>
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>Ladder</h2>
+        <h2 className={ui.sectionTitle}>Ladder</h2>
 
         <div className={styles.tallyStrip}>
-          <span className={styles.tallyPill}>
-            Teams {ladder.rows.length}
-          </span>
+          <span className={styles.tallyPill}>Teams {ladder.rows.length}</span>
 
           {briarsPlayed !== null ? (
-            <span className={styles.tallyPill}>
-              Briars P {briarsPlayed}
-            </span>
+            <span className={styles.tallyPill}>Briars P {briarsPlayed}</span>
           ) : null}
 
           {briarsPts !== null ? (
-            <span className={styles.tallyPillStrong}>
-              Briars Pts {briarsPts}
-            </span>
+            <span className={styles.tallyPillStrong}>Briars Pts {briarsPts}</span>
           ) : null}
         </div>
       </div>

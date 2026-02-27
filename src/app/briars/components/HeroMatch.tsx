@@ -6,14 +6,8 @@ import AvailabilityBlock from "./AvailabilityBlock";
 import HeadToHead from "./HeadToHead";
 
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock3,
-  CloudSun,
-  Droplets,
-  MapPin,
-  Wind,
 } from "lucide-react";
 
 import {
@@ -56,6 +50,7 @@ function TeamLogo({
           src={meta.logoUrl}
           alt={meta.shortName}
           className={styles.teamLogo}
+          referrerPolicy="no-referrer"
           onError={(e) => {
             const img = e.currentTarget;
             img.style.display = "none";
@@ -114,6 +109,12 @@ export default function HeroMatch({
   const roundNumber = activeIndex + 1;
   const roundLabel = `Round ${roundNumber}`;
 
+  const weatherBits = [
+    typeof weather?.tempC === "number" ? `${weather.tempC}°C` : null,
+    typeof weather?.precipMM === "number" ? `${weather.precipMM}mm` : null,
+    typeof weather?.windKmh === "number" ? `${weather.windKmh}km/h` : null,
+  ].filter(Boolean) as string[];
+
   return (
     <>
       <section className={`${ui.card} ${styles.heroCard}`}>
@@ -125,7 +126,6 @@ export default function HeroMatch({
               </span>
               <span className={`${ui.pill} ${ui.pillBlue}`}>{formatDayDateFromSource(activeGame.date)}</span>
               <span className={ui.pill}>{formatTimeFromSource(activeGame.time)}</span>
-              <span className={`${ui.pill} ${ui.pillSoft}`}>{roundLabel}</span>
             </div>
           </div>
 
@@ -166,7 +166,7 @@ export default function HeroMatch({
 
           <div className={styles.fixtureTabsWrap}>
             <div className={styles.fixtureTabs}>
-              {visibleTabs.map((game, idx) => {
+              {visibleTabs.map((game) => {
                 const originalIndex = gamesSorted.findIndex(
                   (g) =>
                     g.kickoffISO === game.kickoffISO &&
@@ -222,6 +222,18 @@ export default function HeroMatch({
               <div className={styles.vsPill}>
                 {activeGame.score && activeGame.score !== "-" ? activeGame.score : "Matchup"}
               </div>
+
+              <div className={styles.matchMeta}>
+                <div className={styles.matchMetaLine}>
+                  {formatLongDateFromSource(activeGame.date)} • {formatTimeFromSource(activeGame.time)}
+                </div>
+                <div className={styles.matchMetaLine}>
+                  {activeGame.venue || "TBC"} • {roundLabel}
+                </div>
+                {weatherBits.length && isActiveUpcoming ? (
+                  <div className={styles.matchMetaSub}>{weatherBits.join(" • ")}</div>
+                ) : null}
+              </div>
             </div>
 
             <div className={styles.teamSide}>
@@ -232,52 +244,6 @@ export default function HeroMatch({
               </div>
             </div>
           </div>
-
-          <div className={styles.infoGrid}>
-            <div className={styles.infoCard}>
-              <CalendarDays size={18} />
-              <span>{formatLongDateFromSource(activeGame.date)}</span>
-            </div>
-
-            <div className={styles.infoCard}>
-              <Clock3 size={18} />
-              <span>{formatTimeFromSource(activeGame.time)}</span>
-            </div>
-
-            <div className={styles.infoCard}>
-              <MapPin size={18} />
-              <span>{activeGame.venue || "TBC"}</span>
-            </div>
-
-            <div className={styles.infoCard}>
-              <span className={styles.infoRoundBadge}>{roundLabel}</span>
-            </div>
-          </div>
-
-          {weather?.ok && isActiveUpcoming ? (
-            <div className={styles.weatherGrid}>
-              {typeof weather.tempC === "number" ? (
-                <div className={styles.weatherCard}>
-                  <CloudSun size={17} />
-                  <span>{weather.tempC}°C</span>
-                </div>
-              ) : null}
-
-              {typeof weather.precipMM === "number" ? (
-                <div className={styles.weatherCard}>
-                  <Droplets size={17} />
-                  <span>{weather.precipMM}mm</span>
-                </div>
-              ) : null}
-
-              {typeof weather.windKmh === "number" ? (
-                <div className={styles.weatherCard}>
-                  <Wind size={17} />
-                  <span>{weather.windKmh}km/h</span>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
 
           <div className={styles.heroSection}>
             <AvailabilityBlock game={activeGame} onToast={onToast} />

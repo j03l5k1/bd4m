@@ -7,7 +7,7 @@ export type Game = {
   away: string;
   score: string;
   kickoffISO: string;
-  source_key: string;
+  source_key?: string;
 };
 
 export type LadderRow = {
@@ -15,7 +15,7 @@ export type LadderRow = {
   cols: string[];
 };
 
-export type LadderData = {
+export type LadderPayload = {
   headers: string[];
   rows: LadderRow[];
 };
@@ -32,13 +32,22 @@ export type NamesByStatus = {
   no: string[];
 };
 
-export type BriarsFixturesResponse = {
+export type Weather = {
+  ok: boolean;
+  at?: string;
+  tempC?: number;
+  precipMM?: number;
+  windKmh?: number;
+  location?: string;
+};
+
+export type Payload = {
   ok: boolean;
   team: string;
   source: string;
   refreshedAt: string;
   games: Game[];
-  allGames: Game[];
-  ladder: LadderData;
+  allGames?: Game[];
+  ladder?: LadderPayload;
   error?: string;
 };

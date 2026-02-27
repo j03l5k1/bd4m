@@ -217,7 +217,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ secret: string
     });
   });
 
-  const sb = supabaseAdmin();
+  const sb = supabaseAdmin;
 
   // 3) Upsert teams (from ladder)
   const teamsPayload = ladderParsed.map((r) => ({

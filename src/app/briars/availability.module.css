@@ -1,0 +1,93 @@
+/* Availability-only styles (moved out of briars.module.css)
+   NOTE: shared styles like .details / .summary stay in briars.module.css
+*/
+
+.availabilityBox {
+  border: 1px solid var(--border-18);
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.015) 0%,
+    rgba(15, 23, 42, 0.028) 100%
+  );
+  border-radius: var(--r-18);
+  padding: 16px;
+}
+
+.loginGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.availabilityTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.availabilityTitle {
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.countsWrap {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btnRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.availabilityNamesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.nameColTitle {
+  font-weight: 900;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+
+.nameColBody {
+  color: var(--ink-62);
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* Mobile polish for availability (keeps pills/cards from spilling off-screen) */
+@media (max-width: 860px) {
+  .loginGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .availabilityNamesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  /* lets the 3 status buttons breathe on narrow screens */
+  .btnRow > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  /* if anything is still overflowing, this prevents it */
+  .availabilityBox {
+    overflow: hidden;
+  }
+}

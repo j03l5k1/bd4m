@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const sb = supabaseAdmin();
+  const sb = supabaseAdmin;
 
   const { data: ladder, error: ladderErr } = await sb
     .from("ladder_latest")

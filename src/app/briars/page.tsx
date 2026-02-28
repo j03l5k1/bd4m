@@ -136,11 +136,6 @@ export default function BriarsPage() {
     return new Date(activeGame.kickoffISO).getTime() >= now.getTime();
   }, [activeGame, now]);
 
-  const upcomingGames = useMemo(() => {
-    const t = now.getTime();
-    return gamesSorted.filter((g) => new Date(g.kickoffISO).getTime() >= t);
-  }, [gamesSorted, now]);
-
   useEffect(() => {
     const current = Date.now();
     const futureKickoffs = gamesSorted
@@ -213,7 +208,6 @@ export default function BriarsPage() {
         activeIndex={activeIndex}
         setActiveIndex={setActiveIndex}
         setUserPinnedSelection={setUserPinnedSelection}
-        upcomingGames={upcomingGames}
         showAllFixtureTabs={showAllFixtureTabs}
         setShowAllFixtureTabs={setShowAllFixtureTabs}
         weather={weather}

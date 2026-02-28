@@ -305,6 +305,114 @@
   margin-top: 0;
 }
 
+.formSummaryRight {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  text-align: right;
+  font-size: 0.68rem;
+}
+
+.formGuideGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.formTeamCard {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.formTeamHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.formTeamName {
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 670;
+}
+
+.formStreak {
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 620;
+}
+
+.formChipRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.formChip {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.formChipWin {
+  background: #e8fbf3;
+  border-color: #bdebd7;
+  color: #0f5132;
+}
+
+.formChipLoss {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.formChipDraw {
+  background: #f1f5f9;
+  border-color: #d8e5f1;
+  color: #334155;
+}
+
+.formStatsRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #475569;
+  font-size: 0.69rem;
+  font-weight: 560;
+}
+
+.formResultsList {
+  display: grid;
+  gap: 6px;
+}
+
+.formResultRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #eaf2f0;
+  border-radius: 10px;
+  padding: 7px 8px;
+  font-size: 0.72rem;
+  color: #334155;
+}
+
+.formResultScore {
+  color: #0f766e;
+  font-weight: 680;
+}
+
 .upcomingList {
   display: grid;
   gap: 8px;
@@ -423,6 +531,10 @@
 
   .fixtureRowSide {
     justify-content: flex-end;
+  }
+
+  .formGuideGrid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

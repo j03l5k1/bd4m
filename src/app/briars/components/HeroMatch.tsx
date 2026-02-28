@@ -21,6 +21,7 @@ import {
   formatDayDateFromSource,
   formatLongDateFromSource,
   formatTimeFromSource,
+  parseScore,
 } from "../../../lib/briars/format";
 import { getTeamMeta } from "../../../lib/briars/teamMeta";
 import type { Game, LadderPayload, Weather } from "../../../lib/briars/types";
@@ -78,6 +79,59 @@ function formatWeatherAt(iso?: string) {
   });
 }
 
+type TeamRecentResult = {
+  game: Game;
+  opponent: string;
+  gf: number;
+  ga: number;
+  result: "W" | "L" | "D";
+};
+
+function getTeamRecentResults(allGames: Game[], teamName: string, limit = 5): TeamRecentResult[] {
+  return allGames
+    .map((game) => {
+      const score = parseScore(game.score);
+      if (!score) return null;
+
+      const isHome = game.home === teamName;
+      const isAway = game.away === teamName;
+      if (!isHome && !isAway) return null;
+
+      const gf = isHome ? score.a : score.b;
+      const ga = isHome ? score.b : score.a;
+      const opponent = isHome ? game.away : game.home;
+      const result: "W" | "L" | "D" = gf > ga ? "W" : gf < ga ? "L" : "D";
+
+      return { game, opponent, gf, ga, result };
+    })
+    .filter((item): item is TeamRecentResult => Boolean(item))
+    .sort(
+      (a, b) =>
+        new Date(b.game.kickoffISO).getTime() - new Date(a.game.kickoffISO).getTime()
+    )
+    .slice(0, limit);
+}
+
+function getStreakLabel(results: TeamRecentResult[]) {
+  if (!results.length) return "No streak";
+  const first = results[0].result;
+  let count = 1;
+  for (let i = 1; i < results.length; i += 1) {
+    if (results[i].result !== first) break;
+    count += 1;
+  }
+  const map = { W: "Won", L: "Lost", D: "Drew" } as const;
+  return `${map[first]} ${count}`;
+}
+
+function getFormString(results: TeamRecentResult[], length = 4) {
+  if (!results.length) return "Form unavailable";
+  return results
+    .slice(0, length)
+    .map((r) => r.result)
+    .join("");
+}
+
 function TeamLogo({
   name,
   className,
@@ -118,7 +172,6 @@ export default function HeroMatch({
   activeIndex,
   setActiveIndex,
   setUserPinnedSelection,
-  upcomingGames,
   showAllFixtureTabs,
   setShowAllFixtureTabs,
   weather,
@@ -133,7 +186,6 @@ export default function HeroMatch({
   activeIndex: number;
   setActiveIndex: (value: number) => void;
   setUserPinnedSelection: (value: boolean) => void;
-  upcomingGames: Game[];
   showAllFixtureTabs: boolean;
   setShowAllFixtureTabs: (value: boolean) => void;
   weather: Weather | null;
@@ -148,10 +200,17 @@ export default function HeroMatch({
   const homeMeta = getTeamMeta(activeGame.home);
   const awayMeta = getTeamMeta(activeGame.away);
   const [availabilityHint, setAvailabilityHint] = useState("Tap to expand");
-  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
   const roundLabel = activeGame.roundLabel?.trim() || `Round ${activeIndex + 1}`;
+  const homeRecent = getTeamRecentResults(allGames, activeGame.home, 5);
+  const awayRecent = getTeamRecentResults(allGames, activeGame.away, 5);
+  const homeForm = getFormString(homeRecent, 4);
+  const awayForm = getFormString(awayRecent, 4);
+  const homeRecentGF = homeRecent.reduce((sum, r) => sum + r.gf, 0);
+  const homeRecentGA = homeRecent.reduce((sum, r) => sum + r.ga, 0);
+  const awayRecentGF = awayRecent.reduce((sum, r) => sum + r.gf, 0);
+  const awayRecentGA = awayRecent.reduce((sum, r) => sum + r.ga, 0);
 
   const weatherBits = [
     typeof weather?.tempC === "number" ? `${weather.tempC}°C` : null,
@@ -334,70 +393,95 @@ export default function HeroMatch({
           <section className={ui.section}>
             <details className={`${ui.details} ${styles.collapseBlock}`}>
               <summary className={ui.summary}>
-                <span>Upcoming fixtures</span>
-                <span className={ui.summaryRight}>
-                  {upcomingGames.length ? `${Math.min(upcomingGames.length, 2)} shown` : "Tap to expand"}
+                <span>Form guide</span>
+                <span className={`${ui.summaryRight} ${styles.formSummaryRight}`}>
+                  <span>{homeMeta.shortName}: {homeForm}</span>
+                  <span>{awayMeta.shortName}: {awayForm}</span>
                 </span>
               </summary>
               <div className={ui.detailsBody}>
-                <div className={styles.upcomingList}>
-                  {upcomingGames.length ? (
-                    upcomingGames.slice(0, showAllUpcoming ? 6 : 2).map((game) => {
-                      const isActive =
-                        game.kickoffISO === activeGame.kickoffISO &&
-                        game.home === activeGame.home &&
-                        game.away === activeGame.away;
-
-                      const idx = gamesSorted.findIndex(
-                        (g) =>
-                          g.kickoffISO === game.kickoffISO &&
-                          g.home === game.home &&
-                          g.away === game.away
-                      );
-
-                      const home = getTeamMeta(game.home).shortName;
-                      const away = getTeamMeta(game.away).shortName;
-
-                      return (
-                        <button
-                          key={`${game.kickoffISO}-${game.home}-${game.away}-row`}
-                          type="button"
-                          className={`${styles.fixtureRow} ${isActive ? styles.fixtureRowActive : ""}`}
-                          onClick={() => {
-                            setActiveIndex(idx);
-                            setUserPinnedSelection(true);
-                          }}
-                        >
-                          <div>
-                            <div className={styles.fixtureRowTitle}>
-                              Rnd {idx + 1} • {home} v {away}
+                <div className={styles.formGuideGrid}>
+                  <div className={styles.formTeamCard}>
+                    <div className={styles.formTeamHeader}>
+                      <span className={styles.formTeamName}>{homeMeta.shortName}</span>
+                      <span className={styles.formStreak}>{getStreakLabel(homeRecent)}</span>
+                    </div>
+                    {homeRecent.length ? (
+                      <>
+                        <div className={styles.formChipRow}>
+                          {homeRecent.map((r, idx) => (
+                            <span
+                              key={`${homeMeta.shortName}-${idx}-${r.game.kickoffISO}`}
+                              className={`${styles.formChip} ${
+                                r.result === "W"
+                                  ? styles.formChipWin
+                                  : r.result === "L"
+                                    ? styles.formChipLoss
+                                    : styles.formChipDraw
+                              }`}
+                            >
+                              {r.result}
+                            </span>
+                          ))}
+                        </div>
+                        <div className={styles.formStatsRow}>
+                          <span>GF {homeRecentGF}</span>
+                          <span>GA {homeRecentGA}</span>
+                        </div>
+                        <div className={styles.formResultsList}>
+                          {homeRecent.map((r, idx) => (
+                            <div key={`${homeMeta.shortName}-game-${idx}-${r.game.kickoffISO}`} className={styles.formResultRow}>
+                              <span>vs {getTeamMeta(r.opponent).shortName}</span>
+                              <span className={styles.formResultScore}>{r.gf}-{r.ga}</span>
                             </div>
-                            <div className={styles.fixtureRowSub}>
-                              {formatDayDateFromSource(game.date)} • {formatTimeFromSource(game.time)} • {game.venue}
-                            </div>
-                          </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className={styles.hint}>Form unavailable</div>
+                    )}
+                  </div>
 
-                          <div className={styles.fixtureRowSide}>
-                            <div className={styles.fixtureMiniStatus}>
-                              <span>{isActive ? "Viewing now" : "Tap to view"}</span>
+                  <div className={styles.formTeamCard}>
+                    <div className={styles.formTeamHeader}>
+                      <span className={styles.formTeamName}>{awayMeta.shortName}</span>
+                      <span className={styles.formStreak}>{getStreakLabel(awayRecent)}</span>
+                    </div>
+                    {awayRecent.length ? (
+                      <>
+                        <div className={styles.formChipRow}>
+                          {awayRecent.map((r, idx) => (
+                            <span
+                              key={`${awayMeta.shortName}-${idx}-${r.game.kickoffISO}`}
+                              className={`${styles.formChip} ${
+                                r.result === "W"
+                                  ? styles.formChipWin
+                                  : r.result === "L"
+                                    ? styles.formChipLoss
+                                    : styles.formChipDraw
+                              }`}
+                            >
+                              {r.result}
+                            </span>
+                          ))}
+                        </div>
+                        <div className={styles.formStatsRow}>
+                          <span>GF {awayRecentGF}</span>
+                          <span>GA {awayRecentGA}</span>
+                        </div>
+                        <div className={styles.formResultsList}>
+                          {awayRecent.map((r, idx) => (
+                            <div key={`${awayMeta.shortName}-game-${idx}-${r.game.kickoffISO}`} className={styles.formResultRow}>
+                              <span>vs {getTeamMeta(r.opponent).shortName}</span>
+                              <span className={styles.formResultScore}>{r.gf}-{r.ga}</span>
                             </div>
-                          </div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className={styles.hint}>No future games loaded yet.</div>
-                  )}
-
-                  {upcomingGames.length > 2 ? (
-                    <button
-                      type="button"
-                      className={styles.upcomingMoreBtn}
-                      onClick={() => setShowAllUpcoming((prev) => !prev)}
-                    >
-                      {showAllUpcoming ? "Show fewer" : `View all (${Math.min(upcomingGames.length, 6)})`}
-                    </button>
-                  ) : null}
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className={styles.hint}>Form unavailable</div>
+                    )}
+                  </div>
                 </div>
               </div>
             </details>

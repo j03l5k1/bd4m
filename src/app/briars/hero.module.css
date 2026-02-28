@@ -539,6 +539,35 @@
 }
 
 @media (max-width: 430px) {
+  .topBadges {
+    display: grid;
+    grid-template-columns: 0.9fr 1fr 0.75fr 1.35fr;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .topBadges :global(.pill) {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 6px 6px;
+    font-size: 0.66rem;
+    line-height: 1.15;
+  }
+
+  .weatherDetails {
+    width: 100%;
+  }
+
+  .weatherSummary {
+    width: 100%;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 6px;
+    font-size: 0.66rem;
+    line-height: 1.15;
+  }
+
   .heroShowcase {
     grid-template-columns: 1fr minmax(120px, auto) 1fr;
     gap: 4px;

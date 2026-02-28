@@ -1,51 +1,43 @@
 .availabilityBox {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0.015) 0%,
-    rgba(15, 23, 42, 0.028) 100%
-  );
-  border-radius: 18px;
-  padding: 16px;
-  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfb 100%);
+  padding: 12px;
 }
 
 .availGate {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.82);
-  border-radius: 18px;
-  padding: 14px;
-  margin-bottom: 14px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 12px;
+  margin-bottom: 12px;
 }
 
 .availGateTitle {
-  font-weight: 950;
-  color: #0f172a;
-  letter-spacing: -0.02em;
-  margin-bottom: 10px;
-  font-size: 14px;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  font-weight: 680;
+  font-family: var(--font-display);
+  margin-bottom: 8px;
 }
 
 .availHint {
-  margin-top: 10px;
-  color: rgba(15, 23, 42, 0.58);
-  font-weight: 800;
-  font-size: 12.5px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: #64748b;
 }
 
 .loginGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 14px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .availabilityHeader {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .availLeft {
@@ -53,187 +45,184 @@
 }
 
 .availabilityTitle {
-  font-size: 18px;
-  font-weight: 950;
-  letter-spacing: -0.02em;
-  color: #0f172a;
+  font-size: 0.96rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  font-weight: 680;
+  font-family: var(--font-display);
 }
 
 .availSaving {
-  color: rgba(15, 23, 42, 0.58);
-  font-weight: 900;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 0.85rem;
 }
 
 .countsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  width: min(360px, 100%);
-  max-width: 100%;
+  gap: 8px;
 }
 
 .countCard {
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.82);
-  border-radius: 14px;
-  padding: 10px 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
-  display: grid;
-  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 9px 10px;
   min-width: 0;
 }
 
 .countTop {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .countIcon {
-  font-size: 14px;
+  font-size: 0.88rem;
+  color: #0f766e;
+  flex: 0 0 auto;
 }
 
 .countLabel {
-  font-weight: 950;
-  color: rgba(15, 23, 42, 0.62);
-  font-size: 12px;
-  letter-spacing: -0.01em;
+  font-size: 0.66rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 620;
 }
 
 .countNum {
-  font-weight: 1000;
-  font-size: 18px;
-  color: #0f172a;
-  letter-spacing: -0.03em;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 1.12rem;
+  line-height: 1;
+  font-weight: 720;
+  font-family: var(--font-display);
 }
 
 .countYes {
-  background: linear-gradient(
-    180deg,
-    rgba(16, 185, 129, 0.1) 0%,
-    rgba(255, 255, 255, 0.86) 100%
-  );
+  border-color: #bdebd7;
+  background: #f2fcf7;
+}
+
+.countYes .countIcon {
+  color: var(--ok);
 }
 
 .countMaybe {
-  background: linear-gradient(
-    180deg,
-    rgba(245, 158, 11, 0.12) 0%,
-    rgba(255, 255, 255, 0.86) 100%
-  );
+  border-color: #ffe0b2;
+  background: #fff8ef;
+}
+
+.countMaybe .countIcon {
+  color: var(--warn);
 }
 
 .countNo {
-  background: linear-gradient(
-    180deg,
-    rgba(148, 163, 184, 0.12) 0%,
-    rgba(255, 255, 255, 0.86) 100%
-  );
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.countNo .countIcon {
+  color: #64748b;
 }
 
 .availSeg {
-  margin-top: 14px;
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .availSegBtn {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 18px;
-  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  min-height: 52px;
+  padding: 10px 12px;
   text-align: left;
   display: grid;
   grid-template-columns: auto 1fr auto;
+  gap: 8px;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
-  transition:
-    transform 0.16s ease,
-    border-color 0.16s ease,
-    background 0.16s ease;
-  font-weight: 950;
-  color: #0f172a;
-  min-height: 54px;
-  min-width: 0;
+  cursor: pointer;
+  font-weight: 740;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .availSegBtn:hover {
   transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 
 .availSegBtn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .availSegBtnActive {
-  border-color: rgba(37, 99, 235, 0.34);
-  background: linear-gradient(
-    180deg,
-    rgba(239, 246, 255, 0.88) 0%,
-    rgba(255, 255, 255, 0.96) 100%
-  );
+  border-color: #8ccbc4;
+  background: #effaf8;
 }
 
 .availSegIcon {
-  font-size: 18px;
+  font-size: 1rem;
 }
 
 .availSegText {
-  font-size: 15px;
-  letter-spacing: -0.02em;
+  font-size: 0.88rem;
+  font-weight: 620;
 }
 
 .availSegTick {
-  font-size: 11.5px;
-  font-weight: 950;
-  color: rgba(15, 23, 42, 0.58);
+  font-size: 0.66rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .availabilityNamesGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .nameColTitle {
-  font-weight: 900;
-  margin-bottom: 6px;
-  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: var(--text);
+  font-weight: 650;
+  margin-bottom: 4px;
 }
 
 .nameColBody {
-  color: rgba(15, 23, 42, 0.62);
-  font-weight: 800;
-  line-height: 1.5;
-  word-break: break-word;
+  font-size: 0.79rem;
+  line-height: 1.45;
+  color: #475569;
+  font-weight: 520;
 }
 
-@media (max-width: 860px) {
+@media (min-width: 760px) {
+  .availabilityBox {
+    padding: 15px;
+  }
+
   .loginGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .availabilityHeader {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .countsGrid {
-    width: 100%;
-    max-width: 100%;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: 1fr auto;
+    align-items: center;
   }
 
   .availSeg {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .availabilityNamesGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
 }

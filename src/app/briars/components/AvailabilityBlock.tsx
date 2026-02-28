@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Users } from "lucide-react";
+import { FiCheckCircle, FiHelpCircle, FiUsers, FiXCircle } from "react-icons/fi";
 import ui from "../briars.module.css";
 import styles from "../availability.module.css";
 import type { Counts, Game, NamesByStatus } from "../page";
@@ -99,9 +99,11 @@ function statusLabel(s?: "yes" | "maybe" | "no") {
 export default function AvailabilityBlock({
   game,
   onToast,
+  onStatusHintChange,
 }: {
   game: Game;
   onToast?: (msg: string) => void;
+  onStatusHintChange?: (hint: string) => void;
 }) {
   const key = useMemo(() => makeSourceKey(game), [game]);
   const legacyKey = useMemo(() => makeLegacySourceKey(game), [game]);
@@ -163,6 +165,30 @@ export default function AvailabilityBlock({
     const n = playerName.trim();
     if (n.length >= 2) localStorage.setItem(LS_PLAYER_NAME, n);
   }, [playerName]);
+
+  useEffect(() => {
+    const nameReady = playerName.trim().length >= 2;
+
+    if (!pinOk || !nameReady) {
+      onStatusHintChange?.("Set name + PIN");
+      return;
+    }
+
+    if (myStatus === "yes") {
+      onStatusHintChange?.("You’re in");
+      return;
+    }
+    if (myStatus === "maybe") {
+      onStatusHintChange?.("You’re maybe");
+      return;
+    }
+    if (myStatus === "no") {
+      onStatusHintChange?.("You’re out");
+      return;
+    }
+
+    onStatusHintChange?.("Not set");
+  }, [pinOk, playerName, myStatus, onStatusHintChange]);
 
   function rememberPin() {
     if (pinInput.trim() !== "briars2026") {
@@ -291,7 +317,7 @@ export default function AvailabilityBlock({
         <div className={styles.countsGrid} aria-label="Squad totals">
           <div className={`${styles.countCard} ${styles.countYes}`}>
             <div className={styles.countTop}>
-              <span className={styles.countIcon}>✅</span>
+              <FiCheckCircle className={styles.countIcon} />
               <span className={styles.countLabel}>In</span>
             </div>
             <div className={styles.countNum}>{counts.yes}</div>
@@ -299,7 +325,7 @@ export default function AvailabilityBlock({
 
           <div className={`${styles.countCard} ${styles.countMaybe}`}>
             <div className={styles.countTop}>
-              <span className={styles.countIcon}>❓</span>
+              <FiHelpCircle className={styles.countIcon} />
               <span className={styles.countLabel}>Maybe</span>
             </div>
             <div className={styles.countNum}>{counts.maybe}</div>
@@ -307,7 +333,7 @@ export default function AvailabilityBlock({
 
           <div className={`${styles.countCard} ${styles.countNo}`}>
             <div className={styles.countTop}>
-              <span className={styles.countIcon}>❌</span>
+              <FiXCircle className={styles.countIcon} />
               <span className={styles.countLabel}>Out</span>
             </div>
             <div className={styles.countNum}>{counts.no}</div>
@@ -322,7 +348,7 @@ export default function AvailabilityBlock({
           onClick={() => setStatus("yes")}
           disabled={!!saving}
         >
-          <span className={styles.availSegIcon}>✅</span>
+          <FiCheckCircle className={styles.availSegIcon} />
           <span className={styles.availSegText}>I’m in</span>
           {myStatus === "yes" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
@@ -333,7 +359,7 @@ export default function AvailabilityBlock({
           onClick={() => setStatus("maybe")}
           disabled={!!saving}
         >
-          <span className={styles.availSegIcon}>❓</span>
+          <FiHelpCircle className={styles.availSegIcon} />
           <span className={styles.availSegText}>Maybe</span>
           {myStatus === "maybe" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
@@ -344,7 +370,7 @@ export default function AvailabilityBlock({
           onClick={() => setStatus("no")}
           disabled={!!saving}
         >
-          <span className={styles.availSegIcon}>❌</span>
+          <FiXCircle className={styles.availSegIcon} />
           <span className={styles.availSegText}>Out</span>
           {myStatus === "no" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
@@ -354,26 +380,26 @@ export default function AvailabilityBlock({
         <summary className={ui.summary}>
           <span>View squad status</span>
           <span className={ui.summaryRight}>
-            <Users size={15} /> {responses} response{responses === 1 ? "" : "s"}
+            <FiUsers size={15} /> {responses} response{responses === 1 ? "" : "s"}
           </span>
         </summary>
 
         <div className={ui.detailsBody}>
           <div className={styles.availabilityNamesGrid}>
             <div>
-              <div className={styles.nameColTitle}>✅ In</div>
+              <div className={styles.nameColTitle}><FiCheckCircle /> In</div>
               <div className={styles.nameColBody}>
                 {names.yes.length ? names.yes.join(", ") : "—"}
               </div>
             </div>
             <div>
-              <div className={styles.nameColTitle}>❓ Maybe</div>
+              <div className={styles.nameColTitle}><FiHelpCircle /> Maybe</div>
               <div className={styles.nameColBody}>
                 {names.maybe.length ? names.maybe.join(", ") : "—"}
               </div>
             </div>
             <div>
-              <div className={styles.nameColTitle}>❌ Out</div>
+              <div className={styles.nameColTitle}><FiXCircle /> Out</div>
               <div className={styles.nameColBody}>
                 {names.no.length ? names.no.join(", ") : "—"}
               </div>

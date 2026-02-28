@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { cleanInput, findExistingGameId } from "@/lib/server/availability";
 
-type Body = {
+type RawBody = {
   pin: string;
   playerName: string;
   game: {
@@ -14,77 +15,85 @@ type Body = {
   status: "yes" | "no" | "maybe";
 };
 
-function clean(s: string) {
-  return s.replace(/\s+/g, " ").trim();
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
-function buildLegacyIsoCandidates(kickoffISO: string) {
-  const candidates = new Set<string>();
-  candidates.add(kickoffISO);
+function readString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
 
-  const d = new Date(kickoffISO);
-  if (!Number.isNaN(d.getTime())) {
-    candidates.add(d.toISOString());
+function parseBody(raw: unknown): { ok: true; body: RawBody } | { ok: false; error: string } {
+  if (!isRecord(raw)) return { ok: false, error: "Invalid JSON body" };
 
-    const yyyy = d.getUTCFullYear();
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    const hh = String(d.getUTCHours()).padStart(2, "0");
-    const mi = String(d.getUTCMinutes()).padStart(2, "0");
-    const ss = String(d.getUTCSeconds()).padStart(2, "0");
+  const pin = readString(raw.pin).trim();
+  const playerName = cleanInput(readString(raw.playerName));
+  const status = readString(raw.status);
+  const gameRaw = isRecord(raw.game) ? raw.game : null;
 
-    candidates.add(new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`).toISOString());
+  if (!pin) return { ok: false, error: "PIN required" };
+  if (playerName.length < 2) return { ok: false, error: "Player name required" };
+  if (status !== "yes" && status !== "maybe" && status !== "no") {
+    return { ok: false, error: "Invalid status" };
+  }
+  if (!gameRaw) return { ok: false, error: "Game payload incomplete" };
 
-    candidates.add(new Date(d.getTime() + 10 * 60 * 60 * 1000).toISOString());
-    candidates.add(new Date(d.getTime() + 11 * 60 * 60 * 1000).toISOString());
-    candidates.add(new Date(d.getTime() - 10 * 60 * 60 * 1000).toISOString());
-    candidates.add(new Date(d.getTime() - 11 * 60 * 60 * 1000).toISOString());
+  const source_key = readString(gameRaw.source_key).trim();
+  const kickoff_iso = readString(gameRaw.kickoff_iso).trim();
+  const home = cleanInput(readString(gameRaw.home));
+  const away = cleanInput(readString(gameRaw.away));
+  const venueRaw = gameRaw.venue;
+  const venue =
+    venueRaw === null || venueRaw === undefined ? null : cleanInput(readString(venueRaw));
+
+  if (!source_key || !kickoff_iso || !home || !away) {
+    return { ok: false, error: "Game payload incomplete" };
+  }
+  if (Number.isNaN(new Date(kickoff_iso).getTime())) {
+    return { ok: false, error: "Invalid kickoff ISO" };
   }
 
-  return [...candidates];
-}
-
-async function findExistingGameId(source_key: string, kickoff_iso: string, home: string, away: string) {
-  const exact = await supabaseAdmin
-    .from("games")
-    .select("id")
-    .eq("source_key", source_key)
-    .maybeSingle();
-
-  if (exact.error) throw new Error(exact.error.message);
-  if (exact.data?.id) return exact.data.id as string;
-
-  const isoCandidates = buildLegacyIsoCandidates(kickoff_iso);
-  const sourceKeyCandidates = isoCandidates.map((iso) => `${iso}|${clean(home)}|${clean(away)}`);
-
-  const legacy = await supabaseAdmin
-    .from("games")
-    .select("id, kickoff_iso")
-    .in("source_key", sourceKeyCandidates)
-    .limit(1)
-    .maybeSingle();
-
-  if (legacy.error) throw new Error(legacy.error.message);
-  if (legacy.data?.id) return legacy.data.id as string;
-
-  return null;
+  return {
+    ok: true,
+    body: {
+      pin,
+      playerName,
+      status,
+      game: {
+        source_key,
+        kickoff_iso,
+        home,
+        away,
+        venue,
+      },
+    },
+  };
 }
 
 export async function POST(req: Request) {
   const TEAM_PIN = process.env.TEAM_PIN || "briars2026";
 
-  let body: Body;
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
+
+  const parsed = parseBody(raw);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      { ok: false, error: "error" in parsed ? parsed.error : "Invalid payload" },
+      { status: 400 }
+    );
+  }
+  const body = parsed.body;
 
   if (!body.pin || body.pin !== TEAM_PIN) {
     return NextResponse.json({ ok: false, error: "Wrong PIN" }, { status: 401 });
   }
 
-  const playerName = clean(body.playerName || "");
+  const playerName = cleanInput(body.playerName || "");
   if (playerName.length < 2) {
     return NextResponse.json({ ok: false, error: "Player name required" }, { status: 400 });
   }
@@ -95,16 +104,17 @@ export async function POST(req: Request) {
   }
 
   try {
+    const sb = getSupabaseAdmin();
     let gameId = await findExistingGameId(source_key, kickoff_iso, home, away);
 
     if (!gameId) {
-      const { data: gameRow, error: gameErr } = await supabaseAdmin
+      const { data: gameRow, error: gameErr } = await sb
         .from("games")
         .insert({
           source_key,
           kickoff_iso,
-          home: clean(home),
-          away: clean(away),
+          home: cleanInput(home),
+          away: cleanInput(away),
           venue: venue ?? null,
         })
         .select("id")
@@ -120,13 +130,13 @@ export async function POST(req: Request) {
       gameId = gameRow.id;
     } else {
       // Keep existing row fresh
-      const { error: updateErr } = await supabaseAdmin
+      const { error: updateErr } = await sb
         .from("games")
         .update({
           source_key,
           kickoff_iso,
-          home: clean(home),
-          away: clean(away),
+          home: cleanInput(home),
+          away: cleanInput(away),
           venue: venue ?? null,
         })
         .eq("id", gameId);
@@ -136,7 +146,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const { data: playerRow, error: playerErr } = await supabaseAdmin
+    const { data: playerRow, error: playerErr } = await sb
       .from("players")
       .upsert({ name: playerName }, { onConflict: "name" })
       .select("id")
@@ -149,7 +159,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { error: availErr } = await supabaseAdmin
+    const { error: availErr } = await sb
       .from("availability")
       .upsert(
         {

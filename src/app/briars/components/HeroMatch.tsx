@@ -1,14 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import ui from "../briars.module.css";
 import styles from "../hero.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
 import HeadToHead from "./HeadToHead";
 
 import {
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+  FiChevronLeft,
+  FiChevronRight,
+  FiCloud,
+  FiCloudDrizzle,
+  FiCloudRain,
+  FiCloudSnow,
+  FiSun,
+  FiZap,
+} from "react-icons/fi";
 
 import {
   formatDayDateFromSource,
@@ -33,6 +40,44 @@ function ordinal(pos: number | null) {
   return `${pos}th`;
 }
 
+function weatherVisual(weather: Weather | null) {
+  const code = typeof weather?.weatherCode === "number" ? weather.weatherCode : null;
+  const precip = typeof weather?.precipMM === "number" ? weather.precipMM : 0;
+
+  if (code === 0) return { icon: FiSun, label: "Sunny" };
+  if (code === 1 || code === 2) return { icon: FiCloud, label: "Partly cloudy" };
+  if (code === 3 || code === 45 || code === 48) return { icon: FiCloud, label: "Cloudy" };
+  if (code === 51 || code === 53 || code === 55 || code === 56 || code === 57) {
+    return { icon: FiCloudDrizzle, label: "Drizzle" };
+  }
+  if (
+    code === 61 || code === 63 || code === 65 || code === 66 || code === 67 ||
+    code === 80 || code === 81 || code === 82
+  ) {
+    return { icon: FiCloudRain, label: "Rain" };
+  }
+  if (code === 71 || code === 73 || code === 75 || code === 77 || code === 85 || code === 86) {
+    return { icon: FiCloudSnow, label: "Snow" };
+  }
+  if (code === 95 || code === 96 || code === 99) return { icon: FiZap, label: "Storm" };
+  if (precip > 0) return { icon: FiCloudRain, label: "Rain" };
+  return { icon: FiCloud, label: "Cloudy" };
+}
+
+function formatWeatherAt(iso?: string) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString("en-AU", {
+    timeZone: "Australia/Sydney",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function TeamLogo({
   name,
   className,
@@ -42,29 +87,26 @@ function TeamLogo({
 }) {
   const meta = getTeamMeta(name);
   const fallback = meta.shortName.slice(0, 1).toUpperCase();
+  const [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [name, meta.logoUrl]);
 
-  if (meta.logoUrl) {
-    return (
-      <div className={`${styles.teamLogoWrap} ${className || ""}`}>
+  const showImage = Boolean(meta.logoUrl) && !logoFailed;
+
+  return (
+    <div className={`${styles.teamLogoWrap} ${className || ""}`}>
+      {showImage ? (
         <img
           src={meta.logoUrl}
           alt={meta.shortName}
           className={styles.teamLogo}
           referrerPolicy="no-referrer"
-          onError={(e) => {
-            const img = e.currentTarget;
-            img.style.display = "none";
-            const parent = img.parentElement;
-            if (parent) parent.setAttribute("data-fallback", fallback);
-          }}
+          onError={() => setLogoFailed(true)}
         />
-      </div>
-    );
-  }
-
-  return (
-    <div className={`${styles.teamLogoWrap} ${className || ""}`} data-fallback={fallback}>
-      <span className={styles.teamLogoFallback}>{fallback}</span>
+      ) : (
+        <span className={styles.teamLogoFallback}>{fallback}</span>
+      )}
     </div>
   );
 }
@@ -80,6 +122,7 @@ export default function HeroMatch({
   showAllFixtureTabs,
   setShowAllFixtureTabs,
   weather,
+  weatherLoading,
   isActiveUpcoming,
   onToast,
   ladder,
@@ -93,8 +136,8 @@ export default function HeroMatch({
   upcomingGames: Game[];
   showAllFixtureTabs: boolean;
   setShowAllFixtureTabs: (value: boolean) => void;
-  now: Date;
   weather: Weather | null;
+  weatherLoading: boolean;
   isActiveUpcoming: boolean;
   onToast?: (msg: string) => void;
   ladder?: LadderPayload;
@@ -104,16 +147,31 @@ export default function HeroMatch({
 
   const homeMeta = getTeamMeta(activeGame.home);
   const awayMeta = getTeamMeta(activeGame.away);
+  const [availabilityHint, setAvailabilityHint] = useState("Tap to expand");
 
   const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
-  const roundNumber = activeIndex + 1;
-  const roundLabel = `Round ${roundNumber}`;
+  const roundLabel = activeGame.roundLabel?.trim() || `Round ${activeIndex + 1}`;
 
   const weatherBits = [
     typeof weather?.tempC === "number" ? `${weather.tempC}°C` : null,
     typeof weather?.precipMM === "number" ? `${weather.precipMM}mm` : null,
     typeof weather?.windKmh === "number" ? `${weather.windKmh}km/h` : null,
   ].filter(Boolean) as string[];
+  const weatherSummary = weatherBits.length ? weatherBits.join(" • ") : null;
+  const weatherVisualInfo = weatherVisual(weather);
+  const WeatherIcon = weatherVisualInfo.icon;
+  const weatherBadgeText = !isActiveUpcoming
+    ? "Weather n/a"
+    : weatherLoading
+      ? "Weather loading..."
+      : weatherSummary || "Weather unavailable";
+  const weatherMiniText =
+    isActiveUpcoming && !weatherLoading && typeof weather?.tempC === "number"
+      ? `${Math.round(weather.tempC)}°C`
+      : weatherLoading
+        ? "..."
+        : "n/a";
+  const weatherAt = formatWeatherAt(weather?.at);
 
   return (
     <>
@@ -122,46 +180,27 @@ export default function HeroMatch({
           <div className={styles.topStrip}>
             <div className={styles.topBadges}>
               <span className={`${ui.pill} ${ui.pillGold}`}>
-                {isActiveUpcoming ? "Next game" : "Latest result"}
+                {roundLabel}
               </span>
               <span className={`${ui.pill} ${ui.pillBlue}`}>{formatDayDateFromSource(activeGame.date)}</span>
               <span className={ui.pill}>{formatTimeFromSource(activeGame.time)}</span>
+              {isActiveUpcoming ? (
+                <details className={styles.weatherDetails}>
+                  <summary className={styles.weatherSummary}>
+                    <span className={styles.weatherSummaryLeft}>
+                      <WeatherIcon size={14} />
+                      {weatherVisualInfo.label}
+                    </span>
+                    <span className={styles.weatherSummaryTemp}>{weatherMiniText}</span>
+                  </summary>
+                  <div className={styles.weatherBody}>
+                    <div>{weatherBadgeText}</div>
+                    <div>Location: {weather?.location || "Homebush NSW, Australia"}</div>
+                    <div>Forecast time: {weatherAt || "Match kickoff hour"}</div>
+                  </div>
+                </details>
+              ) : null}
             </div>
-          </div>
-
-          <div className={styles.navRow}>
-            <button
-              type="button"
-              className={`${ui.btn} ${ui.btnSoft} ${styles.navBtn}`}
-              onClick={() => {
-                const next = Math.max(activeIndex - 1, 0);
-                setActiveIndex(next);
-                setUserPinnedSelection(true);
-              }}
-              disabled={activeIndex <= 0}
-            >
-              <ChevronLeft size={18} />
-              Prev
-            </button>
-
-            <div className={styles.navCenter}>
-              <div className={styles.roundEyebrow}>Viewing</div>
-              <div className={styles.roundValue}>{roundLabel}</div>
-            </div>
-
-            <button
-              type="button"
-              className={`${ui.btn} ${ui.btnSoft} ${styles.navBtn}`}
-              onClick={() => {
-                const next = Math.min(activeIndex + 1, gamesSorted.length - 1);
-                setActiveIndex(next);
-                setUserPinnedSelection(true);
-              }}
-              disabled={activeIndex >= gamesSorted.length - 1}
-            >
-              Next
-              <ChevronRight size={18} />
-            </button>
           </div>
 
           <div className={styles.fixtureTabsWrap}>
@@ -218,10 +257,38 @@ export default function HeroMatch({
             </div>
 
             <div className={styles.vsColumn}>
-              <div className={styles.vsWord}>VS</div>
-              <div className={styles.vsPill}>
-                {activeGame.score && activeGame.score !== "-" ? activeGame.score : "Matchup"}
+              <div className={styles.matchupControls}>
+                <button
+                  type="button"
+                  className={`${styles.matchNavBtn} ${styles.matchNavBtnPrimary}`}
+                  onClick={() => {
+                    const next = Math.max(activeIndex - 1, 0);
+                    setActiveIndex(next);
+                    setUserPinnedSelection(true);
+                  }}
+                  disabled={activeIndex <= 0}
+                  aria-label="Previous matchup"
+                >
+                  <FiChevronLeft size={17} />
+                </button>
+                <div className={styles.vsPill}>
+                  {activeGame.score && activeGame.score !== "-" ? activeGame.score : "Matchup"}
+                </div>
+                <button
+                  type="button"
+                  className={`${styles.matchNavBtn} ${styles.matchNavBtnPrimary}`}
+                  onClick={() => {
+                    const next = Math.min(activeIndex + 1, gamesSorted.length - 1);
+                    setActiveIndex(next);
+                    setUserPinnedSelection(true);
+                  }}
+                  disabled={activeIndex >= gamesSorted.length - 1}
+                  aria-label="Next matchup"
+                >
+                  <FiChevronRight size={17} />
+                </button>
               </div>
+              <div className={styles.vsWord}>VS</div>
 
               <div className={styles.matchMeta}>
                 <div className={styles.matchMetaLine}>
@@ -230,8 +297,8 @@ export default function HeroMatch({
                 <div className={styles.matchMetaLine}>
                   {activeGame.venue || "TBC"} • {roundLabel}
                 </div>
-                {weatherBits.length && isActiveUpcoming ? (
-                  <div className={styles.matchMetaSub}>{weatherBits.join(" • ")}</div>
+                {isActiveUpcoming ? (
+                  <div className={styles.matchMetaSub}>{weatherLoading ? "Weather loading..." : weatherSummary || "Weather unavailable"}</div>
                 ) : null}
               </div>
             </div>
@@ -246,63 +313,81 @@ export default function HeroMatch({
           </div>
 
           <div className={styles.heroSection}>
-            <AvailabilityBlock game={activeGame} onToast={onToast} />
+            <details className={`${ui.details} ${styles.collapseBlock}`}>
+              <summary className={ui.summary}>
+                <span>Availability</span>
+                <span className={ui.summaryRight}>{availabilityHint}</span>
+              </summary>
+              <div className={ui.detailsBody}>
+                <AvailabilityBlock
+                  game={activeGame}
+                  onToast={onToast}
+                  onStatusHintChange={setAvailabilityHint}
+                />
+              </div>
+            </details>
           </div>
         </div>
 
         <div className={ui.cardPad}>
           <section className={ui.section}>
-            <h2 className={ui.sectionTitle}>Upcoming fixtures</h2>
+            <details className={`${ui.details} ${styles.collapseBlock}`}>
+              <summary className={ui.summary}>
+                <span>Upcoming fixtures</span>
+                <span className={ui.summaryRight}>Tap to expand</span>
+              </summary>
+              <div className={ui.detailsBody}>
+                <div className={styles.upcomingList}>
+                  {upcomingGames.length ? (
+                    upcomingGames.slice(0, 6).map((game) => {
+                      const isActive =
+                        game.kickoffISO === activeGame.kickoffISO &&
+                        game.home === activeGame.home &&
+                        game.away === activeGame.away;
 
-            <div className={styles.upcomingList}>
-              {upcomingGames.length ? (
-                upcomingGames.slice(0, 6).map((game) => {
-                  const isActive =
-                    game.kickoffISO === activeGame.kickoffISO &&
-                    game.home === activeGame.home &&
-                    game.away === activeGame.away;
+                      const idx = gamesSorted.findIndex(
+                        (g) =>
+                          g.kickoffISO === game.kickoffISO &&
+                          g.home === game.home &&
+                          g.away === game.away
+                      );
 
-                  const idx = gamesSorted.findIndex(
-                    (g) =>
-                      g.kickoffISO === game.kickoffISO &&
-                      g.home === game.home &&
-                      g.away === game.away
-                  );
+                      const home = getTeamMeta(game.home).shortName;
+                      const away = getTeamMeta(game.away).shortName;
 
-                  const home = getTeamMeta(game.home).shortName;
-                  const away = getTeamMeta(game.away).shortName;
+                      return (
+                        <button
+                          key={`${game.kickoffISO}-${game.home}-${game.away}-row`}
+                          type="button"
+                          className={`${styles.fixtureRow} ${isActive ? styles.fixtureRowActive : ""}`}
+                          onClick={() => {
+                            setActiveIndex(idx);
+                            setUserPinnedSelection(true);
+                          }}
+                        >
+                          <div>
+                            <div className={styles.fixtureRowTitle}>
+                              Rnd {idx + 1} • {home} v {away}
+                            </div>
+                            <div className={styles.fixtureRowSub}>
+                              {formatDayDateFromSource(game.date)} • {formatTimeFromSource(game.time)} • {game.venue}
+                            </div>
+                          </div>
 
-                  return (
-                    <button
-                      key={`${game.kickoffISO}-${game.home}-${game.away}-row`}
-                      type="button"
-                      className={`${styles.fixtureRow} ${isActive ? styles.fixtureRowActive : ""}`}
-                      onClick={() => {
-                        setActiveIndex(idx);
-                        setUserPinnedSelection(true);
-                      }}
-                    >
-                      <div>
-                        <div className={styles.fixtureRowTitle}>
-                          Rnd {idx + 1} • {home} v {away}
-                        </div>
-                        <div className={styles.fixtureRowSub}>
-                          {formatDayDateFromSource(game.date)} • {formatTimeFromSource(game.time)} • {game.venue}
-                        </div>
-                      </div>
-
-                      <div className={styles.fixtureRowSide}>
-                        <div className={styles.fixtureMiniStatus}>
-                          <span>{isActive ? "Viewing now" : "Tap to view"}</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className={styles.hint}>No future games loaded yet.</div>
-              )}
-            </div>
+                          <div className={styles.fixtureRowSide}>
+                            <div className={styles.fixtureMiniStatus}>
+                              <span>{isActive ? "Viewing now" : "Tap to view"}</span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className={styles.hint}>No future games loaded yet.</div>
+                  )}
+                </div>
+              </div>
+            </details>
           </section>
         </div>
       </section>

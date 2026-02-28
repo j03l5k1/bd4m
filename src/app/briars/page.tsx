@@ -39,11 +39,7 @@ export default function BriarsPage() {
   const [showAllFixtureTabs, setShowAllFixtureTabs] = useState(false);
 
   const [weather, setWeather] = useState<Weather | null>(null);
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(t);
-  }, []);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   useEffect(() => {
     setPinOk(localStorage.getItem(LS_PIN_OK) === "1");
@@ -54,10 +50,48 @@ export default function BriarsPage() {
       setLoading(true);
       try {
         const res = await fetch("/api/briars-fixtures", { cache: "no-store" });
-        const json = (await res.json()) as Payload;
+        const text = await res.text();
+        let json: Payload | null = null;
+        try {
+          json = JSON.parse(text) as Payload;
+        } catch {
+          json = null;
+        }
+
+        if (!res.ok) {
+          setData({
+            ok: false,
+            team: "Briars",
+            source: "api",
+            refreshedAt: new Date().toISOString(),
+            games: [],
+            error: json?.error || `HTTP ${res.status}: ${res.statusText || "Request failed"}`,
+          });
+          return;
+        }
+
+        if (!json) {
+          setData({
+            ok: false,
+            team: "Briars",
+            source: "api",
+            refreshedAt: new Date().toISOString(),
+            games: [],
+            error: "API returned invalid JSON",
+          });
+          return;
+        }
+
         setData(json);
       } catch {
-        setData(null);
+        setData({
+          ok: false,
+          team: "Briars",
+          source: "api",
+          refreshedAt: new Date().toISOString(),
+          games: [],
+          error: "Network error calling /api/briars-fixtures",
+        });
       } finally {
         setLoading(false);
       }
@@ -108,12 +142,34 @@ export default function BriarsPage() {
   }, [gamesSorted, now]);
 
   useEffect(() => {
+    const current = Date.now();
+    const futureKickoffs = gamesSorted
+      .map((g) => new Date(g.kickoffISO).getTime())
+      .filter((ts) => Number.isFinite(ts) && ts > current)
+      .sort((a, b) => a - b);
+
+    let delayMs: number;
+    if (futureKickoffs.length) {
+      // Re-evaluate shortly after the next kickoff passes.
+      delayMs = Math.max(futureKickoffs[0] - current + 60_000, 60_000);
+    } else {
+      // No future fixtures loaded: check once per day.
+      delayMs = 24 * 60 * 60 * 1000;
+    }
+
+    const timeout = setTimeout(() => setNow(new Date()), Math.min(delayMs, 2_147_483_647));
+    return () => clearTimeout(timeout);
+  }, [gamesSorted, now]);
+
+  useEffect(() => {
     (async () => {
       if (!activeGame || !isActiveUpcoming) {
         setWeather(null);
+        setWeatherLoading(false);
         return;
       }
 
+      setWeatherLoading(true);
       try {
         const res = await fetch(
           `/api/weather/homebush?kickoffISO=${encodeURIComponent(activeGame.kickoffISO)}`,
@@ -123,6 +179,8 @@ export default function BriarsPage() {
         setWeather(json);
       } catch {
         setWeather(null);
+      } finally {
+        setWeatherLoading(false);
       }
     })();
   }, [activeGame?.kickoffISO, isActiveUpcoming]);
@@ -158,8 +216,8 @@ export default function BriarsPage() {
         upcomingGames={upcomingGames}
         showAllFixtureTabs={showAllFixtureTabs}
         setShowAllFixtureTabs={setShowAllFixtureTabs}
-        now={now}
         weather={weather}
+        weatherLoading={weatherLoading}
         isActiveUpcoming={isActiveUpcoming}
         onToast={(m) => flash(m)}
         ladder={data.ladder}

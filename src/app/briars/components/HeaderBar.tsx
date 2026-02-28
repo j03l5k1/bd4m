@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LogOut } from "lucide-react";
+import { FiCalendar, FiLogOut } from "react-icons/fi";
 import styles from "../briars.module.css";
 import type { Payload } from "../../../lib/briars/types";
 
@@ -41,7 +41,7 @@ export default function HeaderBar({
           className={`${styles.btn} ${styles.btnPrimary}`}
           onClick={onDownloadCalendar}
         >
-          <CalendarDays size={16} />
+          <FiCalendar size={16} />
           Add all to calendar
         </button>
 
@@ -51,7 +51,7 @@ export default function HeaderBar({
             className={`${styles.btn} ${styles.btnSoft}`}
             onClick={onLogout}
           >
-            <LogOut size={16} />
+            <FiLogOut size={16} />
             Log out
           </button>
         ) : null}

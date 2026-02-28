@@ -38,7 +38,9 @@ export type Weather = {
   tempC?: number;
   precipMM?: number;
   windKmh?: number;
+  weatherCode?: number;
   location?: string;
+  error?: string;
 };
 
 export type Payload = {

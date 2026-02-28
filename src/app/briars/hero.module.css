@@ -1,66 +1,75 @@
 .heroCard {
   overflow: hidden;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .topStrip {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .topBadges {
   display: flex;
+  gap: 6px;
   flex-wrap: wrap;
-  gap: 8px;
 }
 
-.navRow {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+.weatherDetails {
+  border: 1px solid #bdebd7;
+  border-radius: 999px;
+  background: #e8fbf3;
+  color: #0f5132;
+  overflow: hidden;
+}
+
+.weatherSummary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 0.72rem;
+  font-weight: 620;
 }
 
-.navBtn:first-child {
-  justify-self: start;
+.weatherSummary::-webkit-details-marker {
+  display: none;
 }
 
-.navBtn:last-child {
-  justify-self: end;
+.weatherSummaryLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.navCenter {
-  text-align: center;
+.weatherSummaryTemp {
+  font-weight: 700;
 }
 
-.roundEyebrow {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.48);
-}
-
-.roundValue {
-  font-size: 18px;
-  font-weight: 950;
-  color: #0f172a;
-  letter-spacing: -0.02em;
+.weatherBody {
+  border-top: 1px solid #bdebd7;
+  padding: 8px 10px 9px;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #14532d;
+  display: grid;
+  gap: 3px;
+  background: #f0fcf7;
 }
 
 .fixtureTabsWrap {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
 .fixtureTabs {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
   scrollbar-width: none;
+  padding-bottom: 2px;
 }
 
 .fixtureTabs::-webkit-scrollbar {
@@ -69,213 +78,233 @@
 
 .fixtureTab,
 .fixtureMore {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.88);
-  border-radius: 18px;
-  padding: 12px 14px;
-  min-width: 126px;
   flex: 0 0 auto;
+  min-width: 118px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  padding: 8px 10px;
   text-align: left;
   cursor: pointer;
-  transition:
-    border-color 0.16s ease,
-    background 0.16s ease,
-    transform 0.16s ease,
-    opacity 0.16s ease;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
 }
 
 .fixtureTab:hover,
 .fixtureMore:hover {
   transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 
 .fixtureTabActive {
-  border-color: rgba(37, 99, 235, 0.22);
-  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
+  background: #edf9f7;
+  border-color: #a9d9d3;
 }
 
 .fixtureTabTop {
   display: block;
-  font-size: 11px;
-  font-weight: 900;
+  color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(15, 23, 42, 0.5);
+  letter-spacing: 0.06em;
+  font-size: 0.6rem;
+  font-weight: 620;
 }
 
 .fixtureTabBottom {
   display: block;
-  margin-top: 5px;
-  font-size: 14px;
-  font-weight: 900;
-  color: #0f172a;
-  line-height: 1.2;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  font-weight: 640;
+  color: var(--text);
 }
 
 .fixtureMore {
+  min-width: auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 900;
-  color: rgba(15, 23, 42, 0.75);
+  justify-content: center;
+  text-align: center;
+  font-weight: 620;
+  color: #475569;
 }
 
 .heroShowcase {
-  margin-top: 28px;
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr minmax(132px, auto) 1fr;
+  gap: 8px;
   align-items: center;
 }
 
 .teamSide {
   display: grid;
   justify-items: center;
-  gap: 14px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .teamLogoWrap {
-  width: clamp(82px, 18vw, 132px);
-  height: clamp(82px, 18vw, 132px);
-  border-radius: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(248, 250, 252, 0.96) 100%
-  );
+  width: clamp(58px, 20vw, 94px);
+  height: clamp(58px, 20vw, 94px);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8f7 100%);
   display: grid;
   place-items: center;
   overflow: hidden;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
   position: relative;
-}
-
-.teamLogoWrap[data-fallback]::after {
-  content: attr(data-fallback);
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 34px;
-  font-weight: 950;
-  color: rgba(15, 23, 42, 0.28);
+  transition: transform 0.2s ease;
 }
 
 .teamLogo {
-  width: 84%;
-  height: 84%;
+  width: 82%;
+  height: 82%;
   object-fit: contain;
 }
 
 .teamLogoFallback {
-  font-size: 34px;
-  font-weight: 950;
-  color: rgba(15, 23, 42, 0.28);
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #94a3b8;
 }
 
 .teamName {
   display: inline-flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
-  font-size: clamp(24px, 4vw, 42px);
-  line-height: 1.05;
-  font-weight: 950;
-  letter-spacing: -0.04em;
-  color: #0f172a;
+  gap: 4px;
+  color: var(--text);
+  font-size: clamp(1rem, 4.1vw, 1.42rem);
+  font-weight: 700;
+  letter-spacing: -0.016em;
   text-align: center;
+  line-height: 1.05;
+  font-family: var(--font-display);
 }
 
 .rankPill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
+  padding: 3px 6px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  background: linear-gradient(180deg, #fff4d6 0%, #ffedbf 100%);
-  border: 1px solid rgba(234, 179, 8, 0.24);
-  color: rgba(120, 53, 15, 0.95);
+  background: #fff4dc;
+  border: 1px solid #ffd7a7;
+  color: #8a4b08;
+  font-size: 0.62rem;
+  font-weight: 620;
 }
 
 .vsColumn {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%);
+  padding: 9px 7px;
   display: grid;
   justify-items: center;
-  gap: 10px;
-  min-width: 220px;
+  gap: 5px;
+}
+
+.matchupControls {
+  display: grid;
+  grid-template-columns: 36px auto 36px;
+  align-items: center;
+  gap: 6px;
+}
+
+.matchNavBtn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+}
+
+.matchNavBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.matchNavBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.matchNavBtnPrimary {
+  background: #eff6ff;
 }
 
 .vsWord {
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.22em;
-  color: rgba(15, 23, 42, 0.5);
+  color: #64748b;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.6rem;
+  font-weight: 620;
 }
 
 .vsPill {
-  min-width: 86px;
-  padding: 12px 14px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid #b8ddd8;
+  background: #edf9f7;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 650;
+  padding: 7px 10px;
+  min-width: 72px;
   text-align: center;
-  font-weight: 900;
-  color: rgba(15, 23, 42, 0.78);
 }
 
 .matchMeta {
   display: grid;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 2px;
   text-align: center;
 }
 
 .matchMetaLine {
-  font-size: 13px;
-  line-height: 1.35;
-  font-weight: 800;
-  color: rgba(15, 23, 42, 0.64);
-  letter-spacing: -0.01em;
+  font-size: 0.67rem;
+  color: #475569;
+  font-weight: 540;
+  line-height: 1.25;
 }
 
 .matchMetaSub {
-  font-size: 12px;
-  line-height: 1.35;
-  font-weight: 800;
-  color: rgba(15, 23, 42, 0.48);
+  font-size: 0.62rem;
+  color: #0f766e;
+  font-weight: 560;
 }
 
 .heroSection {
-  margin-top: 20px;
+  margin-top: 10px;
+}
+
+.collapseBlock {
+  margin-top: 0;
 }
 
 .upcomingList {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .fixtureRow {
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 14px 16px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 14px;
-  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 9px 10px;
   text-align: left;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
-  transition:
-    transform 0.16s ease,
-    border-color 0.16s ease,
-    background 0.16s ease;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
 }
 
 .fixtureRow:hover {
@@ -283,112 +312,97 @@
 }
 
 .fixtureRowActive {
-  border-color: rgba(37, 99, 235, 0.22);
-  background: linear-gradient(
-    180deg,
-    rgba(239, 246, 255, 0.7) 0%,
-    #ffffff 100%
-  );
+  border-color: #9fd3cc;
+  background: #f0fbf9;
 }
 
 .fixtureRowTitle {
-  font-size: 16px;
-  font-weight: 900;
-  color: #0f172a;
-  letter-spacing: -0.01em;
+  font-size: 0.82rem;
+  color: var(--text);
+  font-weight: 650;
 }
 
 .fixtureRowSub {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 800;
-  color: rgba(15, 23, 42, 0.56);
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 540;
 }
 
 .fixtureRowSide {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  justify-content: flex-start;
 }
 
 .fixtureMiniStatus {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: right;
-  font-size: 12px;
-  font-weight: 850;
-  color: rgba(15, 23, 42, 0.58);
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 560;
 }
 
 .hint {
-  margin-top: 10px;
-  font-size: 12px;
-  font-weight: 800;
-  color: rgba(15, 23, 42, 0.52);
+  font-size: 0.8rem;
+  color: #64748b;
 }
 
-@media (max-width: 860px) {
-  .navRow {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .navBtn:first-child,
-  .navBtn:last-child {
-    justify-self: center;
-    width: 100%;
-    max-width: 260px;
-  }
-
+@media (min-width: 760px) {
   .heroShowcase {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: 1fr minmax(250px, auto) 1fr;
+    gap: 16px;
   }
 
-  .vsColumn {
-    min-width: 0;
-    order: 2;
-  }
-
-  .matchMeta {
-    max-width: 320px;
-  }
-
-  .fixtureRow {
-    grid-template-columns: 1fr;
-  }
-
-  .fixtureRowSide {
-    align-items: flex-start;
-  }
-
-  .fixtureMiniStatus {
-    text-align: left;
-  }
-}
-
-@media (max-width: 640px) {
-  .topBadges {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .topBadges :global(span) {
-    width: 100%;
+  .teamLogoWrap {
+    width: clamp(72px, 9vw, 108px);
+    height: clamp(72px, 9vw, 108px);
   }
 
   .teamName {
-    font-size: 34px;
+    font-size: clamp(1.24rem, 2.2vw, 1.95rem);
+  }
+
+  .vsColumn {
+    padding: 12px;
+  }
+
+  .matchupControls {
+    grid-template-columns: 42px auto 42px;
+    gap: 8px;
+  }
+
+  .matchNavBtn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .vsPill {
+    font-size: 0.86rem;
+    min-width: 94px;
+    padding: 9px 12px;
   }
 
   .matchMetaLine {
-    font-size: 12px;
+    font-size: 0.76rem;
   }
 
   .matchMetaSub {
-    font-size: 11px;
+    font-size: 0.72rem;
+  }
+
+  .fixtureRow {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .fixtureRowSide {
+    justify-content: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fixtureTab,
+  .fixtureMore,
+  .matchNavBtn,
+  .fixtureRow,
+  .teamLogoWrap {
+    transition: none;
   }
 }

@@ -11,10 +11,26 @@
 .topBadges {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 1px;
+}
+
+.topBadges::-webkit-scrollbar {
+  display: none;
+}
+
+.topBadges :global(.pill) {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  padding: 6px 8px;
+  gap: 5px;
 }
 
 .weatherDetails {
+  flex: 0 0 auto;
   border: 1px solid #bdebd7;
   border-radius: 999px;
   background: #e8fbf3;
@@ -27,10 +43,11 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  font-size: 0.72rem;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 0.68rem;
   font-weight: 620;
+  white-space: nowrap;
 }
 
 .weatherSummary::-webkit-details-marker {
@@ -129,10 +146,10 @@
 }
 
 .heroShowcase {
-  margin-top: 12px;
+  margin-top: 10px;
   display: grid;
   grid-template-columns: 1fr minmax(132px, auto) 1fr;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
@@ -144,8 +161,8 @@
 }
 
 .teamLogoWrap {
-  width: clamp(58px, 20vw, 94px);
-  height: clamp(58px, 20vw, 94px);
+  width: clamp(54px, 18vw, 88px);
+  height: clamp(54px, 18vw, 88px);
   border-radius: 16px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, #ffffff 0%, #f3f8f7 100%);
@@ -175,7 +192,7 @@
   justify-content: center;
   gap: 4px;
   color: var(--text);
-  font-size: clamp(1rem, 4.1vw, 1.42rem);
+  font-size: clamp(0.95rem, 3.9vw, 1.34rem);
   font-weight: 700;
   letter-spacing: -0.016em;
   text-align: center;
@@ -200,7 +217,7 @@
   border: 1px solid var(--line);
   border-radius: 14px;
   background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%);
-  padding: 9px 7px;
+  padding: 8px 6px;
   display: grid;
   justify-items: center;
   gap: 5px;
@@ -208,14 +225,14 @@
 
 .matchupControls {
   display: grid;
-  grid-template-columns: 36px auto 36px;
+  grid-template-columns: 34px auto 34px;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .matchNavBtn {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border: 1px solid #93c5fd;
   border-radius: 999px;
   display: inline-flex;
@@ -254,10 +271,10 @@
   border: 1px solid #b8ddd8;
   background: #edf9f7;
   color: #0f766e;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 650;
-  padding: 7px 10px;
-  min-width: 72px;
+  padding: 6px 9px;
+  min-width: 66px;
   text-align: center;
 }
 
@@ -268,14 +285,14 @@
 }
 
 .matchMetaLine {
-  font-size: 0.67rem;
+  font-size: 0.64rem;
   color: #475569;
   font-weight: 540;
   line-height: 1.25;
 }
 
 .matchMetaSub {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   color: #0f766e;
   font-weight: 560;
 }
@@ -291,6 +308,18 @@
 .upcomingList {
   display: grid;
   gap: 8px;
+}
+
+.upcomingMoreBtn {
+  width: 100%;
+  border: 1px dashed #b8ddd8;
+  border-radius: 11px;
+  background: #f7fcfb;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 630;
+  padding: 8px 10px;
+  cursor: pointer;
 }
 
 .fixtureRow {
@@ -394,6 +423,56 @@
 
   .fixtureRowSide {
     justify-content: flex-end;
+  }
+}
+
+@media (max-width: 430px) {
+  .heroShowcase {
+    grid-template-columns: 1fr minmax(120px, auto) 1fr;
+    gap: 4px;
+  }
+
+  .teamLogoWrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+
+  .teamName {
+    font-size: 0.88rem;
+  }
+
+  .rankPill {
+    padding: 2px 5px;
+    font-size: 0.58rem;
+  }
+
+  .vsColumn {
+    padding: 7px 5px;
+    border-radius: 12px;
+  }
+
+  .matchupControls {
+    grid-template-columns: 30px auto 30px;
+  }
+
+  .matchNavBtn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .vsPill {
+    min-width: 58px;
+    font-size: 0.64rem;
+    padding: 5px 8px;
+  }
+
+  .matchMetaLine {
+    font-size: 0.6rem;
+  }
+
+  .matchMetaSub {
+    font-size: 0.56rem;
   }
 }
 

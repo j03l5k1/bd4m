@@ -40,9 +40,82 @@
   overflow: hidden;
 }
 
+.previewList {
+  display: grid;
+  gap: 0;
+}
+
+.previewRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #ebf1f0;
+}
+
+.previewRowBriars {
+  background: #effaf8;
+}
+
+.previewPos {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.previewTeam {
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 640;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewMeta,
+.previewPts {
+  color: #64748b;
+  font-size: 0.67rem;
+  font-weight: 560;
+  white-space: nowrap;
+}
+
+.previewPts {
+  color: #0f766e;
+  font-weight: 670;
+}
+
+.tableDetails {
+  border-top: 1px solid var(--line);
+}
+
+.tableSummary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 12px;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 640;
+}
+
+.tableSummary::-webkit-details-marker {
+  display: none;
+}
+
+.tableSummary::after {
+  content: " +";
+  color: #64748b;
+}
+
+.tableDetails[open] .tableSummary::after {
+  content: " -";
+}
+
 .ladderWrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-top: 1px solid #e7efed;
 }
 
 .ladder {
@@ -98,9 +171,25 @@
   background: #f7fcfb;
 }
 
+@media (max-width: 430px) {
+  .previewRow {
+    grid-template-columns: auto 1fr auto auto;
+    row-gap: 4px;
+  }
+
+  .previewMeta:nth-child(4),
+  .previewMeta:nth-child(5) {
+    display: none;
+  }
+}
+
 @media (min-width: 760px) {
   .sectionHead {
     grid-template-columns: 1fr auto;
     align-items: center;
+  }
+
+  .previewRow {
+    grid-template-columns: auto 1fr auto auto auto auto;
   }
 }

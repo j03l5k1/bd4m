@@ -121,10 +121,10 @@ function lastMeetings(allGames: Game[], teamA: string, teamB: string) {
       (a, b) =>
         new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime()
     )
-    .slice(0, 3);
+    .slice(0, 4);
 }
 
-function MetricRow({
+function QuickMetric({
   label,
   a,
   b,
@@ -136,17 +136,16 @@ function MetricRow({
   const pct = clampPct(Math.max(a, 0), Math.max(b, 0));
 
   return (
-    <div className={styles.h2hCompareRow}>
-      <div className={styles.h2hCompareBar}>
-        <div className={styles.h2hCompareTrack} />
-        <div className={styles.h2hCompareFillA} style={{ width: `${pct.a}%` }} />
-        <div className={styles.h2hCompareFillB} style={{ width: `${pct.b}%` }} />
+    <div className={styles.metricRow}>
+      <div className={styles.metricTrack}>
+        <div className={styles.metricFillA} style={{ width: `${pct.a}%` }} />
+        <div className={styles.metricFillB} style={{ width: `${pct.b}%` }} />
       </div>
 
-      <div className={styles.h2hCompareRowInner}>
-        <div className={styles.h2hCompareValA}>{a}</div>
-        <div className={styles.h2hCompareLabel}>{label}</div>
-        <div className={styles.h2hCompareValB}>{b}</div>
+      <div className={styles.metricInner}>
+        <span className={styles.metricValue}>{a}</span>
+        <span className={styles.metricLabel}>{label}</span>
+        <span className={styles.metricValueRight}>{b}</span>
       </div>
     </div>
   );
@@ -172,108 +171,50 @@ export default function HeadToHead({
     <section className={ui.section}>
       <h2 className={ui.sectionTitle}>Head to head</h2>
 
-      <div className={styles.h2hCard} style={{ marginTop: 10 }}>
-        <div className={styles.h2hCompare}>
-          <div className={styles.h2hCompareHeader}>
-            <div className={styles.h2hCompareTeam}>{teamA}</div>
-            <div className={styles.h2hCompareVs}>VS</div>
-            <div className={styles.h2hCompareTeamRight}>{teamB}</div>
-          </div>
-
-          <div className={styles.h2hCompareRows}>
-            <MetricRow label="Played" a={seasonA.played} b={seasonB.played} />
-            <MetricRow label="Wins" a={seasonA.wins} b={seasonB.wins} />
-            <MetricRow label="Draws" a={seasonA.draws} b={seasonB.draws} />
-            <MetricRow label="Losses" a={seasonA.losses} b={seasonB.losses} />
-            <MetricRow label="Goals For" a={seasonA.gf} b={seasonB.gf} />
-            <MetricRow label="Goals Against" a={seasonA.ga} b={seasonB.ga} />
-            <MetricRow label="Goal Diff" a={seasonA.gd} b={seasonB.gd} />
-            <MetricRow label="Points" a={seasonA.points} b={seasonB.points} />
-          </div>
+      <div className={styles.h2hCard}>
+        <div className={styles.h2hHeader}>
+          <span className={styles.h2hTeam}>{teamA}</span>
+          <span className={styles.h2hVs}>VS</span>
+          <span className={styles.h2hTeamRight}>{teamB}</span>
         </div>
 
-        <div className={styles.h2hSubSection}>
-          <div className={styles.h2hSubTitle}>This matchup</div>
-
-          {h2h.played > 0 ? (
-            <div className={styles.h2hInfographic}>
-              <div className={styles.h2hInfoRow}>
-                <div className={styles.h2hBarTrack}>
-                  <div
-                    className={styles.h2hBarFillA}
-                    style={{ width: `${clampPct(h2h.aWins, h2h.bWins).a}%` }}
-                  />
-                  <div
-                    className={styles.h2hBarFillB}
-                    style={{ width: `${clampPct(h2h.aWins, h2h.bWins).b}%` }}
-                  />
-                </div>
-
-                <div className={styles.h2hInfoOverlay}>
-                  <div className={styles.h2hInfoVal}>{h2h.aWins}</div>
-                  <div className={styles.h2hInfoLabel}>Wins</div>
-                  <div className={styles.h2hInfoVal}>{h2h.bWins}</div>
-                </div>
-              </div>
-
-              <div className={styles.h2hInfoRow}>
-                <div className={styles.h2hBarTrack}>
-                  <div
-                    className={styles.h2hBarFillA}
-                    style={{ width: `${clampPct(h2h.aGF, h2h.bGF).a}%` }}
-                  />
-                  <div
-                    className={styles.h2hBarFillB}
-                    style={{ width: `${clampPct(h2h.aGF, h2h.bGF).b}%` }}
-                  />
-                </div>
-
-                <div className={styles.h2hInfoOverlay}>
-                  <div className={styles.h2hInfoVal}>{h2h.aGF}</div>
-                  <div className={styles.h2hInfoLabel}>Goals For</div>
-                  <div className={styles.h2hInfoVal}>{h2h.bGF}</div>
-                </div>
-              </div>
-
-              <div className={styles.h2hInfoRow}>
-                <div className={styles.h2hBarTrack} />
-                <div className={styles.h2hInfoOverlay}>
-                  <div className={styles.h2hInfoVal}>{h2h.played}</div>
-                  <div className={styles.h2hInfoLabel}>Meetings</div>
-                  <div className={styles.h2hInfoVal}>{h2h.draws}</div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className={styles.h2hEmpty}>
-              No completed head-to-head results yet. Season totals above are still based on all completed league games.
-            </div>
-          )}
+        <div className={styles.quickRows}>
+          <QuickMetric label="W" a={seasonA.wins} b={seasonB.wins} />
+          <QuickMetric label="GF" a={seasonA.gf} b={seasonB.gf} />
+          <QuickMetric label="GA" a={seasonA.ga} b={seasonB.ga} />
+          <QuickMetric label="Pts" a={seasonA.points} b={seasonB.points} />
         </div>
 
-        {recent.length ? (
-          <div className={styles.h2hSubSection}>
-            <div className={styles.h2hSubTitle}>Last meetings</div>
+        <div className={styles.h2hMetaStrip}>
+          <span className={styles.h2hMetaPill}>Meetings {h2h.played}</span>
+          <span className={styles.h2hMetaPill}>{teamA} {h2h.aWins}W</span>
+          <span className={styles.h2hMetaPill}>{teamB} {h2h.bWins}W</span>
+          <span className={styles.h2hMetaPill}>Draws {h2h.draws}</span>
+        </div>
 
-            <div className={styles.h2hLastList}>
-              {recent.map((g) => (
-                <div
-                  key={`${g.kickoffISO}-${g.home}-${g.away}-h2h`}
-                  className={styles.h2hLastRow}
-                >
-                  <div className={styles.h2hLastTeams}>
-                    <div className={styles.h2hLastTeam}>{g.home}</div>
-                    <div className={styles.h2hLastScore}>{g.score}</div>
-                    <div className={styles.h2hLastTeam}>{g.away}</div>
+        <details className={styles.historyDetails}>
+          <summary className={styles.historySummary}>Last meetings</summary>
+          <div className={styles.historyBody}>
+            {recent.length ? (
+              <div className={styles.h2hLastList}>
+                {recent.map((g) => (
+                  <div key={`${g.kickoffISO}-${g.home}-${g.away}`} className={styles.h2hLastRow}>
+                    <div className={styles.h2hLastTeams}>
+                      <span className={styles.h2hLastTeam}>{g.home}</span>
+                      <span className={styles.h2hLastScore}>{g.score}</span>
+                      <span className={styles.h2hLastTeam}>{g.away}</span>
+                    </div>
+                    <div className={styles.h2hLastMeta}>
+                      {g.date} • {g.time}
+                    </div>
                   </div>
-                  <div className={styles.h2hLastMeta}>
-                    {g.date} • {g.time} • {g.venue}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.h2hEmpty}>No completed meetings yet.</div>
+            )}
           </div>
-        ) : null}
+        </details>
       </div>
     </section>
   );

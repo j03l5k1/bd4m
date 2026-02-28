@@ -52,6 +52,11 @@ export default function LadderTable({
     });
   }, [ladder]);
 
+  const rankedRows = useMemo(
+    () => [...normalizedRows].sort((a, b) => a.position - b.position),
+    [normalizedRows]
+  );
+
   const sortedRows = useMemo(() => {
     const rows = [...normalizedRows];
 
@@ -72,12 +77,17 @@ export default function LadderTable({
     return rows;
   }, [normalizedRows, sort]);
 
-  const briarsRow = sortedRows.find((r) =>
-    r.team.toLowerCase().includes("briars")
-  );
+  const briarsRow = rankedRows.find((r) => r.team.toLowerCase().includes("briars"));
 
   const briarsPts = briarsRow ? safeNum(briarsRow.cols[8]) : null;
   const briarsPlayed = briarsRow ? safeNum(briarsRow.cols[1]) : null;
+
+  const previewRows = useMemo(() => {
+    const top = rankedRows.slice(0, 4);
+    if (!briarsRow) return top;
+    if (top.some((row) => row.team === briarsRow.team)) return top;
+    return [...top, briarsRow];
+  }, [rankedRows, briarsRow]);
 
   function applySort(nextKey: SortState["key"]) {
     setSort((prev) => {
@@ -121,56 +131,78 @@ export default function LadderTable({
       </div>
 
       <div className={styles.ladderCard}>
-        <div className={styles.ladderWrap}>
-          <table className={styles.ladder}>
-            <thead>
-              <tr>
-                <th className={styles.ladderTh}>
-                  <button
-                    type="button"
-                    className={styles.sortBtn}
-                    onClick={() => applySort("position")}
-                  >
-                    <span>#</span>
-                    <SortIndicator isActive={sort.key === "position"} direction={sort.direction} />
-                  </button>
-                </th>
-                {EXPECTED_HEADERS.map((h, idx) => (
-                  <th key={h} className={styles.ladderTh}>
+        <div className={styles.previewList}>
+          {previewRows.map((row) => {
+            const isBriars = row.team.toLowerCase().includes("briars");
+            return (
+              <div
+                key={`preview-${row.team}-${row.position}`}
+                className={`${styles.previewRow} ${isBriars ? styles.previewRowBriars : ""}`}
+              >
+                <span className={styles.previewPos}>#{row.position}</span>
+                <span className={styles.previewTeam}>{row.team}</span>
+                <span className={styles.previewMeta}>P {row.cols[1]}</span>
+                <span className={styles.previewMeta}>W {row.cols[2]}</span>
+                <span className={styles.previewMeta}>GD {row.cols[7]}</span>
+                <span className={styles.previewPts}>Pts {row.cols[8]}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <details className={styles.tableDetails}>
+          <summary className={styles.tableSummary}>Full ladder and sort</summary>
+          <div className={styles.ladderWrap}>
+            <table className={styles.ladder}>
+              <thead>
+                <tr>
+                  <th className={styles.ladderTh}>
                     <button
                       type="button"
                       className={styles.sortBtn}
-                      onClick={() => applySort(idx)}
+                      onClick={() => applySort("position")}
                     >
-                      <span>{h}</span>
-                      <SortIndicator isActive={sort.key === idx} direction={sort.direction} />
+                      <span>#</span>
+                      <SortIndicator isActive={sort.key === "position"} direction={sort.direction} />
                     </button>
                   </th>
-                ))}
-              </tr>
-            </thead>
+                  {EXPECTED_HEADERS.map((h, idx) => (
+                    <th key={h} className={styles.ladderTh}>
+                      <button
+                        type="button"
+                        className={styles.sortBtn}
+                        onClick={() => applySort(idx)}
+                      >
+                        <span>{h}</span>
+                        <SortIndicator isActive={sort.key === idx} direction={sort.direction} />
+                      </button>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
 
-            <tbody>
-              {sortedRows.map((row) => {
-                const isBriars = row.team.toLowerCase().includes("briars");
+              <tbody>
+                {sortedRows.map((row) => {
+                  const isBriars = row.team.toLowerCase().includes("briars");
 
-                return (
-                  <tr
-                    key={`${row.team}-${row.position}`}
-                    className={isBriars ? styles.ladderBriars : ""}
-                  >
-                    <td className={styles.ladderTd}>{row.position}</td>
-                    {row.cols.map((col, colIdx) => (
-                      <td key={`${row.team}-${colIdx}`} className={styles.ladderTd}>
-                        {col}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr
+                      key={`${row.team}-${row.position}`}
+                      className={isBriars ? styles.ladderBriars : ""}
+                    >
+                      <td className={styles.ladderTd}>{row.position}</td>
+                      {row.cols.map((col, colIdx) => (
+                        <td key={`${row.team}-${colIdx}`} className={styles.ladderTd}>
+                          {col}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </details>
       </div>
     </section>
   );

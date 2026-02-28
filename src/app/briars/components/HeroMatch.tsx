@@ -148,6 +148,7 @@ export default function HeroMatch({
   const homeMeta = getTeamMeta(activeGame.home);
   const awayMeta = getTeamMeta(activeGame.away);
   const [availabilityHint, setAvailabilityHint] = useState("Tap to expand");
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
   const roundLabel = activeGame.roundLabel?.trim() || `Round ${activeIndex + 1}`;
@@ -334,12 +335,14 @@ export default function HeroMatch({
             <details className={`${ui.details} ${styles.collapseBlock}`}>
               <summary className={ui.summary}>
                 <span>Upcoming fixtures</span>
-                <span className={ui.summaryRight}>Tap to expand</span>
+                <span className={ui.summaryRight}>
+                  {upcomingGames.length ? `${Math.min(upcomingGames.length, 2)} shown` : "Tap to expand"}
+                </span>
               </summary>
               <div className={ui.detailsBody}>
                 <div className={styles.upcomingList}>
                   {upcomingGames.length ? (
-                    upcomingGames.slice(0, 6).map((game) => {
+                    upcomingGames.slice(0, showAllUpcoming ? 6 : 2).map((game) => {
                       const isActive =
                         game.kickoffISO === activeGame.kickoffISO &&
                         game.home === activeGame.home &&
@@ -385,6 +388,16 @@ export default function HeroMatch({
                   ) : (
                     <div className={styles.hint}>No future games loaded yet.</div>
                   )}
+
+                  {upcomingGames.length > 2 ? (
+                    <button
+                      type="button"
+                      className={styles.upcomingMoreBtn}
+                      onClick={() => setShowAllUpcoming((prev) => !prev)}
+                    >
+                      {showAllUpcoming ? "Show fewer" : `View all (${Math.min(upcomingGames.length, 6)})`}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </details>

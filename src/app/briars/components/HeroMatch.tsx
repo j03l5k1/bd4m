@@ -18,7 +18,6 @@ import {
 } from "react-icons/fi";
 
 import {
-  formatDayDateFromSource,
   formatLongDateFromSource,
   formatTimeFromSource,
   parseScore,
@@ -237,32 +236,6 @@ export default function HeroMatch({
     <>
       <section className={`${ui.card} ${styles.heroCard}`}>
         <div className={ui.cardPad}>
-          <div className={styles.topStrip}>
-            <div className={styles.topBadges}>
-              <span className={`${ui.pill} ${ui.pillGold}`}>
-                {roundLabel}
-              </span>
-              <span className={`${ui.pill} ${ui.pillBlue}`}>{formatDayDateFromSource(activeGame.date)}</span>
-              <span className={ui.pill}>{formatTimeFromSource(activeGame.time)}</span>
-              {isActiveUpcoming ? (
-                <details className={styles.weatherDetails}>
-                  <summary className={styles.weatherSummary}>
-                    <span className={styles.weatherSummaryLeft}>
-                      <WeatherIcon size={14} />
-                      {weatherVisualInfo.label}
-                    </span>
-                    <span className={styles.weatherSummaryTemp}>{weatherMiniText}</span>
-                  </summary>
-                  <div className={styles.weatherBody}>
-                    <div>{weatherBadgeText}</div>
-                    <div>Location: {weather?.location || "Homebush NSW, Australia"}</div>
-                    <div>Forecast time: {weatherAt || "Match kickoff hour"}</div>
-                  </div>
-                </details>
-              ) : null}
-            </div>
-          </div>
-
           <div className={styles.fixtureTabsWrap}>
             <div className={styles.fixtureTabs}>
               {visibleTabs.map((game) => {
@@ -305,6 +278,12 @@ export default function HeroMatch({
                 </button>
               ) : null}
             </div>
+          </div>
+
+          <div className={styles.roundHeroWrap}>
+            <span className={`${ui.pill} ${ui.pillGold} ${styles.roundHeroPill}`}>
+              {roundLabel}
+            </span>
           </div>
 
           <div className={styles.heroShowcase}>
@@ -355,10 +334,20 @@ export default function HeroMatch({
                   {formatLongDateFromSource(activeGame.date)} • {formatTimeFromSource(activeGame.time)}
                 </div>
                 <div className={styles.matchMetaLine}>
-                  {activeGame.venue || "TBC"} • {roundLabel}
+                  {activeGame.venue || "TBC"}
                 </div>
                 {isActiveUpcoming ? (
-                  <div className={styles.matchMetaSub}>{weatherLoading ? "Weather loading..." : weatherSummary || "Weather unavailable"}</div>
+                  <details className={styles.matchWeatherDetails}>
+                    <summary className={styles.matchWeatherSummary}>
+                      <WeatherIcon size={13} />
+                      <span>{weatherLoading ? "Weather loading..." : `${weatherVisualInfo.label} ${weatherMiniText}`}</span>
+                    </summary>
+                    <div className={styles.matchWeatherBody}>
+                      <div>{weatherBadgeText}</div>
+                      <div>Location: {weather?.location || "Homebush NSW, Australia"}</div>
+                      <div>Forecast time: {weatherAt || "Match kickoff hour"}</div>
+                    </div>
+                  </details>
                 ) : null}
               </div>
             </div>

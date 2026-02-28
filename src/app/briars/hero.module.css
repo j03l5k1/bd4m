@@ -3,81 +3,9 @@
   margin-bottom: 14px;
 }
 
-.topStrip {
-  display: grid;
-  gap: 8px;
-}
-
-.topBadges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 1px;
-}
-
-.topBadges::-webkit-scrollbar {
-  display: none;
-}
-
-.topBadges :global(.pill) {
-  flex: 0 0 auto;
-  font-size: 0.68rem;
-  padding: 6px 8px;
-  gap: 5px;
-}
-
-.weatherDetails {
-  flex: 0 0 auto;
-  border: 1px solid #bdebd7;
-  border-radius: 999px;
-  background: #e8fbf3;
-  color: #0f5132;
-  overflow: hidden;
-}
-
-.weatherSummary {
-  list-style: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  font-size: 0.68rem;
-  font-weight: 620;
-  white-space: nowrap;
-}
-
-.weatherSummary::-webkit-details-marker {
-  display: none;
-}
-
-.weatherSummaryLeft {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.weatherSummaryTemp {
-  font-weight: 700;
-}
-
-.weatherBody {
-  border-top: 1px solid #bdebd7;
-  padding: 8px 10px 9px;
-  font-size: 0.68rem;
-  line-height: 1.35;
-  color: #14532d;
-  display: grid;
-  gap: 3px;
-  background: #f0fcf7;
-}
-
 .fixtureTabsWrap {
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--line);
 }
 
@@ -145,8 +73,20 @@
   color: #475569;
 }
 
+.roundHeroWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.roundHeroPill {
+  font-size: 0.8rem;
+  font-weight: 680;
+  padding: 8px 13px;
+}
+
 .heroShowcase {
-  margin-top: 10px;
+  margin-top: 6px;
   display: grid;
   grid-template-columns: 1fr minmax(132px, auto) 1fr;
   gap: 6px;
@@ -217,10 +157,10 @@
   border: 1px solid var(--line);
   border-radius: 14px;
   background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%);
-  padding: 8px 6px;
+  padding: 7px 6px;
   display: grid;
   justify-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .matchupControls {
@@ -280,7 +220,7 @@
 
 .matchMeta {
   display: grid;
-  gap: 2px;
+  gap: 1px;
   text-align: center;
 }
 
@@ -291,14 +231,45 @@
   line-height: 1.25;
 }
 
-.matchMetaSub {
-  font-size: 0.6rem;
-  color: #0f766e;
-  font-weight: 560;
+.matchWeatherDetails {
+  margin-top: 2px;
+  border: 1px solid #bdebd7;
+  border-radius: 999px;
+  background: #eefcf6;
+  color: #0f5132;
+  overflow: hidden;
+}
+
+.matchWeatherSummary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.62rem;
+  font-weight: 630;
+}
+
+.matchWeatherSummary::-webkit-details-marker {
+  display: none;
+}
+
+.matchWeatherBody {
+  border-top: 1px solid #bdebd7;
+  padding: 7px 8px;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: #14532d;
+  display: grid;
+  gap: 2px;
+  background: #f3fdf9;
 }
 
 .heroSection {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .collapseBlock {
@@ -520,8 +491,12 @@
     font-size: 0.76rem;
   }
 
-  .matchMetaSub {
-    font-size: 0.72rem;
+  .matchWeatherSummary {
+    font-size: 0.7rem;
+  }
+
+  .matchWeatherBody {
+    font-size: 0.68rem;
   }
 
   .fixtureRow {
@@ -539,38 +514,24 @@
 }
 
 @media (max-width: 430px) {
-  .topBadges {
-    display: grid;
-    grid-template-columns: 0.9fr 1fr 0.75fr 1.35fr;
-    gap: 6px;
-    overflow: visible;
+  .fixtureTabsWrap {
+    margin-top: 6px;
+    padding-top: 6px;
   }
 
-  .topBadges :global(.pill) {
-    width: 100%;
-    justify-content: center;
-    text-align: center;
-    padding: 6px 6px;
-    font-size: 0.66rem;
-    line-height: 1.15;
+  .roundHeroWrap {
+    margin-top: 4px;
   }
 
-  .weatherDetails {
-    width: 100%;
-  }
-
-  .weatherSummary {
-    width: 100%;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px 6px;
-    font-size: 0.66rem;
-    line-height: 1.15;
+  .roundHeroPill {
+    font-size: 0.74rem;
+    padding: 6px 11px;
   }
 
   .heroShowcase {
     grid-template-columns: 1fr minmax(120px, auto) 1fr;
-    gap: 4px;
+    gap: 3px;
+    margin-top: 4px;
   }
 
   .teamLogoWrap {
@@ -589,7 +550,7 @@
   }
 
   .vsColumn {
-    padding: 7px 5px;
+    padding: 6px 5px;
     border-radius: 12px;
   }
 
@@ -609,11 +570,17 @@
   }
 
   .matchMetaLine {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
+    line-height: 1.2;
   }
 
-  .matchMetaSub {
-    font-size: 0.56rem;
+  .matchWeatherSummary {
+    font-size: 0.58rem;
+    padding: 5px 6px;
+  }
+
+  .matchWeatherBody {
+    font-size: 0.57rem;
   }
 }
 

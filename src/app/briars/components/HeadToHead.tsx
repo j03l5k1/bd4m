@@ -3,6 +3,7 @@
 import ui from "../briars.module.css";
 import styles from "../h2h.module.css";
 import { parseScore } from "../../../lib/briars/format";
+import { getTeamMeta } from "../../../lib/briars/teamMeta";
 import type { Game } from "../../../lib/briars/types";
 
 type TeamSeasonStats = {
@@ -54,16 +55,7 @@ function calcTeamSeasonStats(allGames: Game[], teamName: string): TeamSeasonStat
     else draws += 1;
   }
 
-  return {
-    played,
-    wins,
-    draws,
-    losses,
-    gf,
-    ga,
-    gd: gf - ga,
-    points: wins * 3 + draws,
-  };
+  return { played, wins, draws, losses, gf, ga, gd: gf - ga, points: wins * 3 + draws };
 }
 
 function calcHeadToHead(allGames: Game[], teamA: string, teamB: string): H2HStats {
@@ -78,17 +70,14 @@ function calcHeadToHead(allGames: Game[], teamA: string, teamB: string): H2HStat
     const isMatchup =
       (game.home === teamA && game.away === teamB) ||
       (game.home === teamB && game.away === teamA);
-
     if (!isMatchup) continue;
 
     const score = parseScore(game.score);
     if (!score) continue;
 
     played += 1;
-
     const goalsA = game.home === teamA ? score.a : score.b;
     const goalsB = game.home === teamB ? score.a : score.b;
-
     aGF += goalsA;
     bGF += goalsB;
 
@@ -103,10 +92,7 @@ function calcHeadToHead(allGames: Game[], teamA: string, teamB: string): H2HStat
 function clampPct(a: number, b: number) {
   const total = a + b;
   if (total <= 0) return { a: 50, b: 50 };
-  return {
-    a: (a / total) * 100,
-    b: (b / total) * 100,
-  };
+  return { a: (a / total) * 100, b: (b / total) * 100 };
 }
 
 function lastMeetings(allGames: Game[], teamA: string, teamB: string) {
@@ -117,35 +103,22 @@ function lastMeetings(allGames: Game[], teamA: string, teamB: string) {
           (g.home === teamB && g.away === teamA)) &&
         !!parseScore(g.score)
     )
-    .sort(
-      (a, b) =>
-        new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime()
-    )
+    .sort((a, b) => new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime())
     .slice(0, 4);
 }
 
-function QuickMetric({
-  label,
-  a,
-  b,
-}: {
-  label: string;
-  a: number;
-  b: number;
-}) {
+function StatBar({ label, a, b }: { label: string; a: number; b: number }) {
   const pct = clampPct(Math.max(a, 0), Math.max(b, 0));
-
   return (
-    <div className={styles.metricRow}>
-      <div className={styles.metricTrack}>
-        <div className={styles.metricFillA} style={{ width: `${pct.a}%` }} />
-        <div className={styles.metricFillB} style={{ width: `${pct.b}%` }} />
+    <div className={styles.statBar}>
+      <div className={styles.statTrack}>
+        <div className={styles.statFillA} style={{ width: `${pct.a}%` }} />
+        <div className={styles.statFillB} style={{ width: `${pct.b}%` }} />
       </div>
-
-      <div className={styles.metricInner}>
-        <span className={styles.metricValue}>{a}</span>
-        <span className={styles.metricLabel}>{label}</span>
-        <span className={styles.metricValueRight}>{b}</span>
+      <div className={styles.statInner}>
+        <span className={styles.statValA}>{a}</span>
+        <span className={styles.statLabel}>{label}</span>
+        <span className={styles.statValB}>{b}</span>
       </div>
     </div>
   );
@@ -160,10 +133,11 @@ export default function HeadToHead({
 }) {
   const teamA = activeGame.home;
   const teamB = activeGame.away;
+  const metaA = getTeamMeta(teamA);
+  const metaB = getTeamMeta(teamB);
 
   const seasonA = calcTeamSeasonStats(allGames, teamA);
   const seasonB = calcTeamSeasonStats(allGames, teamB);
-
   const h2h = calcHeadToHead(allGames, teamA, teamB);
   const recent = lastMeetings(allGames, teamA, teamB);
 
@@ -173,23 +147,32 @@ export default function HeadToHead({
 
       <div className={styles.h2hCard}>
         <div className={styles.h2hHeader}>
-          <span className={styles.h2hTeam}>{teamA}</span>
-          <span className={styles.h2hVs}>VS</span>
-          <span className={styles.h2hTeamRight}>{teamB}</span>
+          <div className={styles.h2hTeamBlock}>
+            <span className={styles.h2hTeamName}>{metaA.shortName}</span>
+            <span className={styles.h2hTeamSub}>{seasonA.played}P · {seasonA.points}Pts</span>
+          </div>
+
+          <div className={styles.h2hCentre}>
+            <span className={styles.h2hCentreLabel}>H2H</span>
+            <div className={styles.h2hRecordRow}>
+              <span className={styles.h2hRecA}>{h2h.aWins}</span>
+              <span className={styles.h2hRecSep}>–</span>
+              <span className={styles.h2hRecD}>{h2h.draws}</span>
+              <span className={styles.h2hRecSep}>–</span>
+              <span className={styles.h2hRecB}>{h2h.bWins}</span>
+            </div>
+          </div>
+
+          <div className={`${styles.h2hTeamBlock} ${styles.h2hTeamBlockRight}`}>
+            <span className={`${styles.h2hTeamName} ${styles.h2hTeamNameB}`}>{metaB.shortName}</span>
+            <span className={styles.h2hTeamSub}>{seasonB.played}P · {seasonB.points}Pts</span>
+          </div>
         </div>
 
-        <div className={styles.quickRows}>
-          <QuickMetric label="W" a={seasonA.wins} b={seasonB.wins} />
-          <QuickMetric label="GF" a={seasonA.gf} b={seasonB.gf} />
-          <QuickMetric label="GA" a={seasonA.ga} b={seasonB.ga} />
-          <QuickMetric label="Pts" a={seasonA.points} b={seasonB.points} />
-        </div>
-
-        <div className={styles.h2hMetaStrip}>
-          <span className={styles.h2hMetaPill}>Meetings {h2h.played}</span>
-          <span className={styles.h2hMetaPill}>{teamA} {h2h.aWins}W</span>
-          <span className={styles.h2hMetaPill}>{teamB} {h2h.bWins}W</span>
-          <span className={styles.h2hMetaPill}>Draws {h2h.draws}</span>
+        <div className={styles.statRows}>
+          <StatBar label="Wins" a={seasonA.wins} b={seasonB.wins} />
+          <StatBar label="Goals" a={seasonA.gf} b={seasonB.gf} />
+          <StatBar label="Points" a={seasonA.points} b={seasonB.points} />
         </div>
 
         <details className={styles.historyDetails}>
@@ -197,18 +180,31 @@ export default function HeadToHead({
           <div className={styles.historyBody}>
             {recent.length ? (
               <div className={styles.h2hLastList}>
-                {recent.map((g) => (
-                  <div key={`${g.kickoffISO}-${g.home}-${g.away}`} className={styles.h2hLastRow}>
-                    <div className={styles.h2hLastTeams}>
-                      <span className={styles.h2hLastTeam}>{g.home}</span>
-                      <span className={styles.h2hLastScore}>{g.score}</span>
-                      <span className={styles.h2hLastTeam}>{g.away}</span>
+                {recent.map((g) => {
+                  const score = parseScore(g.score);
+                  const aIsHome = g.home === teamA;
+                  const aGoals = score ? (aIsHome ? score.a : score.b) : null;
+                  const bGoals = score ? (aIsHome ? score.b : score.a) : null;
+                  const homeWon = aGoals !== null && bGoals !== null && aGoals > bGoals;
+                  const awayWon = aGoals !== null && bGoals !== null && bGoals > aGoals;
+
+                  return (
+                    <div key={`${g.kickoffISO}-${g.home}-${g.away}`} className={styles.h2hLastRow}>
+                      <div className={styles.h2hLastTeams}>
+                        <span className={`${styles.h2hLastTeam} ${homeWon ? styles.h2hLastWinner : ""}`}>
+                          {getTeamMeta(g.home).shortName}
+                        </span>
+                        <span className={styles.h2hLastScore}>{g.score}</span>
+                        <span className={`${styles.h2hLastTeam} ${styles.h2hLastTeamRight} ${awayWon ? styles.h2hLastWinner : ""}`}>
+                          {getTeamMeta(g.away).shortName}
+                        </span>
+                      </div>
+                      <div className={styles.h2hLastMeta}>
+                        {g.roundLabel ? `${g.roundLabel} · ` : ""}{g.date}
+                      </div>
                     </div>
-                    <div className={styles.h2hLastMeta}>
-                      {g.date} • {g.time}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className={styles.h2hEmpty}>No completed meetings yet.</div>

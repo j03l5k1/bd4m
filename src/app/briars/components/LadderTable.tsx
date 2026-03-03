@@ -85,9 +85,6 @@ export default function LadderTable({
 
   const briarsRow = rankedRows.find((r) => r.team.toLowerCase().includes("briars"));
 
-  const briarsPts = briarsRow ? safeNum(briarsRow.cols[8]) : null;
-  const briarsPlayed = briarsRow ? safeNum(briarsRow.cols[1]) : null;
-
   const previewRows = useMemo(() => {
     const top = rankedRows.slice(0, 4);
     if (!briarsRow) return top;
@@ -120,21 +117,7 @@ export default function LadderTable({
 
   return (
     <section className={ui.section}>
-      <div className={styles.sectionHead}>
-        <h2 className={ui.sectionTitle}>Ladder</h2>
-
-        <div className={styles.tallyStrip}>
-          <span className={styles.tallyPill}>Teams {ladder.rows.length}</span>
-
-          {briarsPlayed !== null ? (
-            <span className={styles.tallyPill}>Briars P {briarsPlayed}</span>
-          ) : null}
-
-          {briarsPts !== null ? (
-            <span className={styles.tallyPillStrong}>Briars Pts {briarsPts}</span>
-          ) : null}
-        </div>
-      </div>
+      <h2 className={ui.sectionTitle}>Ladder</h2>
 
       <div className={styles.ladderCard}>
         <div className={styles.previewList}>

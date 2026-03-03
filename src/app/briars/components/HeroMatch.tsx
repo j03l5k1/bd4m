@@ -27,7 +27,14 @@ import type { Game, LadderPayload, Weather } from "../../../lib/briars/types";
 
 function getTeamPosition(ladder: LadderPayload | undefined, teamName: string) {
   if (!ladder?.rows?.length) return null;
-  const idx = ladder.rows.findIndex((r) => r.team === teamName);
+  // Sort same way as LadderTable: points DESC, GD DESC as tiebreaker
+  // cols[8] = Pts, cols[7] = GD (from the normalised EXPECTED_HEADERS order in the API)
+  const sorted = [...ladder.rows].sort((a, b) => {
+    const ptsDiff = (Number(b.cols[8]) || 0) - (Number(a.cols[8]) || 0);
+    if (ptsDiff !== 0) return ptsDiff;
+    return (Number(b.cols[7]) || 0) - (Number(a.cols[7]) || 0);
+  });
+  const idx = sorted.findIndex((r) => r.team === teamName);
   if (idx === -1) return null;
   return idx + 1;
 }
@@ -132,8 +139,9 @@ function getFormString(results: TeamRecentResult[], length = 4) {
 }
 
 function shortRoundLabel(label: string) {
-  const m = label?.match(/\d+/);
-  return m ? `Rd ${m[0]}` : (label?.slice(0, 5) || "?");
+  if (!label?.trim()) return "–";
+  const m = label.match(/\d+/);
+  return m ? `Rd ${m[0]}` : "–";
 }
 
 function TeamLogo({

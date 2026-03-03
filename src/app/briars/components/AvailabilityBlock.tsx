@@ -65,6 +65,18 @@ function mergeCounts(a?: Partial<Counts>, b?: Partial<Counts>): Counts {
   };
 }
 
+async function fetchMyStatusFromAPI(sourceKey: string, playerName: string) {
+  try {
+    const res = await fetch(
+      `/api/availability/my-status?source_key=${encodeURIComponent(sourceKey)}&playerName=${encodeURIComponent(playerName)}`,
+      { cache: "no-store" }
+    );
+    const json = await res.json();
+    if (json?.ok) return (json.status ?? null) as "yes" | "maybe" | "no" | null;
+  } catch {}
+  return undefined;
+}
+
 async function fetchSummary(sourceKey: string) {
   try {
     const res = await fetch(
@@ -133,31 +145,46 @@ export default function AvailabilityBlock({
     setPlayerName(localStorage.getItem(LS_PLAYER_NAME) || "");
   }, []);
 
+  // Fast: fetch my status directly + summary counts (no need to load all names first)
   useEffect(() => {
     (async () => {
-      const [stableCounts, legacyCounts, stableNames, legacyNames] =
-        await Promise.all([
-          fetchSummary(key),
-          legacyKey !== key ? fetchSummary(legacyKey) : Promise.resolve(undefined),
-          fetchNames(key),
-          legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
-        ]);
+      const name = playerName.trim();
+      const [stableCounts, legacyCounts, statusResult] = await Promise.all([
+        fetchSummary(key),
+        legacyKey !== key ? fetchSummary(legacyKey) : Promise.resolve(undefined),
+        name.length >= 2 ? fetchMyStatusFromAPI(key, name) : Promise.resolve(undefined),
+      ]);
+
+      setCounts(mergeCounts(stableCounts, legacyCounts));
+      if (statusResult !== undefined) setMyStatus(statusResult ?? undefined);
+    })();
+  }, [key, legacyKey, playerName]);
+
+  // Slower: load all names for squad view (runs after fast path)
+  useEffect(() => {
+    (async () => {
+      const [stableNames, legacyNames] = await Promise.all([
+        fetchNames(key),
+        legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
+      ]);
 
       const mergedNames = mergeNames(stableNames, legacyNames);
-      const mergedCounts =
-        mergedNames.yes.length ||
-        mergedNames.maybe.length ||
-        mergedNames.no.length
-          ? {
-              yes: mergedNames.yes.length,
-              maybe: mergedNames.maybe.length,
-              no: mergedNames.no.length,
-            }
-          : mergeCounts(stableCounts, legacyCounts);
-
       setNames(mergedNames);
-      setCounts(mergedCounts);
-      setMyStatus(statusFromNames(mergedNames, playerName));
+
+      if (mergedNames.yes.length || mergedNames.maybe.length || mergedNames.no.length) {
+        setCounts({
+          yes: mergedNames.yes.length,
+          maybe: mergedNames.maybe.length,
+          no: mergedNames.no.length,
+        });
+      }
+
+      // Reconcile myStatus from names (catches edge cases the fast path misses)
+      const name = playerName.trim();
+      if (name.length >= 2) {
+        const derived = statusFromNames(mergedNames, name);
+        if (derived !== undefined) setMyStatus(derived);
+      }
     })();
   }, [key, legacyKey, playerName]);
 

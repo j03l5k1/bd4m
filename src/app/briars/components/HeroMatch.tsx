@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ui from "../briars.module.css";
 import styles from "../hero.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
@@ -131,6 +131,11 @@ function getFormString(results: TeamRecentResult[], length = 4) {
     .join("");
 }
 
+function shortRoundLabel(label: string) {
+  const m = label?.match(/\d+/);
+  return m ? `Rd ${m[0]}` : (label?.slice(0, 5) || "?");
+}
+
 function TeamLogo({
   name,
   className,
@@ -200,16 +205,17 @@ export default function HeroMatch({
   const awayMeta = getTeamMeta(activeGame.away);
   const [availabilityHint, setAvailabilityHint] = useState("Tap to expand");
 
+  const activeTabRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [activeIndex]);
+
   const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
   const roundLabel = activeGame.roundLabel?.trim() || `Round ${activeIndex + 1}`;
   const homeRecent = getTeamRecentResults(allGames, activeGame.home, 5);
   const awayRecent = getTeamRecentResults(allGames, activeGame.away, 5);
   const homeForm = getFormString(homeRecent, 4);
   const awayForm = getFormString(awayRecent, 4);
-  const homeRecentGF = homeRecent.reduce((sum, r) => sum + r.gf, 0);
-  const homeRecentGA = homeRecent.reduce((sum, r) => sum + r.ga, 0);
-  const awayRecentGF = awayRecent.reduce((sum, r) => sum + r.gf, 0);
-  const awayRecentGA = awayRecent.reduce((sum, r) => sum + r.ga, 0);
 
   const weatherBits = [
     typeof weather?.tempC === "number" ? `${weather.tempC}°C` : null,
@@ -253,6 +259,7 @@ export default function HeroMatch({
                 return (
                   <button
                     key={`${game.kickoffISO}-${game.home}-${game.away}`}
+                    ref={isActive ? activeTabRef : undefined}
                     type="button"
                     className={`${styles.fixtureTab} ${isActive ? styles.fixtureTabActive : ""}`}
                     onClick={() => {
@@ -289,10 +296,8 @@ export default function HeroMatch({
           <div className={styles.heroShowcase}>
             <div className={styles.teamSide}>
               <TeamLogo name={activeGame.home} />
-              <div className={styles.teamName}>
-                {homeMeta.shortName}
-                {homePos ? <span className={styles.rankPill}>({ordinal(homePos)})</span> : null}
-              </div>
+              <div className={styles.teamName}>{homeMeta.shortName}</div>
+              {homePos ? <span className={styles.rankPill}>{ordinal(homePos)}</span> : null}
             </div>
 
             <div className={styles.vsColumn}>
@@ -354,10 +359,8 @@ export default function HeroMatch({
 
             <div className={styles.teamSide}>
               <TeamLogo name={activeGame.away} />
-              <div className={styles.teamName}>
-                {awayMeta.shortName}
-                {awayPos ? <span className={styles.rankPill}>({ordinal(awayPos)})</span> : null}
-              </div>
+              <div className={styles.teamName}>{awayMeta.shortName}</div>
+              {awayPos ? <span className={styles.rankPill}>{ordinal(awayPos)}</span> : null}
             </div>
           </div>
 
@@ -396,11 +399,11 @@ export default function HeroMatch({
                       <span className={styles.formStreak}>{getStreakLabel(homeRecent)}</span>
                     </div>
                     {homeRecent.length ? (
-                      <>
-                        <div className={styles.formChipRow}>
-                          {homeRecent.map((r, idx) => (
+                      <div className={styles.formChipGrid}>
+                        {homeRecent.map((r, idx) => (
+                          <div key={`${homeMeta.shortName}-${idx}-${r.game.kickoffISO}`} className={styles.formChipCol}>
+                            <span className={styles.formChipRound}>{shortRoundLabel(r.game.roundLabel)}</span>
                             <span
-                              key={`${homeMeta.shortName}-${idx}-${r.game.kickoffISO}`}
                               className={`${styles.formChip} ${
                                 r.result === "W"
                                   ? styles.formChipWin
@@ -411,21 +414,9 @@ export default function HeroMatch({
                             >
                               {r.result}
                             </span>
-                          ))}
-                        </div>
-                        <div className={styles.formStatsRow}>
-                          <span>GF {homeRecentGF}</span>
-                          <span>GA {homeRecentGA}</span>
-                        </div>
-                        <div className={styles.formResultsList}>
-                          {homeRecent.map((r, idx) => (
-                            <div key={`${homeMeta.shortName}-game-${idx}-${r.game.kickoffISO}`} className={styles.formResultRow}>
-                              <span>vs {getTeamMeta(r.opponent).shortName}</span>
-                              <span className={styles.formResultScore}>{r.gf}-{r.ga}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className={styles.hint}>Form unavailable</div>
                     )}
@@ -437,11 +428,11 @@ export default function HeroMatch({
                       <span className={styles.formStreak}>{getStreakLabel(awayRecent)}</span>
                     </div>
                     {awayRecent.length ? (
-                      <>
-                        <div className={styles.formChipRow}>
-                          {awayRecent.map((r, idx) => (
+                      <div className={styles.formChipGrid}>
+                        {awayRecent.map((r, idx) => (
+                          <div key={`${awayMeta.shortName}-${idx}-${r.game.kickoffISO}`} className={styles.formChipCol}>
+                            <span className={styles.formChipRound}>{shortRoundLabel(r.game.roundLabel)}</span>
                             <span
-                              key={`${awayMeta.shortName}-${idx}-${r.game.kickoffISO}`}
                               className={`${styles.formChip} ${
                                 r.result === "W"
                                   ? styles.formChipWin
@@ -452,21 +443,9 @@ export default function HeroMatch({
                             >
                               {r.result}
                             </span>
-                          ))}
-                        </div>
-                        <div className={styles.formStatsRow}>
-                          <span>GF {awayRecentGF}</span>
-                          <span>GA {awayRecentGA}</span>
-                        </div>
-                        <div className={styles.formResultsList}>
-                          {awayRecent.map((r, idx) => (
-                            <div key={`${awayMeta.shortName}-game-${idx}-${r.game.kickoffISO}`} className={styles.formResultRow}>
-                              <span>vs {getTeamMeta(r.opponent).shortName}</span>
-                              <span className={styles.formResultScore}>{r.gf}-{r.ga}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className={styles.hint}>Form unavailable</div>
                     )}

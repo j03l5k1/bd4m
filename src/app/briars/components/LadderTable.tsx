@@ -52,10 +52,16 @@ export default function LadderTable({
     });
   }, [ladder]);
 
-  const rankedRows = useMemo(
-    () => [...normalizedRows].sort((a, b) => a.position - b.position),
-    [normalizedRows]
-  );
+  const rankedRows = useMemo(() => {
+    const sorted = [...normalizedRows].sort((a, b) => {
+      // Primary: points descending; tiebreaker: GD descending
+      const ptsDiff = safeNum(b.cols[8]) - safeNum(a.cols[8]);
+      if (ptsDiff !== 0) return ptsDiff;
+      return safeNum(b.cols[7]) - safeNum(a.cols[7]);
+    });
+    // Re-assign positions after re-sort
+    return sorted.map((row, idx) => ({ ...row, position: idx + 1 }));
+  }, [normalizedRows]);
 
   const sortedRows = useMemo(() => {
     const rows = [...normalizedRows];

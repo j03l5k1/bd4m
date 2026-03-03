@@ -126,11 +126,6 @@
 }
 
 .teamName {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
   color: var(--text);
   font-size: clamp(0.95rem, 3.9vw, 1.34rem);
   font-weight: 700;
@@ -144,13 +139,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 6px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: #fff4dc;
   border: 1px solid #ffd7a7;
   color: #8a4b08;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 620;
+  margin-top: 2px;
 }
 
 .vsColumn {
@@ -234,7 +230,7 @@
 .matchWeatherDetails {
   margin-top: 2px;
   border: 1px solid #bdebd7;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #eefcf6;
   color: #0f5132;
   overflow: hidden;
@@ -317,10 +313,26 @@
   font-weight: 620;
 }
 
-.formChipRow {
+.formChipGrid {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.formChipCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.formChipRound {
+  font-size: 0.58rem;
+  font-weight: 620;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .formChip {

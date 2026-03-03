@@ -17,21 +17,30 @@ export default function HeaderBar({
   onLogout: () => void;
   onDownloadCalendar: () => void;
 }) {
-  const refreshed =
-    data?.refreshedAt
-      ? new Date(data.refreshedAt).toLocaleString("en-AU", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })
-      : null;
+  const refreshed = (() => {
+    if (!data?.refreshedAt) return null;
+    const d = new Date(data.refreshedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleString("en-AU", {
+      timeZone: "Australia/Sydney",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  })();
 
   return (
     <header className={styles.header}>
       <div>
-        <h1 className={styles.h1}>Briars Fixtures</h1>
+        <h1 className={styles.h1}>
+          <span className={styles.h1Main}>Briars</span>
+          <span className={styles.h1Subhead}>Snr Masters</span>
+        </h1>
         <div className={styles.sub}>
-          {data.team} • {data.source}
-          {refreshed ? ` • Updated ${refreshed}` : ""}
+          Updated{refreshed ? `: ${refreshed}` : ": unavailable"}
         </div>
       </div>
 

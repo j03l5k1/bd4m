@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Briars Fixtures",
-  description: "Briars fixtures & results (auto-scraped)",
+  title: "Briars Snr Masters",
+  description: "Briars Snr Masters fixtures & results",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -97,6 +97,13 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: ladderErr.message }, { status: 500 });
     }
 
+    const refreshedAt =
+      (ladderRows ?? [])
+        .map((r: any) => r.as_of)
+        .filter((v: any) => typeof v === "string" && v.length > 0)
+        .sort((a: string, b: string) => new Date(b).getTime() - new Date(a).getTime())[0] ??
+      new Date().toISOString();
+
     const ladder = {
       headers: ["Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"],
       rows: (ladderRows ?? []).map((r: any) => {
@@ -122,7 +129,7 @@ export async function GET() {
       ok: true,
       team: "Briars",
       source: "supabase",
-      refreshedAt: new Date().toISOString(),
+      refreshedAt,
       games: briarsGames,
       allGames,
       ladder,

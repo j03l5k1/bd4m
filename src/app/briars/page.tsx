@@ -6,6 +6,7 @@ import styles from "./briars.module.css";
 import HeaderBar from "./components/HeaderBar";
 import HeroMatch from "./components/HeroMatch";
 import LadderTable from "./components/LadderTable";
+import RoundResults from "./components/RoundResults";
 
 import { LS_PIN_OK, LS_TEAM_PIN } from "../../lib/briars/constants";
 import { downloadICS, getNextUpcomingIndex, sortGamesByKickoffAsc } from "../../lib/briars/format";
@@ -208,14 +209,15 @@ export default function BriarsPage() {
         activeIndex={activeIndex}
         setActiveIndex={setActiveIndex}
         setUserPinnedSelection={setUserPinnedSelection}
-        showAllFixtureTabs={showAllFixtureTabs}
-        setShowAllFixtureTabs={setShowAllFixtureTabs}
         weather={weather}
         weatherLoading={weatherLoading}
         isActiveUpcoming={isActiveUpcoming}
         onToast={(m) => flash(m)}
         ladder={data.ladder}
+        nextUpcomingIndex={nextUpcomingIndex}
       />
+
+      <RoundResults allGames={data.allGames ?? gamesSorted} />
 
       <LadderTable ladder={data.ladder} />
     </div>

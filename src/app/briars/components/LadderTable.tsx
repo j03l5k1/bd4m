@@ -64,7 +64,7 @@ export default function LadderTable({
   }, [normalizedRows]);
 
   const sortedRows = useMemo(() => {
-    const rows = [...normalizedRows];
+    const rows = [...rankedRows];
 
     rows.sort((a, b) => {
       let compare = 0;
@@ -81,7 +81,7 @@ export default function LadderTable({
     });
 
     return rows;
-  }, [normalizedRows, sort]);
+  }, [rankedRows, sort]);
 
   const briarsRow = rankedRows.find((r) => r.team.toLowerCase().includes("briars"));
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ui from "../briars.module.css";
 import styles from "../hero.module.css";
 import AvailabilityBlock from "./AvailabilityBlock";
@@ -13,11 +13,13 @@ import {
   FiCloudDrizzle,
   FiCloudRain,
   FiCloudSnow,
+  FiMinus,
   FiSun,
   FiZap,
 } from "react-icons/fi";
 
 import {
+  buildRoundMap,
   formatLongDateFromSource,
   formatTimeFromSource,
   parseScore,
@@ -27,7 +29,14 @@ import type { Game, LadderPayload, Weather } from "../../../lib/briars/types";
 
 function getTeamPosition(ladder: LadderPayload | undefined, teamName: string) {
   if (!ladder?.rows?.length) return null;
-  const idx = ladder.rows.findIndex((r) => r.team === teamName);
+  // Sort same way as LadderTable: points DESC, GD DESC as tiebreaker
+  // cols[8] = Pts, cols[7] = GD (from the normalised EXPECTED_HEADERS order in the API)
+  const sorted = [...ladder.rows].sort((a, b) => {
+    const ptsDiff = (Number(b.cols[8]) || 0) - (Number(a.cols[8]) || 0);
+    if (ptsDiff !== 0) return ptsDiff;
+    return (Number(b.cols[7]) || 0) - (Number(a.cols[7]) || 0);
+  });
+  const idx = sorted.findIndex((r) => r.team === teamName);
   if (idx === -1) return null;
   return idx + 1;
 }
@@ -44,24 +53,37 @@ function weatherVisual(weather: Weather | null) {
   const code = typeof weather?.weatherCode === "number" ? weather.weatherCode : null;
   const precip = typeof weather?.precipMM === "number" ? weather.precipMM : 0;
 
-  if (code === 0) return { icon: FiSun, label: "Sunny" };
-  if (code === 1 || code === 2) return { icon: FiCloud, label: "Partly cloudy" };
-  if (code === 3 || code === 45 || code === 48) return { icon: FiCloud, label: "Cloudy" };
-  if (code === 51 || code === 53 || code === 55 || code === 56 || code === 57) {
-    return { icon: FiCloudDrizzle, label: "Drizzle" };
+  if (code === null) {
+    if (precip > 0) return { icon: FiCloudRain, label: "Rain likely" };
+    return { icon: FiMinus, label: "No forecast" };
   }
-  if (
-    code === 61 || code === 63 || code === 65 || code === 66 || code === 67 ||
-    code === 80 || code === 81 || code === 82
-  ) {
-    return { icon: FiCloudRain, label: "Rain" };
-  }
-  if (code === 71 || code === 73 || code === 75 || code === 77 || code === 85 || code === 86) {
-    return { icon: FiCloudSnow, label: "Snow" };
-  }
-  if (code === 95 || code === 96 || code === 99) return { icon: FiZap, label: "Storm" };
-  if (precip > 0) return { icon: FiCloudRain, label: "Rain" };
-  return { icon: FiCloud, label: "Cloudy" };
+
+  if (code === 0)  return { icon: FiSun,          label: "Clear skies" };
+  if (code === 1)  return { icon: FiSun,          label: "Mainly clear" };
+  if (code === 2)  return { icon: FiCloud,         label: "Partly cloudy" };
+  if (code === 3)  return { icon: FiCloud,         label: "Overcast" };
+  if (code === 45 || code === 48) return { icon: FiCloud, label: "Foggy" };
+  if (code === 51) return { icon: FiCloudDrizzle,  label: "Light drizzle" };
+  if (code === 53) return { icon: FiCloudDrizzle,  label: "Drizzle" };
+  if (code === 55) return { icon: FiCloudDrizzle,  label: "Heavy drizzle" };
+  if (code === 56 || code === 57) return { icon: FiCloudDrizzle, label: "Freezing drizzle" };
+  if (code === 61) return { icon: FiCloudRain,     label: "Light rain" };
+  if (code === 63) return { icon: FiCloudRain,     label: "Moderate rain" };
+  if (code === 65) return { icon: FiCloudRain,     label: "Heavy rain" };
+  if (code === 66 || code === 67) return { icon: FiCloudRain, label: "Freezing rain" };
+  if (code === 71) return { icon: FiCloudSnow,     label: "Light snow" };
+  if (code === 73) return { icon: FiCloudSnow,     label: "Snow" };
+  if (code === 75) return { icon: FiCloudSnow,     label: "Heavy snow" };
+  if (code === 77) return { icon: FiCloudSnow,     label: "Snow grains" };
+  if (code === 80) return { icon: FiCloudRain,     label: "Light showers" };
+  if (code === 81) return { icon: FiCloudRain,     label: "Showers" };
+  if (code === 82) return { icon: FiCloudRain,     label: "Heavy showers" };
+  if (code === 85) return { icon: FiCloudSnow,     label: "Snow showers" };
+  if (code === 86) return { icon: FiCloudSnow,     label: "Heavy snow showers" };
+  if (code === 95) return { icon: FiZap,           label: "Thunderstorm" };
+  if (code === 96) return { icon: FiZap,           label: "Storm with hail" };
+  if (code === 99) return { icon: FiZap,           label: "Violent storm" };
+  return { icon: FiMinus, label: "No forecast" };
 }
 
 function formatWeatherAt(iso?: string) {
@@ -84,9 +106,13 @@ type TeamRecentResult = {
   gf: number;
   ga: number;
   result: "W" | "L" | "D";
+  roundDisplay: string;
 };
 
+
 function getTeamRecentResults(allGames: Game[], teamName: string, limit = 5): TeamRecentResult[] {
+  const roundMap = buildRoundMap(allGames);
+
   return allGames
     .map((game) => {
       const score = parseScore(game.score);
@@ -100,8 +126,10 @@ function getTeamRecentResults(allGames: Game[], teamName: string, limit = 5): Te
       const ga = isHome ? score.b : score.a;
       const opponent = isHome ? game.away : game.home;
       const result: "W" | "L" | "D" = gf > ga ? "W" : gf < ga ? "L" : "D";
+      const rnd = roundMap.get(game.kickoffISO.slice(0, 10));
+      const roundDisplay = rnd !== undefined ? `Rd ${rnd}` : "–";
 
-      return { game, opponent, gf, ga, result };
+      return { game, opponent, gf, ga, result, roundDisplay };
     })
     .filter((item): item is TeamRecentResult => Boolean(item))
     .sort(
@@ -130,6 +158,18 @@ function getFormString(results: TeamRecentResult[], length = 4) {
     .reverse()
     .map((r) => r.result)
     .join("");
+}
+
+
+function formatCountdown(kickoffISO: string): string {
+  const diff = new Date(kickoffISO).getTime() - Date.now();
+  if (diff <= 0) return "Kickoff!";
+  const d = Math.floor(diff / 86_400_000);
+  const h = Math.floor((diff % 86_400_000) / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
 }
 
 function TeamLogo({
@@ -172,13 +212,12 @@ export default function HeroMatch({
   activeIndex,
   setActiveIndex,
   setUserPinnedSelection,
-  showAllFixtureTabs,
-  setShowAllFixtureTabs,
   weather,
   weatherLoading,
   isActiveUpcoming,
   onToast,
   ladder,
+  nextUpcomingIndex,
 }: {
   activeGame: Game;
   gamesSorted: Game[];
@@ -186,13 +225,12 @@ export default function HeroMatch({
   activeIndex: number;
   setActiveIndex: (value: number) => void;
   setUserPinnedSelection: (value: boolean) => void;
-  showAllFixtureTabs: boolean;
-  setShowAllFixtureTabs: (value: boolean) => void;
   weather: Weather | null;
   weatherLoading: boolean;
   isActiveUpcoming: boolean;
   onToast?: (msg: string) => void;
   ladder?: LadderPayload;
+  nextUpcomingIndex: number;
 }) {
   const homePos = getTeamPosition(ladder, activeGame.home);
   const awayPos = getTeamPosition(ladder, activeGame.away);
@@ -200,19 +238,28 @@ export default function HeroMatch({
   const homeMeta = getTeamMeta(activeGame.home);
   const awayMeta = getTeamMeta(activeGame.away);
   const [availabilityHint, setAvailabilityHint] = useState("Tap to expand");
+  const [countdown, setCountdown] = useState<string | null>(null);
 
-  const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
+  useEffect(() => {
+    if (!isActiveUpcoming) { setCountdown(null); return; }
+    const update = () => setCountdown(formatCountdown(activeGame.kickoffISO));
+    update();
+    const id = setInterval(update, 30_000);
+    return () => clearInterval(id);
+  }, [isActiveUpcoming, activeGame.kickoffISO]);
+
+  const activeTabRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [activeIndex]);
+
   const roundLabel = activeGame.roundLabel?.trim() || `Round ${activeIndex + 1}`;
-  const homeRecentDesc = getTeamRecentResults(allGames, activeGame.home, 5);
-  const awayRecentDesc = getTeamRecentResults(allGames, activeGame.away, 5);
-  const homeRecent = [...homeRecentDesc].reverse();
-  const awayRecent = [...awayRecentDesc].reverse();
-  const homeForm = getFormString(homeRecentDesc, 4);
-  const awayForm = getFormString(awayRecentDesc, 4);
-  const homeRecentGF = homeRecent.reduce((sum, r) => sum + r.gf, 0);
-  const homeRecentGA = homeRecent.reduce((sum, r) => sum + r.ga, 0);
-  const awayRecentGF = awayRecent.reduce((sum, r) => sum + r.gf, 0);
-  const awayRecentGA = awayRecent.reduce((sum, r) => sum + r.ga, 0);
+  const homeRecent = getTeamRecentResults(allGames, activeGame.home, 5);
+  const awayRecent = getTeamRecentResults(allGames, activeGame.away, 5);
+  const homeRecentDesc = homeRecent;
+  const awayRecentDesc = awayRecent;
+  const homeForm = getFormString(homeRecent, 4);
+  const awayForm = getFormString(awayRecent, 4);
 
   const weatherBits = [
     typeof weather?.tempC === "number" ? `${weather.tempC}°C` : null,
@@ -241,7 +288,7 @@ export default function HeroMatch({
         <div className={ui.cardPad}>
           <div className={styles.fixtureTabsWrap}>
             <div className={styles.fixtureTabs}>
-              {visibleTabs.map((game) => {
+              {gamesSorted.map((game) => {
                 const originalIndex = gamesSorted.findIndex(
                   (g) =>
                     g.kickoffISO === game.kickoffISO &&
@@ -250,20 +297,26 @@ export default function HeroMatch({
                 );
 
                 const isActive = originalIndex === activeIndex;
+                const isNext = originalIndex === nextUpcomingIndex;
+                const isPlayed = !!parseScore(game.score);
                 const home = getTeamMeta(game.home).shortName;
                 const away = getTeamMeta(game.away).shortName;
 
                 return (
                   <button
                     key={`${game.kickoffISO}-${game.home}-${game.away}`}
+                    ref={isActive ? activeTabRef : undefined}
                     type="button"
-                    className={`${styles.fixtureTab} ${isActive ? styles.fixtureTabActive : ""}`}
+                    className={`${styles.fixtureTab} ${isActive ? styles.fixtureTabActive : ""} ${!isActive && isPlayed ? styles.fixtureTabPlayed : ""}`}
                     onClick={() => {
                       setActiveIndex(originalIndex);
                       setUserPinnedSelection(true);
                     }}
                   >
-                    <span className={styles.fixtureTabTop}>Rnd {originalIndex + 1}</span>
+                    <span className={styles.fixtureTabTopRow}>
+                      <span className={styles.fixtureTabTop}>Rnd {originalIndex + 1}</span>
+                      {isNext && <span className={styles.fixtureTabNextPill}>Next game</span>}
+                    </span>
                     <span className={styles.fixtureTabBottom}>
                       {home} v {away}
                     </span>
@@ -271,15 +324,6 @@ export default function HeroMatch({
                 );
               })}
 
-              {gamesSorted.length > 6 ? (
-                <button
-                  type="button"
-                  className={styles.fixtureMore}
-                  onClick={() => setShowAllFixtureTabs(!showAllFixtureTabs)}
-                >
-                  {showAllFixtureTabs ? "Show less" : `Show all (${gamesSorted.length})`}
-                </button>
-              ) : null}
             </div>
           </div>
 
@@ -292,10 +336,8 @@ export default function HeroMatch({
           <div className={styles.heroShowcase}>
             <div className={styles.teamSide}>
               <TeamLogo name={activeGame.home} />
-              <div className={styles.teamName}>
-                {homeMeta.shortName}
-                {homePos ? <span className={styles.rankPill}>({ordinal(homePos)})</span> : null}
-              </div>
+              <div className={styles.teamName}>{homeMeta.shortName}</div>
+              {homePos ? <span className={styles.rankPill}>{ordinal(homePos)}</span> : null}
             </div>
 
             <div className={styles.vsColumn}>
@@ -339,7 +381,12 @@ export default function HeroMatch({
                 <div className={styles.matchMetaLine}>
                   {activeGame.venue || "TBC"}
                 </div>
-                {isActiveUpcoming ? (
+                {countdown ? (
+                  <div className={styles.countdownLine}>
+                    Starts in: <span className={styles.countdownValue}>{countdown}</span>
+                  </div>
+                ) : null}
+                {isActiveUpcoming && activeIndex === nextUpcomingIndex ? (
                   <details className={styles.matchWeatherDetails}>
                     <summary className={styles.matchWeatherSummary}>
                       <WeatherIcon size={13} />
@@ -357,10 +404,8 @@ export default function HeroMatch({
 
             <div className={styles.teamSide}>
               <TeamLogo name={activeGame.away} />
-              <div className={styles.teamName}>
-                {awayMeta.shortName}
-                {awayPos ? <span className={styles.rankPill}>({ordinal(awayPos)})</span> : null}
-              </div>
+              <div className={styles.teamName}>{awayMeta.shortName}</div>
+              {awayPos ? <span className={styles.rankPill}>{ordinal(awayPos)}</span> : null}
             </div>
           </div>
 
@@ -399,11 +444,12 @@ export default function HeroMatch({
                       <span className={styles.formStreak}>{getStreakLabel(homeRecentDesc)}</span>
                     </div>
                     {homeRecent.length ? (
-                      <>
-                        <div className={styles.formChipRow}>
-                          {homeRecent.map((r, idx) => (
+                      <div className={styles.formChipGrid}>
+                        {[...homeRecent].reverse().map((r, idx) => (
+                          <div key={`${homeMeta.shortName}-${idx}-${r.game.kickoffISO}`} className={styles.formChipCol}>
+                            <span className={styles.formChipRound}>{r.roundDisplay}</span>
+                            <span className={styles.formChipOpp}>vs {getTeamMeta(r.opponent).shortName}</span>
                             <span
-                              key={`${homeMeta.shortName}-${idx}-${r.game.kickoffISO}`}
                               className={`${styles.formChip} ${
                                 r.result === "W"
                                   ? styles.formChipWin
@@ -414,21 +460,10 @@ export default function HeroMatch({
                             >
                               {r.result}
                             </span>
-                          ))}
-                        </div>
-                        <div className={styles.formStatsRow}>
-                          <span>GF {homeRecentGF}</span>
-                          <span>GA {homeRecentGA}</span>
-                        </div>
-                        <div className={styles.formResultsList}>
-                          {homeRecent.map((r, idx) => (
-                            <div key={`${homeMeta.shortName}-game-${idx}-${r.game.kickoffISO}`} className={styles.formResultRow}>
-                              <span>vs {getTeamMeta(r.opponent).shortName}</span>
-                              <span className={styles.formResultScore}>{r.gf}-{r.ga}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
+                            <span className={styles.formChipScore}>{r.gf}-{r.ga}</span>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className={styles.hint}>Form unavailable</div>
                     )}
@@ -440,11 +475,12 @@ export default function HeroMatch({
                       <span className={styles.formStreak}>{getStreakLabel(awayRecentDesc)}</span>
                     </div>
                     {awayRecent.length ? (
-                      <>
-                        <div className={styles.formChipRow}>
-                          {awayRecent.map((r, idx) => (
+                      <div className={styles.formChipGrid}>
+                        {[...awayRecent].reverse().map((r, idx) => (
+                          <div key={`${awayMeta.shortName}-${idx}-${r.game.kickoffISO}`} className={styles.formChipCol}>
+                            <span className={styles.formChipRound}>{r.roundDisplay}</span>
+                            <span className={styles.formChipOpp}>vs {getTeamMeta(r.opponent).shortName}</span>
                             <span
-                              key={`${awayMeta.shortName}-${idx}-${r.game.kickoffISO}`}
                               className={`${styles.formChip} ${
                                 r.result === "W"
                                   ? styles.formChipWin
@@ -455,21 +491,10 @@ export default function HeroMatch({
                             >
                               {r.result}
                             </span>
-                          ))}
-                        </div>
-                        <div className={styles.formStatsRow}>
-                          <span>GF {awayRecentGF}</span>
-                          <span>GA {awayRecentGA}</span>
-                        </div>
-                        <div className={styles.formResultsList}>
-                          {awayRecent.map((r, idx) => (
-                            <div key={`${awayMeta.shortName}-game-${idx}-${r.game.kickoffISO}`} className={styles.formResultRow}>
-                              <span>vs {getTeamMeta(r.opponent).shortName}</span>
-                              <span className={styles.formResultScore}>{r.gf}-{r.ga}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
+                            <span className={styles.formChipScore}>{r.gf}-{r.ga}</span>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className={styles.hint}>Form unavailable</div>
                     )}

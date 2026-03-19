@@ -52,13 +52,19 @@ export default function LadderTable({
     });
   }, [ladder]);
 
-  const rankedRows = useMemo(
-    () => [...normalizedRows].sort((a, b) => a.position - b.position),
-    [normalizedRows]
-  );
+  const rankedRows = useMemo(() => {
+    const sorted = [...normalizedRows].sort((a, b) => {
+      // Primary: points descending; tiebreaker: GD descending
+      const ptsDiff = safeNum(b.cols[8]) - safeNum(a.cols[8]);
+      if (ptsDiff !== 0) return ptsDiff;
+      return safeNum(b.cols[7]) - safeNum(a.cols[7]);
+    });
+    // Re-assign positions after re-sort
+    return sorted.map((row, idx) => ({ ...row, position: idx + 1 }));
+  }, [normalizedRows]);
 
   const sortedRows = useMemo(() => {
-    const rows = [...normalizedRows];
+    const rows = [...rankedRows];
 
     rows.sort((a, b) => {
       let compare = 0;
@@ -75,12 +81,11 @@ export default function LadderTable({
     });
 
     return rows;
-  }, [normalizedRows, sort]);
+  }, [rankedRows, sort]);
 
   const briarsRow = rankedRows.find((r) => r.team.toLowerCase().includes("briars"));
 
-  const briarsPts = briarsRow ? safeNum(briarsRow.cols[8]) : null;
-  const briarsPlayed = briarsRow ? safeNum(briarsRow.cols[1]) : null;
+
 
   function applySort(nextKey: SortState["key"]) {
     setSort((prev) => {
@@ -107,21 +112,7 @@ export default function LadderTable({
 
   return (
     <section className={ui.section}>
-      <div className={styles.sectionHead}>
-        <h2 className={ui.sectionTitle}>Ladder</h2>
-
-        <div className={styles.tallyStrip}>
-          <span className={styles.tallyPill}>Teams {ladder.rows.length}</span>
-
-          {briarsPlayed !== null ? (
-            <span className={styles.tallyPill}>Briars P {briarsPlayed}</span>
-          ) : null}
-
-          {briarsPts !== null ? (
-            <span className={styles.tallyPillStrong}>Briars Pts {briarsPts}</span>
-          ) : null}
-        </div>
-      </div>
+      <h2 className={ui.sectionTitle}>Ladder</h2>
 
       <div className={styles.ladderCard}>
         <details className={styles.tableDetails} open>

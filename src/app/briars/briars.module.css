@@ -1,4 +1,8 @@
 .shell {
+  --briars-maroon: #7a0028;
+  --briars-maroon-deep: #54001b;
+  --briars-yellow: #d4a328;
+  --briars-yellow-soft: #f3cd62;
   width: min(1120px, 100%);
   margin: 0 auto;
   padding: 14px;
@@ -12,20 +16,41 @@
 
 .h1 {
   margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: clamp(1.8rem, 6vw, 2.7rem);
-  line-height: 1.02;
-  letter-spacing: -0.045em;
-  color: var(--text);
-  font-weight: 760;
-  font-family: var(--font-display);
+  line-height: 0.92;
+  letter-spacing: -0.018em;
+  color: #0f172a;
+  font-weight: 900;
+  font-family: "Arial Black", "Avenir Next Condensed", "Avenir Next", var(--font-display);
+  text-wrap: balance;
+}
+
+.h1Main {
+  color: var(--briars-maroon-deep);
+  letter-spacing: -0.022em;
+  text-transform: uppercase;
+}
+
+.h1Subhead {
+  font-size: clamp(1rem, 3.6vw, 1.68rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-weight: 840;
+  color: var(--briars-yellow);
+  text-transform: none;
 }
 
 .sub {
-  margin-top: 6px;
-  color: var(--text-soft);
-  font-size: 0.84rem;
-  line-height: 1.45;
-  font-weight: 520;
+  margin-top: 5px;
+  color: #475569;
+  font-size: 0.64rem;
+  line-height: 1.25;
+  font-weight: 540;
+  letter-spacing: 0;
 }
 
 .actions {

@@ -7,6 +7,18 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--line);
+  position: relative;
+}
+
+.fixtureTabsWrap::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 0;
+  bottom: 2px;
+  width: 48px;
+  background: linear-gradient(to right, transparent, #fff);
+  pointer-events: none;
 }
 
 .fixtureTabs {
@@ -44,6 +56,31 @@
 .fixtureTabActive {
   background: #edf9f7;
   border-color: #a9d9d3;
+}
+
+.fixtureTabPlayed {
+  opacity: 0.45;
+}
+
+.fixtureTabTopRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fixtureTabNextPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
+  font-size: 0.5rem;
+  font-weight: 680;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .fixtureTabTop {
@@ -126,11 +163,6 @@
 }
 
 .teamName {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px;
   color: var(--text);
   font-size: clamp(0.95rem, 3.9vw, 1.34rem);
   font-weight: 700;
@@ -144,13 +176,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 6px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: #fff4dc;
   border: 1px solid #ffd7a7;
   color: #8a4b08;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 620;
+  margin-top: 2px;
 }
 
 .vsColumn {
@@ -231,10 +264,21 @@
   line-height: 1.25;
 }
 
+.countdownLine {
+  font-size: 0.64rem;
+  font-weight: 540;
+  color: #475569;
+  line-height: 1.25;
+}
+
+.countdownValue {
+  color: #f87171;
+}
+
 .matchWeatherDetails {
   margin-top: 2px;
   border: 1px solid #bdebd7;
-  border-radius: 999px;
+  border-radius: 8px;
   background: #eefcf6;
   color: #0f5132;
   overflow: hidden;
@@ -317,10 +361,40 @@
   font-weight: 620;
 }
 
-.formChipRow {
+.formChipGrid {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.formChipCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.formChipRound {
+  font-size: 0.58rem;
+  font-weight: 620;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.formChipOpp {
+  font-size: 0.56rem;
+  font-weight: 560;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.formChipScore {
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
 }
 
 .formChip {

@@ -2,7 +2,27 @@
   "crons": [
     {
       "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
-      "schedule": "0 3 * * *"
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
+      "schedule": "48 8 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
+      "schedule": "36 12 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
+      "schedule": "24 16 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
+      "schedule": "12 20 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-legends/bd4m_2026_ingest_5d3c0f8e9b7a4c2d1e6f9a0b3c7d8e2f",
+      "schedule": "59 23 * * *"
     }
   ]
 }

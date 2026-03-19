@@ -98,6 +98,22 @@ export function isUpcomingGame(game: Game, now = new Date()) {
   return new Date(game.kickoffISO).getTime() >= now.getTime();
 }
 
+/** Groups game dates into rounds. Any gap ≥ 5 days between consecutive dates = new round. */
+export function buildRoundMap(allGames: Game[]): Map<string, number> {
+  const dates = [...new Set(allGames.map((g) => g.kickoffISO.slice(0, 10)))].sort();
+  const map = new Map<string, number>();
+  if (!dates.length) return map;
+  let round = 1;
+  let prevMs = new Date(dates[0]).getTime();
+  for (const date of dates) {
+    const ms = new Date(date).getTime();
+    if ((ms - prevMs) / 86_400_000 >= 5) round++;
+    map.set(date, round);
+    prevMs = ms;
+  }
+  return map;
+}
+
 export function sortGamesByKickoffAsc(games: Game[]) {
   return [...games].sort(
     (a, b) =>

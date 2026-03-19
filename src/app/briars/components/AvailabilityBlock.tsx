@@ -22,6 +22,13 @@ function normaliseName(s: string) {
   return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function capitaliseNameInput(raw: string): string {
+  return raw
+    .split(" ")
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}
+
 function truncateName(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length < 2) return name;
@@ -303,7 +310,7 @@ export default function AvailabilityBlock({
               <input
                 className={ui.input}
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={(e) => setPlayerName(capitaliseNameInput(e.target.value))}
                 placeholder="Your name"
                 autoComplete="name"
               />

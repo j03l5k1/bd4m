@@ -89,9 +89,9 @@ export default function RoundResults({ allGames }: { allGames: Game[] }) {
 
   return (
     <section className={ui.section}>
-      <details className={styles.rrCard}>
+      <details className={styles.rrCard} open>
         <summary className={styles.rrSummary}>
-          <span className={styles.rrTitle}>Round results</span>
+          <span className={styles.rrTitle}>Past round results</span>
           <div
             className={styles.rrNav}
             onClick={(e) => e.stopPropagation()}

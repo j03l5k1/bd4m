@@ -127,6 +127,7 @@ function getFormString(results: TeamRecentResult[], length = 4) {
   if (!results.length) return "Form unavailable";
   return results
     .slice(0, length)
+    .reverse()
     .map((r) => r.result)
     .join("");
 }
@@ -202,10 +203,12 @@ export default function HeroMatch({
 
   const visibleTabs = showAllFixtureTabs ? gamesSorted : gamesSorted.slice(0, 6);
   const roundLabel = activeGame.roundLabel?.trim() || `Round ${activeIndex + 1}`;
-  const homeRecent = getTeamRecentResults(allGames, activeGame.home, 5);
-  const awayRecent = getTeamRecentResults(allGames, activeGame.away, 5);
-  const homeForm = getFormString(homeRecent, 4);
-  const awayForm = getFormString(awayRecent, 4);
+  const homeRecentDesc = getTeamRecentResults(allGames, activeGame.home, 5);
+  const awayRecentDesc = getTeamRecentResults(allGames, activeGame.away, 5);
+  const homeRecent = [...homeRecentDesc].reverse();
+  const awayRecent = [...awayRecentDesc].reverse();
+  const homeForm = getFormString(homeRecentDesc, 4);
+  const awayForm = getFormString(awayRecentDesc, 4);
   const homeRecentGF = homeRecent.reduce((sum, r) => sum + r.gf, 0);
   const homeRecentGA = homeRecent.reduce((sum, r) => sum + r.ga, 0);
   const awayRecentGF = awayRecent.reduce((sum, r) => sum + r.gf, 0);
@@ -362,7 +365,7 @@ export default function HeroMatch({
           </div>
 
           <div className={styles.heroSection}>
-            <details className={`${ui.details} ${styles.collapseBlock}`}>
+            <details className={`${ui.details} ${styles.collapseBlock}`} open>
               <summary className={ui.summary}>
                 <span>Availability</span>
                 <span className={ui.summaryRight}>{availabilityHint}</span>
@@ -380,7 +383,7 @@ export default function HeroMatch({
 
         <div className={ui.cardPad}>
           <section className={ui.section}>
-            <details className={`${ui.details} ${styles.collapseBlock}`}>
+            <details className={`${ui.details} ${styles.collapseBlock}`} open>
               <summary className={ui.summary}>
                 <span>Form guide</span>
                 <span className={`${ui.summaryRight} ${styles.formSummaryRight}`}>
@@ -393,7 +396,7 @@ export default function HeroMatch({
                   <div className={styles.formTeamCard}>
                     <div className={styles.formTeamHeader}>
                       <span className={styles.formTeamName}>{homeMeta.shortName}</span>
-                      <span className={styles.formStreak}>{getStreakLabel(homeRecent)}</span>
+                      <span className={styles.formStreak}>{getStreakLabel(homeRecentDesc)}</span>
                     </div>
                     {homeRecent.length ? (
                       <>
@@ -434,7 +437,7 @@ export default function HeroMatch({
                   <div className={styles.formTeamCard}>
                     <div className={styles.formTeamHeader}>
                       <span className={styles.formTeamName}>{awayMeta.shortName}</span>
-                      <span className={styles.formStreak}>{getStreakLabel(awayRecent)}</span>
+                      <span className={styles.formStreak}>{getStreakLabel(awayRecentDesc)}</span>
                     </div>
                     {awayRecent.length ? (
                       <>

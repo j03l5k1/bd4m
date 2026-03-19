@@ -22,6 +22,12 @@ function normaliseName(s: string) {
   return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function truncateName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name;
+  return `${parts[0]} ${parts[parts.length - 1][0]}`;
+}
+
 function statusFromNames(
   names: NamesByStatus,
   playerName: string
@@ -376,7 +382,7 @@ export default function AvailabilityBlock({
         </button>
       </div>
 
-      <details className={ui.details}>
+      <details className={ui.details} open>
         <summary className={ui.summary}>
           <span>View squad status</span>
           <span className={ui.summaryRight}>
@@ -389,19 +395,19 @@ export default function AvailabilityBlock({
             <div>
               <div className={styles.nameColTitle}><FiCheckCircle /> In</div>
               <div className={styles.nameColBody}>
-                {names.yes.length ? names.yes.join(", ") : "—"}
+                {names.yes.length ? names.yes.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
               </div>
             </div>
             <div>
               <div className={styles.nameColTitle}><FiHelpCircle /> Maybe</div>
               <div className={styles.nameColBody}>
-                {names.maybe.length ? names.maybe.join(", ") : "—"}
+                {names.maybe.length ? names.maybe.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
               </div>
             </div>
             <div>
               <div className={styles.nameColTitle}><FiXCircle /> Out</div>
               <div className={styles.nameColBody}>
-                {names.no.length ? names.no.join(", ") : "—"}
+                {names.no.length ? names.no.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
               </div>
             </div>
           </div>

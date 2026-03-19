@@ -35,6 +35,14 @@
   font-weight: 620;
 }
 
+.seasonStatsLabel {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 620;
+}
+
 .quickRows {
   display: grid;
   gap: 7px;

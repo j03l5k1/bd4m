@@ -178,6 +178,7 @@ export default function HeadToHead({
           <span className={styles.h2hTeamRight}>{teamB}</span>
         </div>
 
+        <div className={styles.seasonStatsLabel}>Season stats</div>
         <div className={styles.quickRows}>
           <QuickMetric label="W" a={seasonA.wins} b={seasonB.wins} />
           <QuickMetric label="GF" a={seasonA.gf} b={seasonB.gf} />
@@ -192,7 +193,7 @@ export default function HeadToHead({
           <span className={styles.h2hMetaPill}>Draws {h2h.draws}</span>
         </div>
 
-        <details className={styles.historyDetails}>
+        <details className={styles.historyDetails} open>
           <summary className={styles.historySummary}>Last meetings</summary>
           <div className={styles.historyBody}>
             {recent.length ? (

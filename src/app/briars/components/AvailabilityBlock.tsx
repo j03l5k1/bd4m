@@ -29,10 +29,14 @@ function capitaliseNameInput(raw: string): string {
     .join(" ");
 }
 
+function cap(word: string) {
+  return word ? word[0].toUpperCase() + word.slice(1).toLowerCase() : word;
+}
+
 function truncateName(name: string): string {
   const parts = name.trim().split(/\s+/);
-  if (parts.length < 2) return name;
-  return `${parts[0]} ${parts[parts.length - 1][0]}`;
+  if (parts.length < 2) return cap(parts[0] ?? name);
+  return `${cap(parts[0])} ${cap(parts[parts.length - 1])[0]}`;
 }
 
 function statusFromNames(

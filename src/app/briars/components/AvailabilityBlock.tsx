@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FiCheckCircle, FiHelpCircle, FiUsers, FiXCircle } from "react-icons/fi";
+import { FiUsers } from "react-icons/fi";
 import ui from "../briars.module.css";
 import styles from "../availability.module.css";
 import type { Counts, Game, NamesByStatus } from "../page";
@@ -361,7 +361,7 @@ export default function AvailabilityBlock({
         <div className={styles.countsGrid} aria-label="Squad totals">
           <div className={`${styles.countCard} ${styles.countYes}`}>
             <div className={styles.countTop}>
-              <FiCheckCircle className={styles.countIcon} />
+              <span className={styles.countIcon}>✅</span>
               <span className={styles.countLabel}>In</span>
             </div>
             <div className={styles.countNum}>{counts.yes}</div>
@@ -369,7 +369,7 @@ export default function AvailabilityBlock({
 
           <div className={`${styles.countCard} ${styles.countMaybe}`}>
             <div className={styles.countTop}>
-              <FiHelpCircle className={styles.countIcon} />
+              <span className={styles.countIcon}>🤷</span>
               <span className={styles.countLabel}>Maybe</span>
             </div>
             <div className={styles.countNum}>{counts.maybe}</div>
@@ -377,7 +377,7 @@ export default function AvailabilityBlock({
 
           <div className={`${styles.countCard} ${styles.countNo}`}>
             <div className={styles.countTop}>
-              <FiXCircle className={styles.countIcon} />
+              <span className={styles.countIcon}>💩</span>
               <span className={styles.countLabel}>Out</span>
             </div>
             <div className={styles.countNum}>{counts.no}</div>
@@ -392,7 +392,7 @@ export default function AvailabilityBlock({
           onClick={() => setStatus("yes")}
           disabled={!!saving}
         >
-          <FiCheckCircle className={styles.availSegIcon} />
+          <span className={styles.availSegIcon}>✅</span>
           <span className={styles.availSegText}>I’m in</span>
           {myStatus === "yes" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
@@ -403,7 +403,7 @@ export default function AvailabilityBlock({
           onClick={() => setStatus("maybe")}
           disabled={!!saving}
         >
-          <FiHelpCircle className={styles.availSegIcon} />
+          <span className={styles.availSegIcon}>🤷</span>
           <span className={styles.availSegText}>Maybe</span>
           {myStatus === "maybe" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
@@ -414,7 +414,7 @@ export default function AvailabilityBlock({
           onClick={() => setStatus("no")}
           disabled={!!saving}
         >
-          <FiXCircle className={styles.availSegIcon} />
+          <span className={styles.availSegIcon}>💩</span>
           <span className={styles.availSegText}>Out</span>
           {myStatus === "no" ? <span className={styles.availSegTick}>Selected</span> : null}
         </button>
@@ -431,19 +431,19 @@ export default function AvailabilityBlock({
         <div className={ui.detailsBody}>
           <div className={styles.availabilityNamesGrid}>
             <div>
-              <div className={styles.nameColTitle}><FiCheckCircle /> In</div>
+              <div className={styles.nameColTitle}>✅ In</div>
               <div className={styles.nameColBody}>
                 {names.yes.length ? names.yes.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
               </div>
             </div>
             <div>
-              <div className={styles.nameColTitle}><FiHelpCircle /> Maybe</div>
+              <div className={styles.nameColTitle}>🤷 Maybe</div>
               <div className={styles.nameColBody}>
                 {names.maybe.length ? names.maybe.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
               </div>
             </div>
             <div>
-              <div className={styles.nameColTitle}><FiXCircle /> Out</div>
+              <div className={styles.nameColTitle}>💩 Out</div>
               <div className={styles.nameColBody}>
                 {names.no.length ? names.no.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
               </div>

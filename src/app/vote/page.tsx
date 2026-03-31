@@ -11,7 +11,7 @@ import {
   FiRefreshCw,
   FiUsers,
 } from "react-icons/fi";
-import { GiLaurels } from "react-icons/gi";
+import { GiOakLeaf } from "react-icons/gi";
 import { LS_PIN_OK, LS_PLAYER_NAME, LS_TEAM_PIN } from "@/lib/briars/constants";
 import {
   MOTM_CLOSE_AFTER_GAME_END_MINUTES,
@@ -372,10 +372,10 @@ export default function VotePage() {
             Back to fixtures
           </Link>
           <h1 className={styles.h1}>
-            <GiLaurels className={styles.h1Wreath} aria-hidden />
+            <GiOakLeaf className={styles.h1Wreath} aria-hidden />
             <span className={styles.h1Main}>Man of the</span>
             <span className={styles.h1Subhead}>Match</span>
-            <GiLaurels className={`${styles.h1Wreath} ${styles.h1WreathRight}`} aria-hidden />
+            <GiOakLeaf className={`${styles.h1Wreath} ${styles.h1WreathRight}`} aria-hidden />
           </h1>
           <p className={styles.sub}>
             Cast your MOTM vote and follow live standings as post-match results take shape.

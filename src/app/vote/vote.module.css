@@ -275,17 +275,16 @@
   border-top: 1px solid #f0dcc0;
 }
 
+/* Locked: whole line red. Live: whole line green. */
 .countdownBarText {
   font-size: 0.64rem;
-  color: #475569;
-  font-weight: 540;
+  color: #f87171;
+  font-weight: 580;
   line-height: 1.25;
 }
 
-/* Red time value — matches briars hero .countdownValue */
 .countdownBarTime {
-  color: #f87171;
-  font-weight: 680;
+  font-weight: 720;
 }
 
 .countdownBarLive {
@@ -294,12 +293,7 @@
 }
 
 .countdownBarLive .countdownBarText {
-  color: #0f5132;
-}
-
-.countdownBarLive .countdownBarTime {
-  color: #0f5132;
-  font-weight: 720;
+  color: #0f766e;
 }
 
 /* ── Error notice ─────────────────────────────────────────────── */

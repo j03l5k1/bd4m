@@ -69,14 +69,17 @@ function formatClock(iso: string) {
 function formatDuration(targetISO: string, nowMs: number) {
   const diff = new Date(targetISO).getTime() - nowMs;
   if (!Number.isFinite(diff)) return "timing unavailable";
-  if (diff <= 0) return "less than a minute";
+  if (diff <= 0) return "now";
 
-  const mins = Math.max(Math.round(diff / 60_000), 1);
-  if (mins < 60) return `${mins}m`;
+  const totalSecs = Math.ceil(diff / 1000);
+  const secs = totalSecs % 60;
+  const totalMins = Math.floor(totalSecs / 60);
+  const mins = totalMins % 60;
+  const hours = Math.floor(totalMins / 60);
 
-  const hours = Math.floor(mins / 60);
-  const rem = mins % 60;
-  return rem ? `${hours}h ${rem}m` : `${hours}h`;
+  if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}s`;
 }
 
 function voteWindowLabel(
@@ -221,7 +224,7 @@ export default function VotePage() {
   }, []);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
     return () => window.clearInterval(id);
   }, []);
 

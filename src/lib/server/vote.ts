@@ -139,13 +139,23 @@ export async function loadBriarsVoteGames() {
 
   if (matchErr) throw new Error(matchErr.message);
 
-  return (matches ?? [])
+  const briarsGames = (matches ?? [])
     .map((match) => mapMatchToVoteGame(match as RawMatch, teamNameByKey))
     .filter(
       (game) =>
         game.home.toLowerCase().includes(TEAM_MATCH_TEXT) ||
         game.away.toLowerCase().includes(TEAM_MATCH_TEXT)
-    );
+    )
+    .sort((a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime());
+
+  // Assign sequential "Rd N" when round_label is missing in the DB
+  let rdCounter = 0;
+  for (const game of briarsGames) {
+    rdCounter++;
+    if (!game.roundLabel) game.roundLabel = `Rd ${rdCounter}`;
+  }
+
+  return briarsGames;
 }
 
 export async function findActiveVoteGame(now = new Date()) {

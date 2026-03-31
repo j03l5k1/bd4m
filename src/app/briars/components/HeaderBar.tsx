@@ -1,6 +1,6 @@
 "use client";
 
-import { FiCalendar, FiLogOut } from "react-icons/fi";
+import { FiAward, FiCalendar, FiLogOut } from "react-icons/fi";
 import styles from "../briars.module.css";
 import type { Payload } from "../../../lib/briars/types";
 
@@ -45,6 +45,14 @@ export default function HeaderBar({
       </div>
 
       <div className={styles.actions}>
+        <a
+          href="/vote"
+          className={`${styles.btn} ${styles.btnPrimary}`}
+        >
+          <FiAward size={16} />
+          Vote MOTM
+        </a>
+
         <button
           type="button"
           className={`${styles.btn} ${styles.btnPrimary}`}

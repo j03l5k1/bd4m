@@ -5,6 +5,9 @@ export default function Home() {
       <p>
         Go to: <a href="/briars">Fixtures & Results</a>
       </p>
+      <p>
+        Vote page: <a href="/vote">Man of the Match</a>
+      </p>
     </main>
   );
 }

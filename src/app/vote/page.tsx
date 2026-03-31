@@ -11,6 +11,7 @@ import {
   FiRefreshCw,
   FiUsers,
 } from "react-icons/fi";
+import { GiLaurels } from "react-icons/gi";
 import { LS_PIN_OK, LS_PLAYER_NAME, LS_TEAM_PIN } from "@/lib/briars/constants";
 import {
   MOTM_CLOSE_AFTER_GAME_END_MINUTES,
@@ -321,7 +322,7 @@ export default function VotePage() {
     ? "Nominees are set now. Voting opens 5 minutes after full time."
     : "One vote per player. Live standings open as soon as your vote is in.";
   const voteStageLabel =
-    isVoteLocked ? "Preview" : isVoteLive ? "Vote live" : isResultsLive ? "Standings" : "MOTM";
+    isVoteLocked ? (voteGame?.roundLabel || "Preview") : isVoteLive ? "Vote live" : isResultsLive ? "Standings" : "MOTM";
   const selectedNomineeName =
     voteState?.nominees?.find((nominee) => nominee.playerId === selectedNomineeId)?.name || "";
   const standingsEntries = voteState?.seasonStats?.entries || [];
@@ -371,8 +372,10 @@ export default function VotePage() {
             Back to fixtures
           </Link>
           <h1 className={styles.h1}>
+            <GiLaurels className={styles.h1Wreath} aria-hidden />
             <span className={styles.h1Main}>Man of the</span>
             <span className={styles.h1Subhead}>Match</span>
+            <GiLaurels className={`${styles.h1Wreath} ${styles.h1WreathRight}`} aria-hidden />
           </h1>
           <p className={styles.sub}>
             Cast your MOTM vote and follow live standings as post-match results take shape.
@@ -435,10 +438,12 @@ export default function VotePage() {
                 !isVoteLocked ? styles.countdownBarLive : "",
               ].join(" ")}
             >
-              <span className={styles.countdownBarLabel}>{heroStatusHeading}</span>
-              <strong className={styles.countdownBarValue}>
-                {countdownValue || "Timing unavailable"}
-              </strong>
+              <span className={styles.countdownBarText}>
+                {heroStatusHeading}{" "}
+                <strong className={styles.countdownBarTime}>
+                  {countdownValue || "soon"}
+                </strong>
+              </span>
             </div>
           ) : null}
         </div>
@@ -825,7 +830,7 @@ export default function VotePage() {
                         ) : null}
                       </div>
                     </td>
-                    <td className={styles.statsNum}>
+                    <td className={styles.statsNumBadge}>
                       <span className={styles.motmBadge}>{entry.manOfTheMatchCount}</span>
                     </td>
                     <td className={styles.statsNum}>{entry.points}</td>

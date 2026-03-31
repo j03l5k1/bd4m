@@ -32,7 +32,7 @@
   text-decoration: none;
   font-size: 0.8rem;
   font-weight: 580;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .backLink:hover {
@@ -40,11 +40,11 @@
 }
 
 .h1 {
-  margin: 0;
+  margin: 0 0 4px;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   font-size: clamp(1.8rem, 6vw, 2.7rem);
   line-height: 0.92;
   letter-spacing: -0.018em;
@@ -67,11 +67,23 @@
   color: var(--vote-gold);
 }
 
+/* Wreath icons flanking the h1 */
+.h1Wreath {
+  color: var(--vote-gold);
+  font-size: clamp(1.4rem, 4.5vw, 2.1rem);
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.h1WreathRight {
+  transform: scaleX(-1);
+}
+
 .sub {
-  margin-top: 5px;
+  margin-top: 8px;
   color: #475569;
-  font-size: 0.64rem;
-  line-height: 1.25;
+  font-size: 0.78rem;
+  line-height: 1.45;
   font-weight: 540;
 }
 
@@ -249,31 +261,24 @@
   gap: 4px;
 }
 
-/* Countdown strip at bottom of match card */
+/* Countdown strip at bottom of match card — inline, like briars "Starts in Xh Ym" */
 .countdownBar {
-  padding: 9px 14px;
+  padding: 8px 14px;
   background: linear-gradient(180deg, #fff8ea 0%, #fffdf7 100%);
   border-top: 1px solid #f0dcc0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
-.countdownBarLabel {
-  color: #8a4b08;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.6rem;
-  font-weight: 760;
+.countdownBarText {
+  font-size: 0.64rem;
+  color: #475569;
+  font-weight: 540;
+  line-height: 1.25;
 }
 
-.countdownBarValue {
-  color: #0f172a;
-  font-size: 0.9rem;
-  font-weight: 820;
-  letter-spacing: -0.02em;
+/* Red time value — matches briars hero .countdownValue */
+.countdownBarTime {
+  color: #f87171;
+  font-weight: 680;
 }
 
 .countdownBarLive {
@@ -281,12 +286,13 @@
   border-top-color: #bdebd7;
 }
 
-.countdownBarLive .countdownBarLabel {
+.countdownBarLive .countdownBarText {
   color: #0f5132;
 }
 
-.countdownBarLive .countdownBarValue {
+.countdownBarLive .countdownBarTime {
   color: #0f5132;
+  font-weight: 720;
 }
 
 /* ── Error notice ─────────────────────────────────────────────── */
@@ -931,6 +937,14 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: 0.86rem;
+}
+
+/* motmBadge column — right-align contents, strip extra padding so badge is flush with other right-aligned cols */
+.statsNumBadge {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.86rem;
+  padding-right: 2px;
 }
 
 .motmBadge {

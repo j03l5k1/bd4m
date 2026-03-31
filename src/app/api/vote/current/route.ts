@@ -106,12 +106,14 @@ export async function POST(req: Request) {
     const eligibleVoter = eligibleViewer;
 
     if (!voter || !eligibleVoter) {
+      const results = await getVoteResults(gameId);
       return voteResponse({
         status: "not_eligible",
         nowISO,
         game,
         playerName,
         nominees: displayNominees,
+        results,
         seasonStats,
         message: "Only players marked in for this match can vote.",
       });

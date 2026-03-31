@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FiArrowLeft,
   FiAward,
@@ -212,21 +212,67 @@ export default function VotePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNomineeId, setSelectedNomineeId] = useState("");
   const [nowMs, setNowMs] = useState(Date.now());
+  const [pendingSwitch, setPendingSwitch] = useState(false);
+
+  // Refs so interval callbacks always see current values without stale closures
+  const voteStateRef = useRef<VoteState | null>(voteState);
+  const savedPlayerNameRef = useRef(savedPlayerName);
+  const savedPinRef = useRef(savedPin);
 
   useEffect(() => {
     const storedName = localStorage.getItem(LS_PLAYER_NAME) || "";
     const storedPin = localStorage.getItem(LS_TEAM_PIN) || "";
     setSavedPlayerName(storedName);
     setSavedPin(storedPin);
+    savedPlayerNameRef.current = storedName;
+    savedPinRef.current = storedPin;
     setNameInput(storedName);
     setPinInput(storedPin);
     setHydrated(true);
   }, []);
 
+  // Keep refs in sync so interval callbacks see fresh values
+  useEffect(() => { savedPlayerNameRef.current = savedPlayerName; }, [savedPlayerName]);
+  useEffect(() => { savedPinRef.current = savedPin; }, [savedPin]);
+  useEffect(() => { voteStateRef.current = voteState; }, [voteState]);
+
   useEffect(() => {
-    const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
-    return () => window.clearInterval(id);
-  }, []);
+    let pollTimer: number | null = null;
+
+    const tickId = window.setInterval(() => {
+      const now = Date.now();
+      setNowMs(now);
+
+      const state = voteStateRef.current;
+      if (!state?.game) return;
+
+      // Auto-transition: when a window boundary is crossed, refresh
+      if (state.status === "vote_locked") {
+        if (now >= new Date(state.game.voteOpensAtISO).getTime()) {
+          void refreshVoteState(savedPlayerNameRef.current, savedPinRef.current);
+        }
+      } else if (state.status === "eligible_to_vote" || state.status === "login_required" || state.status === "not_eligible") {
+        if (now >= new Date(state.game.voteClosesAtISO).getTime()) {
+          void refreshVoteState(savedPlayerNameRef.current, savedPinRef.current);
+        }
+      }
+    }, 1_000);
+
+    // 30s auto-poll while results are live (already_voted)
+    pollTimer = window.setInterval(() => {
+      const state = voteStateRef.current;
+      if (state?.status !== "already_voted" || !state.game) return;
+      const now = Date.now();
+      if (now < new Date(state.game.voteClosesAtISO).getTime()) {
+        void refreshVoteState(savedPlayerNameRef.current, savedPinRef.current);
+      }
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(tickId);
+      if (pollTimer !== null) window.clearInterval(pollTimer);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function refreshVoteState(playerName = savedPlayerName, pin = savedPin) {
     setLoading(true);
@@ -237,6 +283,7 @@ export default function VotePage() {
         pin,
       });
       setVoteState(json.vote);
+      voteStateRef.current = json.vote;
       setSelectedNomineeId("");
     } catch (e: any) {
       setError(e?.message || "Could not load the vote page.");
@@ -272,15 +319,18 @@ export default function VotePage() {
     await refreshVoteState(cleanName, cleanPin);
   }
 
-  function switchPlayer() {
+  function confirmSwitchPlayer() {
     localStorage.removeItem(LS_PLAYER_NAME);
     localStorage.removeItem(LS_TEAM_PIN);
     localStorage.removeItem(LS_PIN_OK);
     setSavedPlayerName("");
     setSavedPin("");
+    savedPlayerNameRef.current = "";
+    savedPinRef.current = "";
     setNameInput("");
     setPinInput("");
     setSelectedNomineeId("");
+    setPendingSwitch(false);
     void refreshVoteState("", "");
   }
 
@@ -494,13 +544,6 @@ export default function VotePage() {
               Tonight’s nominees are set. Voting opens 5 minutes after full time, so you can see the field early and vote fast when the window opens.
             </p>
 
-            <div className={styles.sectionReminder}>
-              <span className={styles.sectionReminderLabel}>Next unlock</span>
-              <strong className={styles.sectionReminderValue}>
-                {timerLabel || "Voting timer loading"}
-              </strong>
-            </div>
-
             <div className={styles.nomineeGrid}>
               {(voteState.nominees || []).length ? (
                 (voteState.nominees || []).map((nominee) => (
@@ -549,15 +592,6 @@ export default function VotePage() {
             <p className={styles.panelText}>
               Save your player details now so you can get straight into the vote when the window opens.
             </p>
-
-            {timerLabel ? (
-              <div className={styles.sectionReminder}>
-                <span className={styles.sectionReminderLabel}>
-                  {isVoteLocked ? "Unlock timer" : "Vote room live"}
-                </span>
-                <strong className={styles.sectionReminderValue}>{timerLabel}</strong>
-              </div>
-            ) : null}
 
             <label className={styles.fieldLabel}>Player name</label>
             <input
@@ -611,13 +645,45 @@ export default function VotePage() {
             {voteState.message || "Only players marked in for the match can vote."}
           </p>
           <div className={styles.panelActions}>
-            <button type="button" className={styles.secondaryBtn} onClick={switchPlayer}>
-              Switch player
-            </button>
-            <Link href="/briars" className={styles.primaryLink}>
-              Back to fixtures
-            </Link>
+            {pendingSwitch ? (
+              <>
+                <span style={{ fontSize: "0.84rem", color: "#475569" }}>Log out and clear saved player?</span>
+                <button type="button" className={styles.primaryBtn} onClick={confirmSwitchPlayer}>Yes, switch</button>
+                <button type="button" className={styles.secondaryBtn} onClick={() => setPendingSwitch(false)}>Cancel</button>
+              </>
+            ) : (
+              <>
+                <button type="button" className={styles.secondaryBtn} onClick={() => setPendingSwitch(true)}>
+                  Switch player
+                </button>
+                <Link href="/briars" className={styles.primaryLink}>
+                  Back to fixtures
+                </Link>
+              </>
+            )}
           </div>
+
+          {voteState.results?.entries?.length ? (
+            <div className={styles.resultsList} style={{ marginTop: 16 }}>
+              <div className={styles.panelKicker} style={{ marginBottom: 8 }}>Live standings</div>
+              {voteState.results.entries.map((entry, index) => (
+                <div key={entry.playerId} className={styles.resultRow}>
+                  <div className={styles.resultTop}>
+                    <span className={styles.resultRank}>
+                      {index === 0 ? "🏆" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                    </span>
+                    <span className={styles.resultName}>{entry.name}</span>
+                    <span className={styles.resultMeta}>
+                      {resultsLabel(entry, voteState.results?.totalVotes || 0)}
+                    </span>
+                  </div>
+                  <div className={styles.resultBarRail}>
+                    <div className={styles.resultBarFill} style={{ width: `${Math.max(entry.percentage, entry.votes ? 10 : 0)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -629,13 +695,6 @@ export default function VotePage() {
             <p className={styles.voteText}>
               Choose the player who stood out most tonight. You cast one vote per match, then the live standings unlock immediately.
             </p>
-
-            <div className={styles.sectionReminder}>
-              <span className={styles.sectionReminderLabel}>Vote window</span>
-              <strong className={styles.sectionReminderValue}>
-                {timerLabel || "Voting closes soon"}
-              </strong>
-            </div>
 
             <div className={styles.nomineeGrid}>
               {(voteState.nominees || []).map((nominee) => (
@@ -657,9 +716,17 @@ export default function VotePage() {
               >
                 {submitting ? "Submitting…" : "Lock in vote"}
               </button>
-              <button type="button" className={styles.secondaryBtn} onClick={switchPlayer}>
-                Switch player
-              </button>
+              {pendingSwitch ? (
+                <>
+                  <span style={{ fontSize: "0.84rem", color: "#475569" }}>Log out and clear saved player?</span>
+                  <button type="button" className={styles.primaryBtn} onClick={confirmSwitchPlayer}>Yes, switch</button>
+                  <button type="button" className={styles.secondaryBtn} onClick={() => setPendingSwitch(false)}>Cancel</button>
+                </>
+              ) : (
+                <button type="button" className={styles.secondaryBtn} onClick={() => setPendingSwitch(true)}>
+                  Switch player
+                </button>
+              )}
             </div>
           </section>
 
@@ -696,15 +763,10 @@ export default function VotePage() {
               </span>
               <div>
                 <div className={styles.panelKicker}>Vote received</div>
-                <h2 className={styles.voteTitle}>Nice one, {voteState.playerName}</h2>
+                <h2 className={styles.voteTitle}>
+                  {voteState.playerName ? `Nice one, ${voteState.playerName}` : "Final standings"}
+                </h2>
               </div>
-            </div>
-
-            <div className={styles.sectionReminder}>
-              <span className={styles.sectionReminderLabel}>Live room</span>
-              <strong className={styles.sectionReminderValue}>
-                {timerLabel || "Standings are live"}
-              </strong>
             </div>
 
             <p className={styles.voteText}>

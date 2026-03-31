@@ -275,15 +275,16 @@
   border-top: 1px solid #f0dcc0;
 }
 
-/* Locked: whole line red. Live: whole line green. */
+/* Label in slate-gray; only the time value gets the accent colour */
 .countdownBarText {
   font-size: 0.64rem;
-  color: #f87171;
+  color: #475569;
   font-weight: 580;
   line-height: 1.25;
 }
 
 .countdownBarTime {
+  color: #f87171;
   font-weight: 720;
 }
 
@@ -293,6 +294,10 @@
 }
 
 .countdownBarLive .countdownBarText {
+  color: #475569;
+}
+
+.countdownBarLive .countdownBarTime {
   color: #0f766e;
 }
 
@@ -1094,6 +1099,13 @@
 
   .stickyVoteBar {
     display: none;
+  }
+}
+
+/* Mobile: show "How voting works" side panel above nominees */
+@media (max-width: 759px) {
+  .gridVote .sidePanel {
+    order: -1;
   }
 }
 

@@ -9,6 +9,8 @@ import type { Counts, Game, NamesByStatus } from "../page";
 const LS_PIN_OK = "briars_pin_ok";
 const LS_PLAYER_NAME = "briars_player_name";
 const LS_TEAM_PIN = "briars_team_pin";
+const EMPTY_COUNTS: Counts = { yes: 0, maybe: 0, no: 0 };
+const EMPTY_NAMES: NamesByStatus = { yes: [], maybe: [], no: [] };
 
 function makeSourceKey(g: Game) {
   return `${g.date}|${g.time}|${g.home}|${g.away}|${g.venue}`;
@@ -82,6 +84,9 @@ function mergeCounts(a?: Partial<Counts>, b?: Partial<Counts>): Counts {
   };
 }
 
+type CountsResult = { ok: true; counts: Counts } | { ok: false };
+type NamesResult = { ok: true; names: NamesByStatus } | { ok: false };
+
 async function fetchMyStatusFromAPI(sourceKey: string, playerName: string) {
   try {
     const res = await fetch(
@@ -101,9 +106,9 @@ async function fetchSummary(sourceKey: string) {
       { cache: "no-store" }
     );
     const json = await res.json();
-    if (json?.ok) return json.counts as Counts;
+    if (json?.ok) return { ok: true, counts: json.counts as Counts } satisfies CountsResult;
   } catch {}
-  return undefined;
+  return { ok: false } satisfies CountsResult;
 }
 
 async function fetchNames(sourceKey: string) {
@@ -113,9 +118,9 @@ async function fetchNames(sourceKey: string) {
       { cache: "no-store" }
     );
     const json = await res.json();
-    if (json?.ok) return json.names as NamesByStatus;
+    if (json?.ok) return { ok: true, names: json.names as NamesByStatus } satisfies NamesResult;
   } catch {}
-  return undefined;
+  return { ok: false } satisfies NamesResult;
 }
 
 function statusLabel(s?: "yes" | "maybe" | "no") {
@@ -141,16 +146,17 @@ export default function AvailabilityBlock({
   const [pinInput, setPinInput] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [saving, setSaving] = useState<null | "yes" | "maybe" | "no">(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
-  const [counts, setCounts] = useState<Counts>({ yes: 0, maybe: 0, no: 0 });
-  const [names, setNames] = useState<NamesByStatus>({
-    yes: [],
-    maybe: [],
-    no: [],
-  });
+  const [counts, setCounts] = useState<Counts>(EMPTY_COUNTS);
+  const [names, setNames] = useState<NamesByStatus>(EMPTY_NAMES);
   const [myStatus, setMyStatus] = useState<
     "yes" | "maybe" | "no" | undefined
   >(undefined);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const [isNamesLoading, setIsNamesLoading] = useState(true);
+  const [summaryLoadFailed, setSummaryLoadFailed] = useState(false);
+  const [namesLoadFailed, setNamesLoadFailed] = useState(false);
 
   function toast(msg: string, ms = 1800) {
     onToast?.(msg);
@@ -162,64 +168,94 @@ export default function AvailabilityBlock({
     setPlayerName(localStorage.getItem(LS_PLAYER_NAME) || "");
   }, []);
 
-  // Fast: fetch my status directly + summary counts (no need to load all names first)
+  // Fast: fetch summary counts without blocking the rest of the card.
   useEffect(() => {
     let cancelled = false;
+    setIsSummaryLoading(true);
+    setSummaryLoadFailed(false);
 
     (async () => {
-      const name = playerName.trim();
-      const [stableCounts, legacyCounts, statusResult] = await Promise.all([
-        fetchSummary(key),
-        legacyKey !== key ? fetchSummary(legacyKey) : Promise.resolve(undefined),
-        name.length >= 2 ? fetchMyStatusFromAPI(key, name) : Promise.resolve(undefined),
-      ]);
+      const summary = await fetchSummary(key);
 
       if (cancelled) return;
 
-      setCounts(mergeCounts(stableCounts, legacyCounts));
+      if (summary.ok) {
+        setCounts(summary.counts);
+      } else {
+        setCounts(EMPTY_COUNTS);
+        setSummaryLoadFailed(true);
+      }
+
+      setIsSummaryLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [key, reloadTick]);
+
+  // Personal status is a small request, so keep it separate from squad loading.
+  useEffect(() => {
+    let cancelled = false;
+    const name = playerName.trim();
+    setMyStatus(undefined);
+
+    if (name.length < 2) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    (async () => {
+      const statusResult = await fetchMyStatusFromAPI(key, name);
+      if (cancelled) return;
       if (statusResult !== undefined) setMyStatus(statusResult ?? undefined);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [key, legacyKey, playerName]);
+  }, [key, playerName, reloadTick]);
 
-  // Slower: load all names for squad view (runs after fast path)
+  // Slower: load all names for squad view and keep layout stable while it arrives.
   useEffect(() => {
     let cancelled = false;
+    setIsNamesLoading(true);
+    setNamesLoadFailed(false);
+    setNames(EMPTY_NAMES);
 
     (async () => {
-      const [stableNames, legacyNames] = await Promise.all([
-        fetchNames(key),
-        legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
-      ]);
+      const namesResult = await fetchNames(key);
 
       if (cancelled) return;
 
-      const mergedNames = mergeNames(stableNames, legacyNames);
-      setNames(mergedNames);
-
-      if (mergedNames.yes.length || mergedNames.maybe.length || mergedNames.no.length) {
+      if (namesResult.ok) {
+        setNames(namesResult.names);
         setCounts({
-          yes: mergedNames.yes.length,
-          maybe: mergedNames.maybe.length,
-          no: mergedNames.no.length,
+          yes: namesResult.names.yes.length,
+          maybe: namesResult.names.maybe.length,
+          no: namesResult.names.no.length,
         });
+      } else {
+        setNames(EMPTY_NAMES);
+        setNamesLoadFailed(true);
       }
 
-      // Reconcile myStatus from names (catches edge cases the fast path misses)
-      const name = playerName.trim();
-      if (name.length >= 2) {
-        const derived = statusFromNames(mergedNames, name);
-        if (derived !== undefined) setMyStatus(derived);
-      }
+      setIsNamesLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [key, legacyKey, playerName]);
+  }, [key, reloadTick]);
+
+  useEffect(() => {
+    const name = playerName.trim();
+    if (name.length < 2) return;
+
+    const derived = statusFromNames(names, name);
+    if (derived !== undefined) setMyStatus(derived);
+  }, [names, playerName]);
 
   useEffect(() => {
     const n = playerName.trim();
@@ -296,30 +332,51 @@ export default function AvailabilityBlock({
 
       toast("Saved ✓");
       setMyStatus(status);
+      setIsNamesLoading(true);
+      setNamesLoadFailed(false);
 
-      const [stableNames, legacyNames] = await Promise.all([
-        fetchNames(key),
-        legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
-      ]);
+      const namesResult = await fetchNames(key);
 
-      const mergedNames = mergeNames(stableNames, legacyNames);
-      setNames(mergedNames);
-      setCounts({
-        yes: mergedNames.yes.length,
-        maybe: mergedNames.maybe.length,
-        no: mergedNames.no.length,
-      });
+      if (namesResult.ok) {
+        setNames(namesResult.names);
+        setCounts({
+          yes: namesResult.names.yes.length,
+          maybe: namesResult.names.maybe.length,
+          no: namesResult.names.no.length,
+        });
+      } else {
+        setNames(EMPTY_NAMES);
+        setNamesLoadFailed(true);
+        setReloadTick((value) => value + 1);
+      }
     } catch (e: any) {
       toast(e?.message || "Something went wrong", 3000);
     } finally {
+      setIsNamesLoading(false);
       setSaving(null);
     }
   }
 
+  function retrySquadLoad() {
+    setReloadTick((value) => value + 1);
+  }
+
   const responses = counts.yes + counts.maybe + counts.no;
+  const showCountLoading = isNamesLoading && (isSummaryLoading || summaryLoadFailed);
+  const squadSummaryText = showCountLoading
+    ? "Loading squad status..."
+    : namesLoadFailed && summaryLoadFailed
+      ? "Couldn’t load squad status"
+      : isNamesLoading
+        ? `${responses} response${responses === 1 ? "" : "s"} • loading names...`
+        : `${responses} response${responses === 1 ? "" : "s"}`;
 
   return (
-    <section className={styles.availabilityBox} aria-label="Availability">
+    <section
+      className={styles.availabilityBox}
+      aria-label="Availability"
+      aria-busy={isSummaryLoading || isNamesLoading}
+    >
       {!pinOk || !playerName.trim() ? (
         <div className={styles.availGate}>
           <div className={styles.availGateTitle}>Quick check-in</div>
@@ -380,7 +437,13 @@ export default function AvailabilityBlock({
               <span className={styles.countIcon}>✅</span>
               <span className={styles.countLabel}>In</span>
             </div>
-            <div className={styles.countNum}>{counts.yes}</div>
+            <div className={styles.countNum}>
+              {showCountLoading ? (
+                <span className={`${styles.countSkeleton} ${styles.skeletonLine}`} />
+              ) : (
+                counts.yes
+              )}
+            </div>
           </div>
 
           <div className={`${styles.countCard} ${styles.countMaybe}`}>
@@ -388,7 +451,13 @@ export default function AvailabilityBlock({
               <span className={styles.countIcon}>🤷</span>
               <span className={styles.countLabel}>Maybe</span>
             </div>
-            <div className={styles.countNum}>{counts.maybe}</div>
+            <div className={styles.countNum}>
+              {showCountLoading ? (
+                <span className={`${styles.countSkeleton} ${styles.skeletonLine}`} />
+              ) : (
+                counts.maybe
+              )}
+            </div>
           </div>
 
           <div className={`${styles.countCard} ${styles.countNo}`}>
@@ -396,7 +465,13 @@ export default function AvailabilityBlock({
               <span className={styles.countIcon}>💩</span>
               <span className={styles.countLabel}>Out</span>
             </div>
-            <div className={styles.countNum}>{counts.no}</div>
+            <div className={styles.countNum}>
+              {showCountLoading ? (
+                <span className={`${styles.countSkeleton} ${styles.skeletonLine}`} />
+              ) : (
+                counts.no
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -440,28 +515,74 @@ export default function AvailabilityBlock({
         <summary className={ui.summary}>
           <span>View squad status</span>
           <span className={ui.summaryRight}>
-            <FiUsers size={15} /> {responses} response{responses === 1 ? "" : "s"}
+            <FiUsers size={15} /> {squadSummaryText}
           </span>
         </summary>
 
         <div className={ui.detailsBody}>
+          {namesLoadFailed ? (
+            <div className={styles.loadStateRow}>
+              <span>Couldn’t load the ins and outs just yet.</span>
+              <button
+                type="button"
+                className={`${ui.btn} ${ui.btnSoft} ${styles.loadRetryBtn}`}
+                onClick={retrySquadLoad}
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
+
           <div className={styles.availabilityNamesGrid}>
             <div>
               <div className={styles.nameColTitle}>✅ In</div>
               <div className={styles.nameColBody}>
-                {names.yes.length ? names.yes.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
+                {isNamesLoading ? (
+                  <>
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineWide}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineMid}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineMid}`} />
+                  </>
+                ) : names.yes.length ? (
+                  names.yes.map((n, i) => <div key={i}>{truncateName(n)}</div>)
+                ) : (
+                  "—"
+                )}
               </div>
             </div>
             <div>
               <div className={styles.nameColTitle}>🤷 Maybe</div>
               <div className={styles.nameColBody}>
-                {names.maybe.length ? names.maybe.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
+                {isNamesLoading ? (
+                  <>
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineMid}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineWide}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
+                  </>
+                ) : names.maybe.length ? (
+                  names.maybe.map((n, i) => <div key={i}>{truncateName(n)}</div>)
+                ) : (
+                  "—"
+                )}
               </div>
             </div>
             <div>
               <div className={styles.nameColTitle}>💩 Out</div>
               <div className={styles.nameColBody}>
-                {names.no.length ? names.no.map((n, i) => <div key={i}>{truncateName(n)}</div>) : "—"}
+                {isNamesLoading ? (
+                  <>
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineShort}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineWide}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineMid}`} />
+                    <div className={`${styles.skeletonLine} ${styles.skeletonLineWide}`} />
+                  </>
+                ) : names.no.length ? (
+                  names.no.map((n, i) => <div key={i}>{truncateName(n)}</div>)
+                ) : (
+                  "—"
+                )}
               </div>
             </div>
           </div>

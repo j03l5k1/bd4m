@@ -187,6 +187,28 @@
   gap: 10px;
 }
 
+.loadStateRow {
+  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #f2d0d0;
+  background: #fff7f7;
+  color: #9f1239;
+  font-size: 0.76rem;
+  font-weight: 620;
+}
+
+.loadRetryBtn {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+
 .nameColTitle {
   display: inline-flex;
   align-items: center;
@@ -202,6 +224,51 @@
   line-height: 1.45;
   color: #475569;
   font-weight: 520;
+  min-height: 96px;
+}
+
+.skeletonLine {
+  display: block;
+  height: 0.84rem;
+  margin: 0 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef5f4 0%, #dfeceb 50%, #eef5f4 100%);
+  background-size: 220% 100%;
+  animation: availPulse 1.25s ease-in-out infinite;
+}
+
+.skeletonLineWide {
+  width: 82%;
+}
+
+.skeletonLineMid {
+  width: 64%;
+}
+
+.skeletonLineShort {
+  width: 48%;
+}
+
+.countSkeleton {
+  width: 2.2rem;
+  height: 1rem;
+  margin-bottom: 0;
+}
+
+@keyframes availPulse {
+  0% {
+    background-position: 100% 0;
+    opacity: 0.72;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    background-position: 0 0;
+    opacity: 0.72;
+  }
 }
 
 @media (min-width: 760px) {

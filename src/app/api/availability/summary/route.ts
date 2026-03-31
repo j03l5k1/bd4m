@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
     const { data: rows, error: rowsErr } = await sb
       .from("availability")
-      .select("status")
+      .select("status, player_id")
       .in("game_id", gameIds);
 
     if (rowsErr) {
@@ -28,11 +28,28 @@ export async function GET(req: Request) {
     }
 
     const counts = { yes: 0, no: 0, maybe: 0 };
+    const seen = {
+      yes: new Set<string>(),
+      maybe: new Set<string>(),
+      no: new Set<string>(),
+    };
 
     for (const r of rows || []) {
-      if (r.status === "yes") counts.yes++;
-      if (r.status === "no") counts.no++;
-      if (r.status === "maybe") counts.maybe++;
+      const playerId = String((r as any).player_id || "").trim();
+      if (!playerId) continue;
+
+      if (r.status === "yes" && !seen.yes.has(playerId)) {
+        seen.yes.add(playerId);
+        counts.yes++;
+      }
+      if (r.status === "no" && !seen.no.has(playerId)) {
+        seen.no.add(playerId);
+        counts.no++;
+      }
+      if (r.status === "maybe" && !seen.maybe.has(playerId)) {
+        seen.maybe.add(playerId);
+        counts.maybe++;
+      }
     }
 
     return NextResponse.json({ ok: true, counts });

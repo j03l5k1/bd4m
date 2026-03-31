@@ -34,6 +34,16 @@ function capitaliseNameInput(raw: string): string {
     .join(" ");
 }
 
+function formatShortDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-AU", {
+    timeZone: "Australia/Sydney",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 function formatLongDate(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Unknown date";
@@ -294,14 +304,6 @@ export default function VotePage() {
   }
 
   const voteGame = voteState?.game;
-  const pageTag =
-    voteState?.status === "vote_locked"
-      ? "Preview"
-      : voteState?.status === "eligible_to_vote"
-      ? "Vote open now"
-      : voteState?.status === "already_voted"
-        ? "Live results"
-        : "MOTM Hub";
   const timerLabel =
     voteGame && voteState?.status !== "no_active_vote"
       ? voteWindowLabel(voteState?.status, voteGame, nowMs)
@@ -322,7 +324,11 @@ export default function VotePage() {
     ? "Nominees are set now. Voting opens 5 minutes after full time."
     : "One vote per player. Live standings open as soon as your vote is in.";
   const voteStageLabel =
-    isVoteLocked ? (voteGame?.roundLabel || "Match") : isVoteLive ? "Vote live" : isResultsLive ? "Standings" : "MOTM";
+    isVoteLocked
+      ? (voteGame?.roundLabel || (voteGame ? formatShortDate(voteGame.kickoffISO) : "Match"))
+      : isVoteLive ? "Vote live"
+      : isResultsLive ? "Standings"
+      : "MOTM";
   const selectedNomineeName =
     voteState?.nominees?.find((nominee) => nominee.playerId === selectedNomineeId)?.name || "";
   const standingsEntries = voteState?.seasonStats?.entries || [];
@@ -367,31 +373,19 @@ export default function VotePage() {
       {/* Header — mirrors briars HeaderBar */}
       <header className={styles.header}>
         <div>
-          <Link href="/briars" className={styles.backLink}>
-            <FiArrowLeft size={14} />
-            Back to fixtures
-          </Link>
           <h1 className={styles.h1}>
             <GiLaurels className={styles.h1Wreath} aria-hidden />
             <span className={styles.h1Main}>Man of the</span>
             <span className={styles.h1Subhead}>Match</span>
             <GiLaurels className={`${styles.h1Wreath} ${styles.h1WreathRight}`} aria-hidden />
           </h1>
-          <p className={styles.sub}>
-            Cast your MOTM vote and follow live standings as post-match results take shape.
-          </p>
         </div>
 
         <div className={styles.headerActions}>
-          <span
-            className={[
-              styles.pill,
-              isVoteLive ? styles.pillGreen : isVoteLocked ? styles.pillGold : "",
-            ].join(" ")}
-          >
-            <FiAward size={12} />
-            {pageTag}
-          </span>
+          <Link href="/briars" className={styles.fixturesBtn}>
+            <FiArrowLeft size={15} />
+            Fixtures
+          </Link>
         </div>
       </header>
 
@@ -723,7 +717,9 @@ export default function VotePage() {
                   }`}
                 >
                   <div className={styles.resultTop}>
-                    <span className={styles.resultRank}>{index + 1}</span>
+                    <span className={styles.resultRank}>
+                      {index === 0 ? "🏆" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                    </span>
                     <span className={styles.resultName}>{entry.name}</span>
                     <span className={styles.resultMeta}>
                       {resultsLabel(entry, voteState.results?.totalVotes || 0)}
@@ -830,8 +826,8 @@ export default function VotePage() {
                         ) : null}
                       </div>
                     </td>
-                    <td className={styles.statsNumBadge}>
-                      <span className={styles.motmBadge}>{entry.manOfTheMatchCount}</span>
+                    <td className={styles.statsNum}>
+                      <span className={styles.motmCount}>{entry.manOfTheMatchCount}</span>
                     </td>
                     <td className={styles.statsNum}>{entry.points}</td>
                     <td className={styles.statsNum}>{entry.totalVotes}</td>

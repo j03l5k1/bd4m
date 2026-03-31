@@ -24,19 +24,26 @@
   margin: 4px 0 16px;
 }
 
-.backLink {
+/* Fixtures pill — matches briars .btn.btnPrimary exactly */
+.fixturesBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #64748b;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #b9d5d1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 620;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbfa 100%);
   text-decoration: none;
-  font-size: 0.8rem;
-  font-weight: 580;
-  margin-bottom: 12px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
-.backLink:hover {
-  color: var(--vote-maroon);
+.fixturesBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 
 .h1 {
@@ -745,15 +752,15 @@
 }
 
 .resultRank {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: #edf4f3;
   color: #4b5563;
-  font-size: 0.76rem;
+  font-size: 1rem;
   font-weight: 780;
   flex-shrink: 0;
 }
@@ -873,6 +880,13 @@
   text-align: right;
 }
 
+/* Explicitly right-align data cells to match headers */
+.statsTable td:nth-child(3),
+.statsTable td:nth-child(4),
+.statsTable td:nth-child(5) {
+  text-align: right;
+}
+
 .statsTable td {
   color: var(--text);
   font-size: 0.86rem;
@@ -939,26 +953,11 @@
   font-size: 0.86rem;
 }
 
-/* motmBadge column — right-align contents, strip extra padding so badge is flush with other right-aligned cols */
-.statsNumBadge {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.86rem;
-  padding-right: 2px;
-}
-
-.motmBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 28px;
-  padding: 3px 6px;
-  border-radius: 999px;
-  background: #fff4dc;
+/* MOTM win count — plain amber number, aligns cleanly with right-aligned header */
+.motmCount {
   color: #8a4b08;
-  border: 1px solid #ffd7a7;
-  font-size: 0.76rem;
   font-weight: 780;
+  font-variant-numeric: tabular-nums;
 }
 
 .statsEmpty {

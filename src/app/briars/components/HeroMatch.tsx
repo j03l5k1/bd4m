@@ -417,6 +417,7 @@ export default function HeroMatch({
               </summary>
               <div className={ui.detailsBody}>
                 <AvailabilityBlock
+                  key={`${activeGame.kickoffISO}-${activeGame.home}-${activeGame.away}`}
                   game={activeGame}
                   onToast={onToast}
                   onStatusHintChange={setAvailabilityHint}

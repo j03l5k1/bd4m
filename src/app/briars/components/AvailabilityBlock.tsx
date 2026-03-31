@@ -164,6 +164,8 @@ export default function AvailabilityBlock({
 
   // Fast: fetch my status directly + summary counts (no need to load all names first)
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       const name = playerName.trim();
       const [stableCounts, legacyCounts, statusResult] = await Promise.all([
@@ -172,18 +174,28 @@ export default function AvailabilityBlock({
         name.length >= 2 ? fetchMyStatusFromAPI(key, name) : Promise.resolve(undefined),
       ]);
 
+      if (cancelled) return;
+
       setCounts(mergeCounts(stableCounts, legacyCounts));
       if (statusResult !== undefined) setMyStatus(statusResult ?? undefined);
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [key, legacyKey, playerName]);
 
   // Slower: load all names for squad view (runs after fast path)
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       const [stableNames, legacyNames] = await Promise.all([
         fetchNames(key),
         legacyKey !== key ? fetchNames(legacyKey) : Promise.resolve(undefined),
       ]);
+
+      if (cancelled) return;
 
       const mergedNames = mergeNames(stableNames, legacyNames);
       setNames(mergedNames);
@@ -203,6 +215,10 @@ export default function AvailabilityBlock({
         if (derived !== undefined) setMyStatus(derived);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [key, legacyKey, playerName]);
 
   useEffect(() => {

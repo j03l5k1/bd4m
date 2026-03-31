@@ -75,6 +75,27 @@ export function getVoteWindowState(
   return "closed";
 }
 
+/** Returns the Unix ms timestamp for 6am Sydney time on the same calendar day as the given ISO string. */
+function sydney6amMs(isoString: string): number {
+  const d = new Date(isoString);
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-AU", {
+      timeZone: "Australia/Sydney",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(d)
+      .filter((p) => p.type !== "literal")
+      .map((p) => [p.type, p.value])
+  );
+  // Determine Sydney UTC offset: AEDT (Oct–Mar) = +11, AEST (Apr–Sep) = +10
+  const month = parseInt(parts.month, 10);
+  const offset = month >= 10 || month <= 3 ? 11 : 10;
+  const offsetStr = `+${String(offset).padStart(2, "0")}:00`;
+  return new Date(`${parts.year}-${parts.month}-${parts.day}T06:00:00${offsetStr}`).getTime();
+}
+
 function mapMatchToVoteGame(match: RawMatch, teamNameByKey: Map<string, string>): VoteGameSummary {
   const home = cleanInput(teamNameByKey.get(match.home_team_key) ?? match.home_team_key);
   const away = cleanInput(teamNameByKey.get(match.away_team_key) ?? match.away_team_key);
@@ -137,13 +158,34 @@ export async function findVotePageGame(now = new Date()) {
   const nowMs = now.getTime();
   const games = await loadBriarsVoteGames();
 
-  return (
-    games
-      .filter((game) => new Date(game.voteClosesAtISO).getTime() >= nowMs)
-      .sort(
-        (a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime()
-      )[0] ?? null
+  const sorted = [...games].sort(
+    (a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime()
   );
+
+  // First priority: a game whose vote window is still open or upcoming
+  const activeGame = sorted.find(
+    (game) => new Date(game.voteClosesAtISO).getTime() >= nowMs
+  );
+  if (activeGame) return activeGame;
+
+  // Second priority: the most recently closed game, shown until 6am Sydney
+  // on the morning of the next scheduled match (then it flips to that match).
+  const closedGames = sorted
+    .filter((game) => new Date(game.voteClosesAtISO).getTime() < nowMs)
+    .reverse(); // most-recent first
+
+  const lastGame = closedGames[0];
+  if (!lastGame) return null;
+
+  const nextGame = sorted.find(
+    (game) => new Date(game.kickoffISO).getTime() > new Date(lastGame.kickoffISO).getTime()
+  );
+
+  const showUntilMs = nextGame
+    ? sydney6amMs(nextGame.kickoffISO)
+    : new Date(lastGame.voteClosesAtISO).getTime() + 7 * 24 * 60 * 60 * 1000;
+
+  return nowMs < showUntilMs ? lastGame : null;
 }
 
 export async function ensureVoteGameId(game: VoteGameSummary) {

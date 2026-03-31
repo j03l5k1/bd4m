@@ -322,7 +322,7 @@ export default function VotePage() {
     ? "Nominees are set now. Voting opens 5 minutes after full time."
     : "One vote per player. Live standings open as soon as your vote is in.";
   const voteStageLabel =
-    isVoteLocked ? (voteGame?.roundLabel || "Preview") : isVoteLive ? "Vote live" : isResultsLive ? "Standings" : "MOTM";
+    isVoteLocked ? (voteGame?.roundLabel || "Match") : isVoteLive ? "Vote live" : isResultsLive ? "Standings" : "MOTM";
   const selectedNomineeName =
     voteState?.nominees?.find((nominee) => nominee.playerId === selectedNomineeId)?.name || "";
   const standingsEntries = voteState?.seasonStats?.entries || [];

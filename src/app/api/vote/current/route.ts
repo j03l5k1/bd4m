@@ -72,6 +72,24 @@ export async function POST(req: Request) {
       });
     }
 
+    // Vote window has closed — show final results to anyone who can identify themselves
+    if (windowState === "closed") {
+      const gameId = await ensureVoteGameId(game);
+      const results = await getVoteResults(gameId);
+      const myVotePlayerId =
+        viewer && canIdentifyViewer ? await getExistingVote(gameId, viewer.id) : null;
+      return voteResponse({
+        status: "already_voted",
+        nowISO,
+        game,
+        playerName: viewer?.name || playerName || undefined,
+        myVotePlayerId,
+        results,
+        seasonStats,
+        message: "Voting has closed. Final standings are below.",
+      });
+    }
+
     if (playerName.length < 2 || invalidPin(pin)) {
       return voteResponse({
         status: "login_required",

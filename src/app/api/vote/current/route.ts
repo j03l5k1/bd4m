@@ -52,6 +52,13 @@ export async function POST(req: Request) {
     }
 
     const nominees = await getEligibleVotePlayers(game);
+    const canIdentifyViewer = playerName.length >= 2 && !invalidPin(pin);
+    const viewer = canIdentifyViewer ? await findPlayerByName(playerName) : null;
+    const eligibleViewer = canIdentifyViewer ? isEligibleVoter(playerName, nominees) : null;
+    const displayNominees =
+      viewer && eligibleViewer
+        ? nominees.filter((player) => player.playerId !== eligibleViewer.playerId)
+        : nominees;
     const windowState = getVoteWindowState(game, now);
 
     if (windowState === "locked") {
@@ -59,7 +66,7 @@ export async function POST(req: Request) {
         status: "vote_locked",
         nowISO,
         game,
-        nominees,
+        nominees: displayNominees,
         seasonStats,
         message: "Voting unlocks 5 minutes after the game ends and closes 60 minutes after the match.",
       });
@@ -70,15 +77,15 @@ export async function POST(req: Request) {
         status: "login_required",
         nowISO,
         game,
-        nominees,
+        nominees: displayNominees,
         seasonStats,
         message: "Enter your saved player name and team PIN to vote.",
       });
     }
 
     const gameId = await ensureVoteGameId(game);
-    const voter = await findPlayerByName(playerName);
-    const eligibleVoter = isEligibleVoter(playerName, nominees);
+    const voter = viewer;
+    const eligibleVoter = eligibleViewer;
 
     if (!voter || !eligibleVoter) {
       return voteResponse({
@@ -86,7 +93,7 @@ export async function POST(req: Request) {
         nowISO,
         game,
         playerName,
-        nominees,
+        nominees: displayNominees,
         seasonStats,
         message: "Only players marked in for this match can vote.",
       });
@@ -107,9 +114,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const selectableNominees = nominees.filter(
-      (player) => player.playerId !== eligibleVoter.playerId
-    );
+    const selectableNominees = displayNominees;
 
     return voteResponse({
       status: selectableNominees.length ? "eligible_to_vote" : "not_eligible",

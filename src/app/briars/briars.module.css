@@ -170,6 +170,16 @@
   border-color: #b9d5d1;
 }
 
+.btnMaroon {
+  color: #fff8f2;
+  background: linear-gradient(180deg, var(--briars-maroon) 0%, var(--briars-maroon-deep) 100%);
+  border-color: #5a0a22;
+}
+
+.btnMaroon:hover {
+  box-shadow: 0 8px 20px rgba(84, 0, 27, 0.22);
+}
+
 .btnSoft {
   background: #f6faf9;
 }

@@ -17,8 +17,10 @@ import {
   MOTM_OPEN_AFTER_GAME_END_MINUTES,
   type VoteGameSummary,
 } from "@/lib/briars/vote";
+import { getTeamMeta } from "@/lib/briars/teamMeta";
 import type {
   VoteResultsEntry,
+  VoteSeasonStatsEntry,
   VoteState,
   VoteStateResponse,
 } from "@/lib/briars/vote";
@@ -84,6 +86,88 @@ function resultsLabel(entry: VoteResultsEntry, totalVotes: number) {
 
 function voteWindowCopy() {
   return `Voting opens ${MOTM_OPEN_AFTER_GAME_END_MINUTES} minutes after end of game and closes ${MOTM_CLOSE_AFTER_GAME_END_MINUTES} minutes after match.`;
+}
+
+function initialsForName(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || "P";
+}
+
+type NomineeCardProps = {
+  name: string;
+  locked?: boolean;
+  selected?: boolean;
+  onClick?: () => void;
+};
+
+function NomineeCard({ name, locked = false, selected = false, onClick }: NomineeCardProps) {
+  return (
+    <button
+      type="button"
+      className={[
+        styles.nomineeCard,
+        locked ? styles.nomineeCardLocked : "",
+        selected ? styles.nomineeCardActive : "",
+      ].join(" ")}
+      disabled={locked}
+      onClick={onClick}
+    >
+      <div className={styles.nomineeTop}>
+        <span className={styles.nomineeAvatar}>{initialsForName(name)}</span>
+        <div className={styles.nomineeBody}>
+          <span className={styles.nomineeName}>{name}</span>
+          <span className={styles.nomineeSubcopy}>
+            {locked
+              ? "Available when voting opens"
+              : selected
+                ? "Selected and ready to submit"
+                : "Tap to choose this player"}
+          </span>
+        </div>
+        <span
+          className={[
+            styles.nomineeState,
+            locked ? styles.nomineeStateLocked : "",
+            selected ? styles.nomineeStateSelected : "",
+          ].join(" ")}
+        >
+          {locked ? "Locked" : selected ? "Selected" : "Vote"}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function VoteTeamLogo({ name }: { name: string }) {
+  const meta = getTeamMeta(name);
+  const fallback = meta.shortName.slice(0, 1).toUpperCase();
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [name, meta.logoUrl]);
+
+  const showImage = Boolean(meta.logoUrl) && !logoFailed;
+
+  return (
+    <div className={styles.teamLogoWrap}>
+      {showImage ? (
+        <img
+          src={meta.logoUrl}
+          alt={meta.shortName}
+          className={styles.teamLogo}
+          referrerPolicy="no-referrer"
+          onError={() => setLogoFailed(true)}
+        />
+      ) : (
+        <span className={styles.teamLogoFallback}>{fallback}</span>
+      )}
+    </div>
+  );
 }
 
 async function postJSON<T>(url: string, body: Record<string, unknown>) {
@@ -221,59 +305,148 @@ export default function VotePage() {
     voteGame && voteState?.status !== "no_active_vote"
       ? voteWindowLabel(voteState?.status, voteGame, nowMs)
       : null;
+  const countdownValue = voteGame
+    ? formatDuration(
+        voteState?.status === "vote_locked" ? voteGame.voteOpensAtISO : voteGame.voteClosesAtISO,
+        nowMs
+      )
+    : null;
+  const homeMeta = voteGame ? getTeamMeta(voteGame.home) : null;
+  const awayMeta = voteGame ? getTeamMeta(voteGame.away) : null;
+  const isVoteLocked = voteState?.status === "vote_locked";
+  const isVoteLive = voteState?.status === "eligible_to_vote";
+  const isResultsLive = voteState?.status === "already_voted";
+  const heroStatusHeading = isVoteLocked ? "Voting unlocks in" : "Voting closes in";
+  const heroStatusNote = isVoteLocked
+    ? "Nominees are set now. Voting opens 5 minutes after full time."
+    : "One vote per player. Live standings open as soon as your vote is in.";
+  const voteStageLabel =
+    isVoteLocked ? "Preview" : isVoteLive ? "Vote live" : isResultsLive ? "Standings" : "MOTM";
+  const selectedNomineeName =
+    voteState?.nominees?.find((nominee) => nominee.playerId === selectedNomineeId)?.name || "";
+  const standingsEntries = voteState?.seasonStats?.entries || [];
+  const standingsHaveVotes = standingsEntries.length > 0;
+  const statsRows: Array<
+    VoteSeasonStatsEntry & { placeholder?: boolean }
+  > = standingsHaveVotes
+    ? standingsEntries
+    : [
+        {
+          playerId: "placeholder-1",
+          name: "Awaiting first vote",
+          manOfTheMatchCount: 0,
+          points: 0,
+          totalVotes: 0,
+          placeholder: true,
+        },
+        {
+          playerId: "placeholder-2",
+          name: "Season ladder opens tonight",
+          manOfTheMatchCount: 0,
+          points: 0,
+          totalVotes: 0,
+          placeholder: true,
+        },
+        {
+          playerId: "placeholder-3",
+          name: "Top 3 settles after voting",
+          manOfTheMatchCount: 0,
+          points: 0,
+          totalVotes: 0,
+          placeholder: true,
+        },
+      ];
 
   return (
-    <main className={styles.shell}>
-      <section className={styles.hero}>
-        <div className={styles.heroTop}>
+    <main
+      className={`${styles.shell} ${
+        voteState?.status === "eligible_to_vote" ? styles.shellWithSticky : ""
+      }`}
+    >
+      {/* Header — mirrors briars HeaderBar */}
+      <header className={styles.header}>
+        <div>
           <Link href="/briars" className={styles.backLink}>
-            <FiArrowLeft size={16} />
+            <FiArrowLeft size={14} />
             Back to fixtures
           </Link>
-          <span className={styles.heroTag}>{pageTag}</span>
+          <h1 className={styles.h1}>
+            <span className={styles.h1Main}>Man of the</span>
+            <span className={styles.h1Subhead}>Match</span>
+          </h1>
+          <p className={styles.sub}>
+            Cast your MOTM vote and follow live standings as post-match results take shape.
+          </p>
         </div>
 
-        <div className={styles.heroBody}>
-          <div>
-            <div className={styles.kicker}>Briars Snr Masters</div>
-            <h1 className={styles.title}>Man of the Match</h1>
-            <p className={styles.subtitle}>
-              {voteWindowCopy()}
-            </p>
+        <div className={styles.headerActions}>
+          <span
+            className={[
+              styles.pill,
+              isVoteLive ? styles.pillGreen : isVoteLocked ? styles.pillGold : "",
+            ].join(" ")}
+          >
+            <FiAward size={12} />
+            {pageTag}
+          </span>
+        </div>
+      </header>
+
+      {/* Match card */}
+      {voteGame ? (
+        <div className={styles.matchCard}>
+          <div className={styles.matchCardPad}>
+            <div className={styles.matchEyebrow}>
+              {voteGame.roundLabel || "Match vote"} · Briars Snr Masters
+            </div>
+            <div className={styles.matchShowcase}>
+              <div className={styles.teamSide}>
+                <VoteTeamLogo name={voteGame.home} />
+                <span className={styles.teamName}>{homeMeta?.shortName || voteGame.home}</span>
+              </div>
+
+              <div className={styles.vsColumn}>
+                <span className={styles.vsWord}>vs</span>
+                <span className={styles.vsPill}>{voteStageLabel}</span>
+              </div>
+
+              <div className={styles.teamSide}>
+                <VoteTeamLogo name={voteGame.away} />
+                <span className={styles.teamName}>{awayMeta?.shortName || voteGame.away}</span>
+              </div>
+            </div>
+
+            <div className={styles.matchMeta}>
+              <span className={styles.matchMetaLine}>
+                <FiClock size={12} />
+                {formatLongDate(voteGame.kickoffISO)} · {formatClock(voteGame.kickoffISO)}
+              </span>
+              <span className={styles.matchMetaLine}>
+                <FiMapPin size={12} />
+                {voteGame.venue || "Venue TBC"}
+              </span>
+            </div>
           </div>
 
-          {voteGame ? (
-            <div className={styles.matchCard}>
-              <div className={styles.matchPills}>
-                <span className={styles.matchPill}>{voteGame.roundLabel || "Match vote"}</span>
-                <span className={styles.matchPillSoft}>Draw: {voteGame.home} vs {voteGame.away}</span>
-              </div>
-              <div className={styles.matchTeams}>
-                <span>{voteGame.home}</span>
-                <span className={styles.matchVs}>vs</span>
-                <span>{voteGame.away}</span>
-              </div>
-              <div className={styles.matchMeta}>
-                {timerLabel ? (
-                  <span>
-                    <FiAward size={14} /> {timerLabel}
-                  </span>
-                ) : null}
-                <span>
-                  <FiClock size={14} /> {formatLongDate(voteGame.kickoffISO)} • {formatClock(voteGame.kickoffISO)}
-                </span>
-                <span>
-                  <FiMapPin size={14} /> {voteGame.venue || "Venue TBC"}
-                </span>
-              </div>
+          {voteState?.status !== "no_active_vote" && timerLabel ? (
+            <div
+              className={[
+                styles.countdownBar,
+                !isVoteLocked ? styles.countdownBarLive : "",
+              ].join(" ")}
+            >
+              <span className={styles.countdownBarLabel}>{heroStatusHeading}</span>
+              <strong className={styles.countdownBarValue}>
+                {countdownValue || "Timing unavailable"}
+              </strong>
             </div>
-          ) : (
-            <div className={styles.matchCardMuted}>
-              {voteWindowCopy()}
-            </div>
-          )}
+          ) : null}
         </div>
-      </section>
+      ) : (
+        <div className={styles.matchCardMuted}>
+          {voteWindowCopy()}
+        </div>
+      )}
 
       {error ? (
         <section className={styles.noticeError}>
@@ -313,24 +486,23 @@ export default function VotePage() {
       {!loading && voteState?.status === "vote_locked" ? (
         <section className={styles.gridVote}>
           <section className={styles.votePanel}>
-            <div className={styles.panelKicker}>Preview</div>
-            <h2 className={styles.voteTitle}>Nominees are visible</h2>
+            <div className={styles.panelKicker}>Match voting</div>
+            <h2 className={styles.voteTitle}>Eligible nominees</h2>
             <p className={styles.voteText}>
-              Voting is still locked, but tonight’s eligible options are already on the board.
+              Tonight’s nominees are set. Voting opens 5 minutes after full time, so you can see the field early and vote fast when the window opens.
             </p>
+
+            <div className={styles.sectionReminder}>
+              <span className={styles.sectionReminderLabel}>Next unlock</span>
+              <strong className={styles.sectionReminderValue}>
+                {timerLabel || "Voting timer loading"}
+              </strong>
+            </div>
 
             <div className={styles.nomineeGrid}>
               {(voteState.nominees || []).length ? (
                 (voteState.nominees || []).map((nominee) => (
-                  <button
-                    key={nominee.playerId}
-                    type="button"
-                    className={`${styles.nomineeCard} ${styles.nomineeCardLocked}`}
-                    disabled
-                  >
-                    <span className={styles.nomineeBadge}>Locked</span>
-                    <span className={styles.nomineeName}>{nominee.name}</span>
-                  </button>
+                  <NomineeCard key={nominee.playerId} name={nominee.name} locked />
                 ))
               ) : (
                 <div className={styles.emptyTiny}>
@@ -341,31 +513,49 @@ export default function VotePage() {
 
             <div className={styles.panelActions}>
               <button type="button" className={styles.primaryBtn} disabled>
-                Locked until unlock
+                Voting locked
               </button>
             </div>
           </section>
 
           <section className={styles.sidePanel}>
-            <div className={styles.sideCallout}>
-              <FiClock size={18} />
-              <span>{timerLabel || "Voting timer loading"}</span>
+            <div className={styles.panelKicker}>How voting works</div>
+            <h3 className={styles.sideTitle}>One vote, then live standings</h3>
+            <div className={styles.infoList}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>1</span>
+                <p className={styles.sideText}>Use the same saved player name and PIN as availability.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>2</span>
+                <p className={styles.sideText}>Cast one vote once the window opens. Results stay hidden until you do.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>3</span>
+                <p className={styles.sideText}>Season standings award 3-2-1 based on the final finishing order for each match.</p>
+              </div>
             </div>
-            <p className={styles.sideText}>
-              Save your name and PIN ahead of time if you want a fast vote once the window opens.
-            </p>
           </section>
         </section>
       ) : null}
 
       {!loading && voteState?.status === "login_required" ? (
         <section className={styles.grid}>
-          <section className={styles.panel}>
-            <div className={styles.panelKicker}>Step 1</div>
-            <h2 className={styles.panelTitle}>Confirm your player details</h2>
+          <section className={styles.votePanel}>
+            <div className={styles.panelKicker}>Match voting</div>
+            <h2 className={styles.panelTitle}>Ready your vote</h2>
             <p className={styles.panelText}>
-              Use the same saved name and team PIN you use for availability so we know whose vote this is.
+              Save your player details now so you can get straight into the vote when the window opens.
             </p>
+
+            {timerLabel ? (
+              <div className={styles.sectionReminder}>
+                <span className={styles.sectionReminderLabel}>
+                  {isVoteLocked ? "Unlock timer" : "Vote room live"}
+                </span>
+                <strong className={styles.sectionReminderValue}>{timerLabel}</strong>
+              </div>
+            ) : null}
 
             <label className={styles.fieldLabel}>Player name</label>
             <input
@@ -386,17 +576,28 @@ export default function VotePage() {
 
             <div className={styles.panelActions}>
               <button type="button" className={styles.primaryBtn} onClick={saveLogin}>
-                Continue to vote
+                Save player details
               </button>
             </div>
           </section>
 
-          <section className={styles.panelAlt}>
+          <section className={styles.sidePanel}>
             <div className={styles.panelKicker}>Tonight’s flow</div>
-            <h2 className={styles.panelTitle}>One vote, then standings</h2>
-            <p className={styles.panelText}>
-              Once you vote, this page flips to the live tally so you can see how tonight’s standings are shaping up.
-            </p>
+            <h3 className={styles.sideTitle}>Simple and quick on mobile</h3>
+            <div className={styles.infoList}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>1</span>
+                <p className={styles.sideText}>Preview nominees before the vote unlocks.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>2</span>
+                <p className={styles.sideText}>Cast one MOTM vote for the player who stood out most.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>3</span>
+                <p className={styles.sideText}>Watch the live tally, while season standings award 3-2-1 from the final order.</p>
+              </div>
+            </div>
           </section>
         </section>
       ) : null}
@@ -421,32 +622,34 @@ export default function VotePage() {
       {!loading && voteState?.status === "eligible_to_vote" ? (
         <section className={styles.gridVote}>
           <section className={styles.votePanel}>
-            <div className={styles.panelKicker}>Step 2</div>
-            <h2 className={styles.voteTitle}>Pick your Man of the Match</h2>
+            <div className={styles.panelKicker}>Match voting</div>
+            <h2 className={styles.voteTitle}>Eligible nominees</h2>
             <p className={styles.voteText}>
-              {voteState.message || "Choose the teammate who deserves the 3 points tonight."}
+              Choose the player who stood out most tonight. You cast one vote per match, then the live standings unlock immediately.
             </p>
+
+            <div className={styles.sectionReminder}>
+              <span className={styles.sectionReminderLabel}>Vote window</span>
+              <strong className={styles.sectionReminderValue}>
+                {timerLabel || "Voting closes soon"}
+              </strong>
+            </div>
 
             <div className={styles.nomineeGrid}>
               {(voteState.nominees || []).map((nominee) => (
-                <button
+                <NomineeCard
                   key={nominee.playerId}
-                  type="button"
-                  className={`${styles.nomineeCard} ${
-                    selectedNomineeId === nominee.playerId ? styles.nomineeCardActive : ""
-                  }`}
+                  name={nominee.name}
+                  selected={selectedNomineeId === nominee.playerId}
                   onClick={() => setSelectedNomineeId(nominee.playerId)}
-                >
-                  <span className={styles.nomineeBadge}>Vote</span>
-                  <span className={styles.nomineeName}>{nominee.name}</span>
-                </button>
+                />
               ))}
             </div>
 
-            <div className={styles.panelActions}>
+            <div className={`${styles.panelActions} ${styles.desktopSubmitRow}`}>
               <button
                 type="button"
-                className={styles.primaryBtn}
+                className={`${styles.primaryBtn} ${styles.desktopSubmitBtn}`}
                 disabled={submitting || !selectedNomineeId}
                 onClick={castVote}
               >
@@ -463,9 +666,21 @@ export default function VotePage() {
               <FiAward size={18} />
               <span>Results stay hidden until your vote is in.</span>
             </div>
-            <p className={styles.sideText}>
-              Vote once and the live ladder for tonight’s MOTM opens immediately on this page.
-            </p>
+            <h3 className={styles.sideTitle}>How tonight works</h3>
+            <div className={styles.infoList}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>1</span>
+                <p className={styles.sideText}>Pick one nominee only. There’s no ranking step on the page.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>2</span>
+                <p className={styles.sideText}>The live vote table appears as soon as your vote is locked in.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>3</span>
+                <p className={styles.sideText}>Season standings still award 3-2-1 based on the final vote result from each match.</p>
+              </div>
+            </div>
           </section>
         </section>
       ) : null}
@@ -483,12 +698,19 @@ export default function VotePage() {
               </div>
             </div>
 
+            <div className={styles.sectionReminder}>
+              <span className={styles.sectionReminderLabel}>Live room</span>
+              <strong className={styles.sectionReminderValue}>
+                {timerLabel || "Standings are live"}
+              </strong>
+            </div>
+
             <p className={styles.voteText}>
               {voteState.message || "Your vote is locked in. Here’s how tonight’s standings are shaping up."}
             </p>
 
             <div className={styles.resultsList}>
-              {(voteState.results?.entries || []).map((entry) => (
+              {(voteState.results?.entries || []).map((entry, index) => (
                 <div
                   key={entry.playerId}
                   className={`${styles.resultRow} ${
@@ -496,6 +718,7 @@ export default function VotePage() {
                   }`}
                 >
                   <div className={styles.resultTop}>
+                    <span className={styles.resultRank}>{index + 1}</span>
                     <span className={styles.resultName}>{entry.name}</span>
                     <span className={styles.resultMeta}>
                       {resultsLabel(entry, voteState.results?.totalVotes || 0)}
@@ -533,9 +756,17 @@ export default function VotePage() {
                 {(voteState.results?.totalVotes || 0) === 1 ? "" : "s"} counted
               </span>
             </div>
-            <p className={styles.sideText}>
-              This stays live while the post-match voting window is open, then the page settles down again.
-            </p>
+            <h3 className={styles.sideTitle}>What happens next</h3>
+            <div className={styles.infoList}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>1</span>
+                <p className={styles.sideText}>This live table stays open while the vote window is active.</p>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoItemNum}>2</span>
+                <p className={styles.sideText}>Season standings award 3-2-1 points from the final finishing order, not from ranked ballots.</p>
+              </div>
+            </div>
           </section>
         </section>
       ) : null}
@@ -554,10 +785,17 @@ export default function VotePage() {
             </p>
           </div>
 
+          {!standingsHaveVotes ? (
+            <div className={styles.statsEmptyState}>
+              No votes recorded yet. Standings will update after tonight’s match once the first results land.
+            </div>
+          ) : null}
+
           <div className={styles.statsTableWrap}>
             <table className={styles.statsTable}>
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Player</th>
                   <th>MOTM</th>
                   <th>Pts</th>
@@ -565,18 +803,39 @@ export default function VotePage() {
                 </tr>
               </thead>
               <tbody>
-                {(voteState?.seasonStats?.entries || []).map((entry) => (
-                  <tr key={entry.playerId}>
-                    <td>{entry.name}</td>
-                    <td>{entry.manOfTheMatchCount}</td>
-                    <td>{entry.points}</td>
-                    <td>{entry.totalVotes}</td>
+                {statsRows.map((entry, index) => (
+                  <tr
+                    key={entry.playerId}
+                    className={`${styles.statsRow} ${
+                      index === 0
+                        ? styles.statsRowTop
+                        : index === 1
+                          ? styles.statsRowSecond
+                          : index === 2
+                            ? styles.statsRowThird
+                            : ""
+                    } ${entry.placeholder ? styles.statsRowPlaceholder : ""}`}
+                  >
+                    <td className={styles.statsRank}>{index + 1}</td>
+                    <td>
+                      <div className={styles.statsPlayerCell}>
+                        <span className={styles.statsPlayerName}>{entry.name}</span>
+                        {entry.placeholder ? (
+                          <span className={styles.statsPlaceholderTag}>Awaiting votes</span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className={styles.statsNum}>
+                      <span className={styles.motmBadge}>{entry.manOfTheMatchCount}</span>
+                    </td>
+                    <td className={styles.statsNum}>{entry.points}</td>
+                    <td className={styles.statsNum}>{entry.totalVotes}</td>
                   </tr>
                 ))}
 
-                {!voteState?.seasonStats?.entries?.length ? (
+                {!statsRows.length ? (
                   <tr>
-                    <td colSpan={4} className={styles.statsEmpty}>
+                    <td colSpan={5} className={styles.statsEmpty}>
                       No season voting stats yet.
                     </td>
                   </tr>
@@ -585,6 +844,25 @@ export default function VotePage() {
             </table>
           </div>
         </section>
+      ) : null}
+
+      {!loading && voteState?.status === "eligible_to_vote" ? (
+        <div className={styles.stickyVoteBar}>
+          <div className={styles.stickyVoteMeta}>
+            <span className={styles.stickyVoteLabel}>Tonight’s vote</span>
+            <strong className={styles.stickyVoteName}>
+              {selectedNomineeName || "Choose a nominee"}
+            </strong>
+          </div>
+          <button
+            type="button"
+            className={styles.primaryBtn}
+            disabled={submitting || !selectedNomineeId}
+            onClick={castVote}
+          >
+            {submitting ? "Submitting…" : "Lock in vote"}
+          </button>
+        </div>
       ) : null}
     </main>
   );

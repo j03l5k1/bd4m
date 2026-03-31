@@ -47,7 +47,7 @@ export default function HeaderBar({
       <div className={styles.actions}>
         <a
           href="/vote"
-          className={`${styles.btn} ${styles.btnPrimary}`}
+          className={`${styles.btn} ${styles.btnMaroon}`}
         >
           <FiAward size={16} />
           Vote MOTM

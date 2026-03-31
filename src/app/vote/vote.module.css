@@ -1,281 +1,430 @@
+/* ─────────────────────────────────────────────────────────────────
+   Vote page — mobile-first, matches briars design language exactly
+───────────────────────────────────────────────────────────────── */
+
 .shell {
-  --vote-maroon: #6b1028;
-  --vote-maroon-deep: #440818;
-  --vote-gold: #d49b26;
-  --vote-gold-soft: #ffe1a1;
-  --vote-ink: #102136;
-  width: min(960px, 100%);
+  --vote-maroon: #7a0028;
+  --vote-maroon-deep: #54001b;
+  --vote-gold: #d4a328;
+  --vote-gold-soft: #f3cd62;
+  width: min(1120px, 100%);
   margin: 0 auto;
-  padding: 18px 14px 28px;
+  padding: 14px;
 }
 
-.hero {
-  position: relative;
-  overflow: hidden;
-  padding: 18px;
-  border-radius: 28px;
-  background:
-    radial-gradient(circle at top right, rgba(255, 225, 161, 0.26), transparent 34%),
-    linear-gradient(135deg, var(--vote-maroon-deep) 0%, var(--vote-maroon) 62%, #8b2238 100%);
-  color: #fff8ee;
-  box-shadow: 0 18px 38px rgba(68, 8, 24, 0.26);
+.shellWithSticky {
+  padding-bottom: 108px;
 }
 
-.heroTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ── Header (mirrors briars HeaderBar exactly) ────────────────── */
+
+.header {
+  display: grid;
   gap: 12px;
-  flex-wrap: wrap;
+  margin: 4px 0 16px;
 }
 
 .backLink {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: #fff3d3;
+  gap: 6px;
+  color: #64748b;
   text-decoration: none;
-  font-size: 0.86rem;
-  font-weight: 640;
+  font-size: 0.8rem;
+  font-weight: 580;
+  margin-bottom: 8px;
 }
 
-.heroTag {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.backLink:hover {
+  color: var(--vote-maroon);
 }
 
-.heroBody {
-  margin-top: 18px;
-  display: grid;
-  gap: 18px;
-}
-
-.kicker {
-  color: #f3d98a;
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  font-size: 0.72rem;
-  font-weight: 760;
-}
-
-.title {
-  margin: 8px 0 10px;
-  font-size: clamp(2.2rem, 7vw, 4rem);
-  line-height: 0.95;
-  letter-spacing: -0.04em;
-  font-weight: 900;
-}
-
-.subtitle {
+.h1 {
   margin: 0;
-  max-width: 46rem;
-  color: rgba(255, 248, 238, 0.88);
-  font-size: 0.98rem;
-  line-height: 1.45;
-}
-
-.matchCard,
-.matchCardMuted {
-  padding: 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(10px);
-}
-
-.matchCardMuted {
-  color: rgba(255, 248, 238, 0.84);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.matchPills {
-  display: flex;
+  display: inline-flex;
+  align-items: baseline;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  font-size: clamp(1.8rem, 6vw, 2.7rem);
+  line-height: 0.92;
+  letter-spacing: -0.018em;
+  font-weight: 900;
+  font-family: "Arial Black", "Avenir Next Condensed", "Avenir Next", var(--font-display);
+  text-wrap: balance;
 }
 
-.matchPill,
-.matchPillSoft {
+.h1Main {
+  color: var(--vote-maroon-deep);
+  letter-spacing: -0.022em;
+  text-transform: uppercase;
+}
+
+.h1Subhead {
+  font-size: clamp(1rem, 3.6vw, 1.68rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-weight: 840;
+  color: var(--vote-gold);
+}
+
+.sub {
+  margin-top: 5px;
+  color: #475569;
+  font-size: 0.64rem;
+  line-height: 1.25;
+  font-weight: 540;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ── Pills (mirrors briars pill variants exactly) ─────────────── */
+
+.pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 7px 10px;
   border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 760;
-  letter-spacing: 0.04em;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 620;
 }
 
-.matchPill {
-  background: rgba(255, 225, 161, 0.18);
-  border: 1px solid rgba(255, 225, 161, 0.34);
-  color: #fff1bf;
+.pillGold {
+  background: #fff4dc;
+  border-color: #ffd7a7;
+  color: #8a4b08;
 }
 
-.matchPillSoft {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 248, 238, 0.9);
+.pillGreen {
+  background: #e8fbf3;
+  border-color: #bdebd7;
+  color: #0f5132;
 }
 
-.matchTeams {
+/* ── Match card (mirrors briars heroCard / hero.module.css) ────── */
+
+.matchCard {
+  margin-bottom: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  animation: cardEnter 280ms ease both;
+}
+
+.matchCardMuted {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  box-shadow: var(--shadow-card);
+  color: #475569;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.matchCardPad {
+  padding: 14px;
+}
+
+.matchEyebrow {
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.6rem;
+  color: #64748b;
+  font-weight: 620;
+}
+
+/* Matches briars .heroShowcase */
+.matchShowcase {
+  display: grid;
+  grid-template-columns: 1fr minmax(110px, auto) 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.teamSide {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Matches briars .teamLogoWrap exactly */
+.teamLogoWrap {
+  width: clamp(54px, 18vw, 88px);
+  height: clamp(54px, 18vw, 88px);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8f7 100%);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.teamLogo {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+}
+
+.teamLogoFallback {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #94a3b8;
+}
+
+/* Matches briars .teamName — uses var(--font-display), NOT Arial Black */
+.teamName {
+  color: var(--text);
+  font-size: clamp(0.95rem, 3.9vw, 1.34rem);
+  font-weight: 700;
+  letter-spacing: -0.016em;
+  text-align: center;
+  line-height: 1.05;
+  font-family: var(--font-display);
+}
+
+/* Matches briars .vsColumn exactly */
+.vsColumn {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%);
+  padding: 7px 6px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+/* Matches briars .vsWord */
+.vsWord {
+  color: #64748b;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.6rem;
+  font-weight: 620;
+}
+
+/* Matches briars .vsPill — teal brand style */
+.vsPill {
+  border-radius: 999px;
+  border: 1px solid #b8ddd8;
+  background: #edf9f7;
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 650;
+  padding: 6px 9px;
+  min-width: 66px;
+  text-align: center;
+}
+
+/* Matches briars .matchMeta */
+.matchMeta {
+  display: grid;
+  gap: 1px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.matchMetaLine {
+  font-size: 0.64rem;
+  color: #475569;
+  font-weight: 540;
+  line-height: 1.25;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Countdown strip at bottom of match card */
+.countdownBar {
+  padding: 9px 14px;
+  background: linear-gradient(180deg, #fff8ea 0%, #fffdf7 100%);
+  border-top: 1px solid #f0dcc0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   flex-wrap: wrap;
-  font-size: 1.06rem;
+}
+
+.countdownBarLabel {
+  color: #8a4b08;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6rem;
   font-weight: 760;
 }
 
-.matchVs {
-  color: #f3d98a;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.74rem;
+.countdownBarValue {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 820;
+  letter-spacing: -0.02em;
 }
 
-.matchMeta {
-  margin-top: 12px;
-  display: grid;
-  gap: 8px;
-  color: rgba(255, 248, 238, 0.92);
-  font-size: 0.86rem;
+.countdownBarLive {
+  background: linear-gradient(180deg, #ecfdf4 0%, #f0fef8 100%);
+  border-top-color: #bdebd7;
 }
 
-.matchMeta span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.countdownBarLive .countdownBarLabel {
+  color: #0f5132;
 }
+
+.countdownBarLive .countdownBarValue {
+  color: #0f5132;
+}
+
+/* ── Error notice ─────────────────────────────────────────────── */
 
 .noticeError {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid #efb7b7;
-  background: #fff2f2;
-  color: #8c1d1d;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  font-size: 0.84rem;
 }
 
+/* ── Buttons (mirrors briars .btn exactly) ────────────────────── */
+
 .noticeBtn,
-.secondaryBtn,
-.primaryBtn,
-.primaryLink {
+.secondaryBtn {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 620;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: #f6faf9;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 0 16px;
-  border-radius: 14px;
-  border: 1px solid transparent;
-  font-weight: 760;
+  min-height: 42px;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
   text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
 .noticeBtn:hover,
-.secondaryBtn:hover,
-.primaryBtn:hover,
-.primaryLink:hover,
-.nomineeCard:hover {
+.secondaryBtn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-soft);
 }
 
-.noticeBtn,
-.secondaryBtn {
-  color: var(--vote-ink);
-  background: #fff;
-  border-color: #d2ddd9;
-}
-
+/* Matches briars .btnMaroon */
 .primaryBtn,
 .primaryLink {
-  color: #fffdf5;
-  background: linear-gradient(135deg, var(--vote-maroon) 0%, #8b2238 100%);
-  border-color: rgba(68, 8, 24, 0.24);
+  border: 1px solid #5a0a22;
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 640;
+  font-size: 0.85rem;
+  color: #fff8f2;
+  background: linear-gradient(180deg, var(--vote-maroon) 0%, var(--vote-maroon-deep) 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  text-decoration: none;
+}
+
+.primaryBtn:hover,
+.primaryLink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(84, 0, 27, 0.22);
 }
 
 .primaryBtn:disabled {
-  opacity: 0.58;
+  opacity: 0.56;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
+/* ── Panels (mirrors briars .card) ────────────────────────────── */
+
 .panel,
-.panelAlt,
 .votePanel,
 .resultsPanel,
 .sidePanel {
-  margin-top: 16px;
-  padding: 20px;
-  border-radius: 24px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
   box-shadow: var(--shadow-card);
+  animation: cardEnter 280ms ease both;
 }
 
-.panelAlt,
 .sidePanel {
-  background:
-    linear-gradient(180deg, #fffdf6 0%, #fff8ea 100%);
+  background: linear-gradient(180deg, #fffdf7 0%, #fff8ec 100%);
 }
 
 .grid,
 .gridVote {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
+/* ── Panel typography ─────────────────────────────────────────── */
+
 .panelKicker {
-  color: #8b2238;
+  color: var(--vote-maroon);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.7rem;
-  font-weight: 760;
+  letter-spacing: 0.1em;
+  font-size: 0.66rem;
+  font-weight: 620;
 }
 
 .panelTitle,
 .voteTitle,
 .emptyTitle {
-  margin: 8px 0 10px;
-  color: var(--vote-ink);
-  font-size: 1.42rem;
+  margin: 6px 0 8px;
+  color: var(--text);
+  font-size: 1.28rem;
   line-height: 1.08;
-  letter-spacing: -0.03em;
-  font-weight: 820;
+  letter-spacing: -0.025em;
+  font-weight: 780;
+  font-family: var(--font-display);
 }
 
 .loadingTitle {
-  color: var(--vote-ink);
-  font-size: 1.08rem;
-  font-weight: 760;
+  color: var(--text);
+  font-size: 0.96rem;
+  font-weight: 680;
 }
 
 .loadingRows {
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .skeleton {
   display: block;
-  height: 0.9rem;
+  height: 0.82rem;
   margin-bottom: 10px;
   border-radius: 999px;
   background: linear-gradient(90deg, #eef3f2 0%, #dfe8e6 50%, #eef3f2 100%);
@@ -283,82 +432,142 @@
   animation: votePulse 1.2s ease-in-out infinite;
 }
 
-.skeletonWide {
-  width: 82%;
-}
-
-.skeletonMid {
-  width: 64%;
-}
-
-.skeletonShort {
-  width: 46%;
-}
+.skeletonWide  { width: 78%; }
+.skeletonMid   { width: 58%; }
+.skeletonShort { width: 40%; }
 
 .panelText,
 .emptyBody,
 .voteText,
 .sideText {
   margin: 0;
-  color: #435468;
-  font-size: 0.94rem;
+  color: #475569;
+  font-size: 0.88rem;
   line-height: 1.55;
 }
 
-.fieldLabel {
-  display: block;
-  margin-top: 16px;
-  margin-bottom: 8px;
-  color: #5a6a7b;
-  font-size: 0.76rem;
-  font-weight: 720;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+/* Timer reminder strip — matches briars section callout style */
+.sectionReminder {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #fff8ea 0%, #fffdf7 100%);
+  border: 1px solid #f0dcc0;
 }
 
+.sectionReminderLabel {
+  color: #8a4b08;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  font-weight: 760;
+}
+
+.sectionReminderValue {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 820;
+  letter-spacing: -0.015em;
+}
+
+/* ── Login form ───────────────────────────────────────────────── */
+
+.fieldLabel {
+  display: block;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 0.71rem;
+  font-weight: 600;
+}
+
+/* Matches briars .input */
 .input {
   width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
-  border-radius: 14px;
-  border: 1px solid #cbd6d3;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  padding: 11px 12px;
   background: #fff;
-  color: var(--vote-ink);
+  color: var(--text);
+  font-size: 0.88rem;
   outline: none;
 }
 
 .input:focus {
-  border-color: #b37612;
-  box-shadow: 0 0 0 4px rgba(212, 155, 38, 0.14);
+  border-color: #7db8b2;
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
 }
 
 .panelActions {
-  margin-top: 18px;
+  margin-top: 14px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
+/* ── Nominee cards ────────────────────────────────────────────── */
+
 .nomineeGrid {
-  margin-top: 18px;
+  margin-top: 12px;
   display: grid;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
+/* Matches briars .fixtureRow style */
 .nomineeCard {
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid #d6e1df;
-  background: #fcfefd;
-  color: var(--vote-ink);
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
   text-align: left;
   cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.nomineeCard:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.nomineeTop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.nomineeAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #fff7e2 0%, #fffdf5 100%);
+  border: 1px solid #f3ddb0;
+  color: #8a4b08;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.nomineeBody {
+  min-width: 0;
 }
 
 .nomineeCardLocked {
-  opacity: 0.78;
+  background: #f8fbfa;
+  border-style: dashed;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .nomineeCardLocked:hover {
@@ -366,107 +575,201 @@
   box-shadow: none;
 }
 
+/* Matches briars .fixtureRowActive */
 .nomineeCardActive {
-  border-color: #bf7d12;
-  background: linear-gradient(180deg, #fff6dd 0%, #fffbef 100%);
-  box-shadow: 0 14px 28px rgba(212, 155, 38, 0.14);
+  border-color: #9fd3cc;
+  background: #f0fbf9;
 }
 
-.nomineeBadge {
+.nomineeState {
   display: inline-flex;
-  padding: 6px 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
   border-radius: 999px;
-  background: #eef4f3;
+  background: #f2f7f6;
   color: #617182;
-  font-size: 0.72rem;
-  font-weight: 740;
+  font-size: 0.66rem;
+  font-weight: 680;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
-.nomineeCardActive .nomineeBadge {
-  background: #f6d58b;
-  color: #6d4010;
+.nomineeStateLocked {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* Selected uses brand teal (matching briars active state) */
+.nomineeStateSelected {
+  background: #edf9f7;
+  border: 1px solid #b8ddd8;
+  color: #0f766e;
+}
+
+.nomineeCardActive .nomineeAvatar {
+  background: linear-gradient(180deg, #e8fdf5 0%, #f0fbf8 100%);
+  border-color: #a9d9d3;
+  color: #0f766e;
 }
 
 .nomineeName {
   display: block;
-  margin-top: 14px;
-  font-size: 1.02rem;
-  font-weight: 780;
-  letter-spacing: -0.02em;
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  color: var(--text);
 }
+
+.nomineeSubcopy {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  font-weight: 540;
+}
+
+.nomineeCardActive .nomineeSubcopy {
+  color: #0f766e;
+}
+
+/* ── Side panel info list ─────────────────────────────────────── */
 
 .sideCallout {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 7px 11px;
   border-radius: 999px;
-  background: #fff1cb;
-  color: #72450d;
-  font-size: 0.8rem;
-  font-weight: 760;
+  background: #fff4dc;
+  color: #8a4b08;
+  font-size: 0.76rem;
+  font-weight: 680;
 }
+
+.sideTitle {
+  margin: 12px 0 0;
+  color: var(--text);
+  font-size: 1.04rem;
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+  font-weight: 680;
+  font-family: var(--font-display);
+}
+
+.infoList {
+  margin-top: 10px;
+  display: grid;
+  gap: 9px;
+}
+
+.infoItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.infoItemNum {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff4dc;
+  color: #8a4b08;
+  border: 1px solid #ffd7a7;
+  font-size: 0.7rem;
+  font-weight: 780;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Results / already voted ──────────────────────────────────── */
 
 .thanksRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .thanksIcon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: #ecfdf4;
   color: #0f8a4f;
+  flex-shrink: 0;
 }
 
 .resultsList {
-  margin-top: 18px;
+  margin-top: 12px;
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .resultRow {
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid #d9e3e0;
-  background: #fcfefd;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
 }
 
 .resultRowActive {
-  border-color: #bf7d12;
-  background: linear-gradient(180deg, #fff6dd 0%, #fffdf7 100%);
+  border-color: #9fd3cc;
+  background: #f0fbf9;
+}
+
+.resultRowActive .resultRank {
+  background: #0f766e;
+  color: #fff;
 }
 
 .resultTop {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resultRank {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #edf4f3;
+  color: #4b5563;
+  font-size: 0.76rem;
+  font-weight: 780;
+  flex-shrink: 0;
 }
 
 .resultName {
-  color: var(--vote-ink);
-  font-weight: 780;
-  letter-spacing: -0.02em;
+  color: var(--text);
+  font-weight: 650;
+  font-size: 0.9rem;
+  letter-spacing: -0.012em;
 }
 
 .resultMeta {
-  color: #566779;
-  font-size: 0.82rem;
-  font-weight: 640;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 580;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .resultBarRail {
-  margin-top: 10px;
-  height: 12px;
+  margin-top: 7px;
+  height: 8px;
   border-radius: 999px;
   background: #e7eeec;
   overflow: hidden;
@@ -475,106 +778,327 @@
 .resultBarFill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--vote-gold) 0%, #ebb74d 100%);
+  background: linear-gradient(90deg, var(--vote-gold) 0%, var(--vote-gold-soft) 100%);
 }
 
 .emptyTiny {
-  color: #566779;
-  font-size: 0.88rem;
+  color: #64748b;
+  font-size: 0.84rem;
   line-height: 1.5;
+  font-weight: 540;
 }
 
+/* ── Season standings ─────────────────────────────────────────── */
+
 .statsPanel {
-  margin-top: 16px;
-  padding: 20px;
-  border-radius: 24px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
   box-shadow: var(--shadow-card);
+  animation: cardEnter 280ms ease both;
 }
 
 .statsHeader {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .statsText {
   margin: 0;
-  color: #556679;
-  font-size: 0.9rem;
+  color: #475569;
+  font-size: 0.84rem;
   line-height: 1.5;
+  font-weight: 540;
+}
+
+.statsEmptyState {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: #f8fbfa;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  font-weight: 540;
 }
 
 .statsTableWrap {
-  margin-top: 18px;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.statsTableWrap::-webkit-scrollbar {
+  display: none;
 }
 
 .statsTable {
   width: 100%;
   border-collapse: collapse;
-  min-width: 420px;
+  min-width: 340px;
 }
 
 .statsTable th,
 .statsTable td {
-  padding: 12px 10px;
+  padding: 9px 8px;
   text-align: left;
-  border-bottom: 1px solid #e2e9e7;
+  border-bottom: 1px solid var(--line);
 }
 
 .statsTable th {
-  color: #627285;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.73rem;
-  font-weight: 760;
+  font-size: 0.64rem;
+  font-weight: 620;
+}
+
+.statsTable th:first-child,
+.statsTable td:first-child {
+  text-align: center;
+  width: 38px;
+}
+
+.statsTable th:nth-child(3),
+.statsTable th:nth-child(4),
+.statsTable th:nth-child(5) {
+  text-align: right;
 }
 
 .statsTable td {
-  color: var(--vote-ink);
-  font-size: 0.92rem;
-  font-weight: 620;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 580;
+}
+
+.statsRowPlaceholder td {
+  color: #94a3b8;
+}
+
+.statsTable tbody tr:nth-child(odd) td {
+  background: rgba(246, 250, 249, 0.8);
+}
+
+.statsRowTop td {
+  background: linear-gradient(180deg, #fff7e2 0%, #fffcf1 100%) !important;
+}
+
+.statsRowSecond td {
+  background: linear-gradient(180deg, #f8fafc 0%, #fdfefe 100%) !important;
+}
+
+.statsRowThird td {
+  background: linear-gradient(180deg, #fff6ef 0%, #fefbf8 100%) !important;
 }
 
 .statsTable tbody tr:last-child td {
   border-bottom: none;
 }
 
-.statsEmpty {
-  color: #657689;
-  text-align: center;
+.statsRank {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text);
 }
+
+.statsPlayerCell {
+  display: grid;
+  gap: 2px;
+}
+
+.statsPlayerName {
+  color: var(--text);
+  font-weight: 650;
+  font-size: 0.88rem;
+}
+
+.statsPlaceholderTag {
+  display: inline-flex;
+  width: fit-content;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f2f7f6;
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statsNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.86rem;
+}
+
+.motmBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #fff4dc;
+  color: #8a4b08;
+  border: 1px solid #ffd7a7;
+  font-size: 0.76rem;
+  font-weight: 780;
+}
+
+.statsEmpty {
+  color: #64748b;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+/* ── Desktop submit row (hidden on mobile) ────────────────────── */
+
+.desktopSubmitRow { display: flex; }
+.desktopSubmitBtn { display: none; }
+
+/* ── Sticky vote bar (mobile only) ───────────────────────────── */
+
+.stickyVoteBar {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 250, 0.97);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(18px);
+}
+
+.stickyVoteMeta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.stickyVoteLabel {
+  color: var(--vote-maroon);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  font-weight: 720;
+}
+
+.stickyVoteName {
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
 
 @keyframes votePulse {
-  0% {
-    background-position: 100% 0;
-    opacity: 0.72;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    background-position: 0 0;
-    opacity: 0.72;
-  }
+  0%   { background-position: 100% 0; opacity: 0.72; }
+  50%  { opacity: 1; }
+  100% { background-position: 0 0; opacity: 0.72; }
 }
 
-@media (min-width: 820px) {
-  .heroBody,
-  .grid,
-  .gridVote {
-    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.95fr);
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Desktop (matches briars breakpoint at 760px) ─────────────── */
+
+@media (min-width: 760px) {
+  .shell {
+    padding: 22px;
+  }
+
+  .shellWithSticky {
+    padding-bottom: 22px;
+  }
+
+  .header {
+    grid-template-columns: 1fr auto;
     align-items: start;
+    gap: 14px;
   }
 
   .panel,
-  .panelAlt,
   .votePanel,
   .resultsPanel,
-  .sidePanel {
-    margin-top: 18px;
+  .sidePanel,
+  .statsPanel {
+    padding: 18px;
+  }
+
+  .matchCardPad {
+    padding: 18px;
+  }
+
+  .matchShowcase {
+    grid-template-columns: 1fr minmax(160px, auto) 1fr;
+    gap: 16px;
+  }
+
+  .teamLogoWrap {
+    width: clamp(72px, 9vw, 108px);
+    height: clamp(72px, 9vw, 108px);
+  }
+
+  .teamName {
+    font-size: clamp(1.24rem, 2.2vw, 1.95rem);
+  }
+
+  .vsColumn {
+    padding: 10px 8px;
+  }
+
+  .matchMetaLine {
+    font-size: 0.76rem;
+  }
+
+  .grid,
+  .gridVote {
+    grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.95fr);
+    align-items: start;
+  }
+
+  .statsHeader {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .nomineeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .desktopSubmitBtn {
+    display: inline-flex;
+  }
+
+  .stickyVoteBar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .matchCard,
+  .panel,
+  .votePanel,
+  .resultsPanel,
+  .sidePanel,
+  .statsPanel,
+  .nomineeCard {
+    animation: none;
+    transition: none;
   }
 }

@@ -67,17 +67,16 @@
   color: var(--vote-gold);
 }
 
-/* Oak leaf flanking the h1 — lean inward like a wreath */
+/* Laurel branch flanking the h1 — mirror right side to frame like a wreath */
 .h1Wreath {
   color: var(--vote-gold);
-  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
   flex-shrink: 0;
-  opacity: 0.88;
-  transform: rotate(-20deg);
+  opacity: 0.85;
 }
 
 .h1WreathRight {
-  transform: rotate(20deg) scaleX(-1);
+  transform: scaleX(-1);
 }
 
 .sub {

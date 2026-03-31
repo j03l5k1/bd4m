@@ -12,6 +12,11 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { LS_PIN_OK, LS_PLAYER_NAME, LS_TEAM_PIN } from "@/lib/briars/constants";
+import {
+  MOTM_CLOSE_AFTER_GAME_END_MINUTES,
+  MOTM_OPEN_AFTER_GAME_END_MINUTES,
+  type VoteGameSummary,
+} from "@/lib/briars/vote";
 import type {
   VoteResultsEntry,
   VoteState,
@@ -48,22 +53,37 @@ function formatClock(iso: string) {
   });
 }
 
-function timeUntilLabel(iso: string, nowMs: number) {
-  const diff = new Date(iso).getTime() - nowMs;
-  if (!Number.isFinite(diff)) return "Timing unavailable";
-  if (diff <= 0) return "Closing soon";
+function formatDuration(targetISO: string, nowMs: number) {
+  const diff = new Date(targetISO).getTime() - nowMs;
+  if (!Number.isFinite(diff)) return "timing unavailable";
+  if (diff <= 0) return "less than a minute";
 
   const mins = Math.max(Math.round(diff / 60_000), 1);
-  if (mins < 60) return `${mins}m left to vote`;
+  if (mins < 60) return `${mins}m`;
 
   const hours = Math.floor(mins / 60);
   const rem = mins % 60;
-  return rem ? `${hours}h ${rem}m left to vote` : `${hours}h left to vote`;
+  return rem ? `${hours}h ${rem}m` : `${hours}h`;
+}
+
+function voteWindowLabel(
+  status: VoteState["status"] | undefined,
+  game: VoteGameSummary,
+  nowMs: number
+) {
+  if (status === "vote_locked") {
+    return `Voting unlocks in ${formatDuration(game.voteOpensAtISO, nowMs)}`;
+  }
+  return `Voting closes in ${formatDuration(game.voteClosesAtISO, nowMs)}`;
 }
 
 function resultsLabel(entry: VoteResultsEntry, totalVotes: number) {
   if (!totalVotes) return "No votes yet";
   return `${entry.votes} vote${entry.votes === 1 ? "" : "s"} • ${entry.percentage}%`;
+}
+
+function voteWindowCopy() {
+  return `Voting opens ${MOTM_OPEN_AFTER_GAME_END_MINUTES} minutes after end of game and closes ${MOTM_CLOSE_AFTER_GAME_END_MINUTES} minutes after match.`;
 }
 
 async function postJSON<T>(url: string, body: Record<string, unknown>) {
@@ -175,12 +195,12 @@ export default function VotePage() {
     setSubmitting(true);
     setError(null);
     try {
-      const json = await postJSON<VoteStateResponse>("/api/vote/cast", {
+      await postJSON<VoteStateResponse>("/api/vote/cast", {
         playerName: savedPlayerName,
         pin: savedPin,
         nomineePlayerId: selectedNomineeId,
       });
-      setVoteState(json.vote);
+      await refreshVoteState(savedPlayerName, savedPin);
     } catch (e: any) {
       setError(e?.message || "Could not save your vote.");
     } finally {
@@ -190,11 +210,17 @@ export default function VotePage() {
 
   const voteGame = voteState?.game;
   const pageTag =
-    voteState?.status === "eligible_to_vote"
+    voteState?.status === "vote_locked"
+      ? "Preview"
+      : voteState?.status === "eligible_to_vote"
       ? "Vote open now"
       : voteState?.status === "already_voted"
-        ? "Vote received"
-        : "Car park MOTM";
+        ? "Live results"
+        : "MOTM Hub";
+  const timerLabel =
+    voteGame && voteState?.status !== "no_active_vote"
+      ? voteWindowLabel(voteState?.status, voteGame, nowMs)
+      : null;
 
   return (
     <main className={styles.shell}>
@@ -212,32 +238,38 @@ export default function VotePage() {
             <div className={styles.kicker}>Briars Snr Masters</div>
             <h1 className={styles.title}>Man of the Match</h1>
             <p className={styles.subtitle}>
-              Quick car-park voting for the current match. Vote once, then the standings unlock.
+              {voteWindowCopy()}
             </p>
           </div>
 
           {voteGame ? (
             <div className={styles.matchCard}>
+              <div className={styles.matchPills}>
+                <span className={styles.matchPill}>{voteGame.roundLabel || "Match vote"}</span>
+                <span className={styles.matchPillSoft}>Draw: {voteGame.home} vs {voteGame.away}</span>
+              </div>
               <div className={styles.matchTeams}>
                 <span>{voteGame.home}</span>
                 <span className={styles.matchVs}>vs</span>
                 <span>{voteGame.away}</span>
               </div>
               <div className={styles.matchMeta}>
+                {timerLabel ? (
+                  <span>
+                    <FiAward size={14} /> {timerLabel}
+                  </span>
+                ) : null}
                 <span>
                   <FiClock size={14} /> {formatLongDate(voteGame.kickoffISO)} • {formatClock(voteGame.kickoffISO)}
                 </span>
                 <span>
                   <FiMapPin size={14} /> {voteGame.venue || "Venue TBC"}
                 </span>
-                <span>
-                  <FiUsers size={14} /> {timeUntilLabel(voteGame.voteClosesAtISO, nowMs)}
-                </span>
               </div>
             </div>
           ) : (
             <div className={styles.matchCardMuted}>
-              Voting opens 65 minutes after kickoff and wraps up shortly after the post-match car park chat.
+              {voteWindowCopy()}
             </div>
           )}
         </div>
@@ -268,13 +300,61 @@ export default function VotePage() {
         <section className={styles.panel}>
           <div className={styles.emptyTitle}>No active vote right now</div>
           <p className={styles.emptyBody}>
-            The vote page will wake up automatically after a Briars match enters the car-park window.
+            The vote page will wake up automatically once a Briars match reaches the MOTM vote window.
           </p>
           <div className={styles.panelActions}>
             <Link href="/briars" className={styles.primaryLink}>
               Head back to fixtures
             </Link>
           </div>
+        </section>
+      ) : null}
+
+      {!loading && voteState?.status === "vote_locked" ? (
+        <section className={styles.gridVote}>
+          <section className={styles.votePanel}>
+            <div className={styles.panelKicker}>Preview</div>
+            <h2 className={styles.voteTitle}>Nominees are visible</h2>
+            <p className={styles.voteText}>
+              Voting is still locked, but tonight’s eligible options are already on the board.
+            </p>
+
+            <div className={styles.nomineeGrid}>
+              {(voteState.nominees || []).length ? (
+                (voteState.nominees || []).map((nominee) => (
+                  <button
+                    key={nominee.playerId}
+                    type="button"
+                    className={`${styles.nomineeCard} ${styles.nomineeCardLocked}`}
+                    disabled
+                  >
+                    <span className={styles.nomineeBadge}>Locked</span>
+                    <span className={styles.nomineeName}>{nominee.name}</span>
+                  </button>
+                ))
+              ) : (
+                <div className={styles.emptyTiny}>
+                  No eligible names are loaded yet. As players mark themselves in, they’ll appear here.
+                </div>
+              )}
+            </div>
+
+            <div className={styles.panelActions}>
+              <button type="button" className={styles.primaryBtn} disabled>
+                Locked until unlock
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.sidePanel}>
+            <div className={styles.sideCallout}>
+              <FiClock size={18} />
+              <span>{timerLabel || "Voting timer loading"}</span>
+            </div>
+            <p className={styles.sideText}>
+              Save your name and PIN ahead of time if you want a fast vote once the window opens.
+            </p>
+          </section>
         </section>
       ) : null}
 
@@ -315,7 +395,7 @@ export default function VotePage() {
             <div className={styles.panelKicker}>Tonight’s flow</div>
             <h2 className={styles.panelTitle}>One vote, then standings</h2>
             <p className={styles.panelText}>
-              Once you vote, this page flips to the live tally so you can see how the car park is leaning.
+              Once you vote, this page flips to the live tally so you can see how tonight’s standings are shaping up.
             </p>
           </section>
         </section>
@@ -404,7 +484,7 @@ export default function VotePage() {
             </div>
 
             <p className={styles.voteText}>
-              {voteState.message || "Your vote is locked in. Here’s how the car park is shaping up."}
+              {voteState.message || "Your vote is locked in. Here’s how tonight’s standings are shaping up."}
             </p>
 
             <div className={styles.resultsList}>
@@ -457,6 +537,53 @@ export default function VotePage() {
               This stays live while the post-match voting window is open, then the page settles down again.
             </p>
           </section>
+        </section>
+      ) : null}
+
+      {!loading ? (
+        <section className={styles.statsPanel}>
+          <div className={styles.statsHeader}>
+            <div>
+              <div className={styles.panelKicker}>Season table</div>
+              <h2 className={styles.panelTitle}>MOTM standings</h2>
+            </div>
+            <p className={styles.statsText}>
+              {voteState?.seasonStats?.gamesWithVotes || 0} match
+              {(voteState?.seasonStats?.gamesWithVotes || 0) === 1 ? "" : "es"} with votes recorded.
+              Points are awarded 3-2-1 by finish in each vote.
+            </p>
+          </div>
+
+          <div className={styles.statsTableWrap}>
+            <table className={styles.statsTable}>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>MOTM</th>
+                  <th>Pts</th>
+                  <th>Votes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(voteState?.seasonStats?.entries || []).map((entry) => (
+                  <tr key={entry.playerId}>
+                    <td>{entry.name}</td>
+                    <td>{entry.manOfTheMatchCount}</td>
+                    <td>{entry.points}</td>
+                    <td>{entry.totalVotes}</td>
+                  </tr>
+                ))}
+
+                {!voteState?.seasonStats?.entries?.length ? (
+                  <tr>
+                    <td colSpan={4} className={styles.statsEmpty}>
+                      No season voting stats yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </section>
       ) : null}
     </main>

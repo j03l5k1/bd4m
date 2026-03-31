@@ -5,11 +5,13 @@ import {
 } from "@/lib/briars/vote";
 import {
   ensureVoteGameId,
-  findActiveVoteGame,
+  findVotePageGame,
   findPlayerByName,
+  getSeasonVoteStats,
   getEligibleVotePlayers,
   getExistingVote,
   getVoteResults,
+  getVoteWindowState,
   isEligibleVoter,
 } from "@/lib/server/vote";
 
@@ -33,13 +35,33 @@ export async function POST(req: Request) {
   const nowISO = new Date().toISOString();
 
   try {
-    const game = await findActiveVoteGame(new Date(nowISO));
+    const now = new Date(nowISO);
+    const [game, seasonStats] = await Promise.all([
+      findVotePageGame(now),
+      getSeasonVoteStats(),
+    ]);
+
     if (!game) {
       return voteResponse({
         status: "no_active_vote",
         nowISO,
         game: null,
+        seasonStats,
         message: "No active Man of the Match vote right now.",
+      });
+    }
+
+    const nominees = await getEligibleVotePlayers(game);
+    const windowState = getVoteWindowState(game, now);
+
+    if (windowState === "locked") {
+      return voteResponse({
+        status: "vote_locked",
+        nowISO,
+        game,
+        nominees,
+        seasonStats,
+        message: "Voting unlocks 5 minutes after the game ends and closes 60 minutes after the match.",
       });
     }
 
@@ -48,14 +70,15 @@ export async function POST(req: Request) {
         status: "login_required",
         nowISO,
         game,
+        nominees,
+        seasonStats,
         message: "Enter your saved player name and team PIN to vote.",
       });
     }
 
     const gameId = await ensureVoteGameId(game);
-    const eligiblePlayers = await getEligibleVotePlayers(game);
     const voter = await findPlayerByName(playerName);
-    const eligibleVoter = isEligibleVoter(playerName, eligiblePlayers);
+    const eligibleVoter = isEligibleVoter(playerName, nominees);
 
     if (!voter || !eligibleVoter) {
       return voteResponse({
@@ -63,6 +86,8 @@ export async function POST(req: Request) {
         nowISO,
         game,
         playerName,
+        nominees,
+        seasonStats,
         message: "Only players marked in for this match can vote.",
       });
     }
@@ -77,22 +102,24 @@ export async function POST(req: Request) {
         playerName: voter.name,
         myVotePlayerId,
         results,
+        seasonStats,
         message: "Vote locked in. Live standings are below.",
       });
     }
 
-    const nominees = eligiblePlayers.filter(
+    const selectableNominees = nominees.filter(
       (player) => player.playerId !== eligibleVoter.playerId
     );
 
     return voteResponse({
-      status: nominees.length ? "eligible_to_vote" : "not_eligible",
+      status: selectableNominees.length ? "eligible_to_vote" : "not_eligible",
       nowISO,
       game,
       playerName: voter.name,
-      nominees,
-      message: nominees.length
-        ? "Pick the teammate who deserves the car-park votes."
+      nominees: selectableNominees,
+      seasonStats,
+      message: selectableNominees.length
+        ? "Pick the teammate who deserves tonight’s votes."
         : "Not enough eligible teammates to open voting.",
     });
   } catch (e: any) {

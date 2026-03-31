@@ -97,6 +97,36 @@
   line-height: 1.5;
 }
 
+.matchPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.matchPill,
+.matchPillSoft {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+}
+
+.matchPill {
+  background: rgba(255, 225, 161, 0.18);
+  border: 1px solid rgba(255, 225, 161, 0.34);
+  color: #fff1bf;
+}
+
+.matchPillSoft {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 248, 238, 0.9);
+}
+
 .matchTeams {
   display: flex;
   align-items: center;
@@ -325,6 +355,17 @@
   cursor: pointer;
 }
 
+.nomineeCardLocked {
+  opacity: 0.78;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.nomineeCardLocked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .nomineeCardActive {
   border-color: #bf7d12;
   background: linear-gradient(180deg, #fff6dd 0%, #fffbef 100%);
@@ -441,6 +482,68 @@
   color: #566779;
   font-size: 0.88rem;
   line-height: 1.5;
+}
+
+.statsPanel {
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+}
+
+.statsHeader {
+  display: grid;
+  gap: 8px;
+}
+
+.statsText {
+  margin: 0;
+  color: #556679;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.statsTableWrap {
+  margin-top: 18px;
+  overflow-x: auto;
+}
+
+.statsTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+}
+
+.statsTable th,
+.statsTable td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e2e9e7;
+}
+
+.statsTable th {
+  color: #627285;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.73rem;
+  font-weight: 760;
+}
+
+.statsTable td {
+  color: var(--vote-ink);
+  font-size: 0.92rem;
+  font-weight: 620;
+}
+
+.statsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.statsEmpty {
+  color: #657689;
+  text-align: center;
 }
 
 @keyframes votePulse {

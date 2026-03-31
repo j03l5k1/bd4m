@@ -3,11 +3,13 @@ import { type VoteStateResponse } from "@/lib/briars/vote";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   ensureVoteGameId,
-  findActiveVoteGame,
+  findVotePageGame,
   findPlayerByName,
+  getSeasonVoteStats,
   getEligibleVotePlayers,
   getExistingVote,
   getVoteResults,
+  getVoteWindowState,
   isEligibleVoter,
 } from "@/lib/server/vote";
 
@@ -40,9 +42,20 @@ export async function POST(req: Request) {
   }
 
   try {
-    const game = await findActiveVoteGame(new Date(nowISO));
+    const now = new Date(nowISO);
+    const [game, seasonStats] = await Promise.all([
+      findVotePageGame(now),
+      getSeasonVoteStats(),
+    ]);
+
     if (!game) {
       return NextResponse.json({ ok: false, error: "No active vote right now" }, { status: 400 });
+    }
+    if (getVoteWindowState(game, now) !== "open") {
+      return NextResponse.json(
+        { ok: false, error: "Voting is still locked for this match" },
+        { status: 400 }
+      );
     }
 
     const gameId = await ensureVoteGameId(game);
@@ -78,6 +91,7 @@ export async function POST(req: Request) {
           playerName: voter.name,
           myVotePlayerId: existingVote,
           results,
+          seasonStats,
           message: "Vote already recorded.",
         },
       } satisfies VoteStateResponse);
@@ -106,6 +120,7 @@ export async function POST(req: Request) {
         playerName: voter.name,
         myVotePlayerId: nomineePlayerId,
         results,
+        seasonStats,
         message: "Vote locked in. Live standings are below.",
       },
     } satisfies VoteStateResponse);

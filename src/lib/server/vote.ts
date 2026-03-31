@@ -6,6 +6,8 @@ import {
   type VoteNominee,
   type VoteResults,
   type VoteResultsEntry,
+  type VoteSeasonStats,
+  type VoteSeasonStatsEntry,
 } from "@/lib/briars/vote";
 import { buildSourceKey, normaliseName } from "@/lib/briars/format";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
@@ -58,6 +60,19 @@ function buildVoteWindow(kickoffISO: string) {
     voteOpensAtISO: new Date(kickoffMs + MOTM_OPEN_AFTER_MINUTES * 60_000).toISOString(),
     voteClosesAtISO: new Date(kickoffMs + MOTM_CLOSE_AFTER_MINUTES * 60_000).toISOString(),
   };
+}
+
+export function getVoteWindowState(
+  game: VoteGameSummary,
+  now = new Date()
+): "locked" | "open" | "closed" {
+  const nowMs = now.getTime();
+  const opensAt = new Date(game.voteOpensAtISO).getTime();
+  const closesAt = new Date(game.voteClosesAtISO).getTime();
+
+  if (nowMs < opensAt) return "locked";
+  if (nowMs <= closesAt) return "open";
+  return "closed";
 }
 
 function mapMatchToVoteGame(match: RawMatch, teamNameByKey: Map<string, string>): VoteGameSummary {
@@ -113,18 +128,20 @@ export async function loadBriarsVoteGames() {
 }
 
 export async function findActiveVoteGame(now = new Date()) {
+  const game = await findVotePageGame(now);
+  if (!game) return null;
+  return getVoteWindowState(game, now) === "open" ? game : null;
+}
+
+export async function findVotePageGame(now = new Date()) {
   const nowMs = now.getTime();
   const games = await loadBriarsVoteGames();
 
   return (
     games
-      .filter((game) => {
-        const opensAt = new Date(game.voteOpensAtISO).getTime();
-        const closesAt = new Date(game.voteClosesAtISO).getTime();
-        return nowMs >= opensAt && nowMs <= closesAt;
-      })
+      .filter((game) => new Date(game.voteClosesAtISO).getTime() >= nowMs)
       .sort(
-        (a, b) => new Date(b.kickoffISO).getTime() - new Date(a.kickoffISO).getTime()
+        (a, b) => new Date(a.kickoffISO).getTime() - new Date(b.kickoffISO).getTime()
       )[0] ?? null
   );
 }
@@ -267,4 +284,121 @@ export async function getVoteResults(gameId: string): Promise<VoteResults> {
     });
 
   return { totalVotes, entries };
+}
+
+export async function getSeasonVoteStats(): Promise<VoteSeasonStats> {
+  const sb = getSupabaseAdmin();
+  const seasonGames = await loadBriarsVoteGames();
+
+  const gamePairs = await Promise.all(
+    seasonGames.map(async (game) => ({
+      gameId: await findExistingGameId(game.sourceKey, game.kickoffISO, game.home, game.away),
+      game,
+    }))
+  );
+
+  const trackedGameIds = gamePairs
+    .map((pair) => pair.gameId)
+    .filter((gameId): gameId is string => Boolean(gameId));
+
+  if (!trackedGameIds.length) {
+    return { gamesWithVotes: 0, entries: [] };
+  }
+
+  const [{ data: voteRows, error: voteErr }, { data: playerRows, error: playerErr }] =
+    await Promise.all([
+      sb
+        .from("motm_votes")
+        .select("game_id,nominee_player_id")
+        .in("game_id", trackedGameIds),
+      sb
+        .from("availability")
+        .select("player_id,players(name)")
+        .eq("status", "yes")
+        .in("game_id", trackedGameIds),
+    ]);
+
+  if (voteErr) throw new Error(voteErr.message);
+  if (playerErr) throw new Error(playerErr.message);
+
+  const playerNameById = new Map<string, string>();
+  for (const row of playerRows || []) {
+    const playerId = String((row as any).player_id || "").trim();
+    const name = cleanInput((row as any)?.players?.name || "");
+    if (!playerId || !name || playerNameById.has(playerId)) continue;
+    playerNameById.set(playerId, name);
+  }
+
+  const voteCountsByGame = new Map<string, Map<string, number>>();
+  for (const row of voteRows || []) {
+    const gameId = String((row as any).game_id || "").trim();
+    const nomineeId = String((row as any).nominee_player_id || "").trim();
+    if (!gameId || !nomineeId) continue;
+
+    if (!voteCountsByGame.has(gameId)) {
+      voteCountsByGame.set(gameId, new Map<string, number>());
+    }
+    const gameCounts = voteCountsByGame.get(gameId)!;
+    gameCounts.set(nomineeId, (gameCounts.get(nomineeId) || 0) + 1);
+  }
+
+  for (const gameCounts of voteCountsByGame.values()) {
+    for (const playerId of gameCounts.keys()) {
+      if (!playerNameById.has(playerId)) {
+        playerNameById.set(playerId, "Unknown player");
+      }
+    }
+  }
+
+  const statsByPlayer = new Map<string, VoteSeasonStatsEntry>();
+  for (const [playerId, name] of playerNameById.entries()) {
+    statsByPlayer.set(playerId, {
+      playerId,
+      name,
+      manOfTheMatchCount: 0,
+      points: 0,
+      totalVotes: 0,
+    });
+  }
+
+  const rankPoints = [3, 2, 1];
+
+  for (const gameCounts of voteCountsByGame.values()) {
+    const distinctVoteTotals = [...new Set([...gameCounts.values()].sort((a, b) => b - a))];
+
+    for (const [playerId, votes] of gameCounts.entries()) {
+      const entry =
+        statsByPlayer.get(playerId) ||
+        ({
+          playerId,
+          name: playerNameById.get(playerId) || "Unknown player",
+          manOfTheMatchCount: 0,
+          points: 0,
+          totalVotes: 0,
+        } satisfies VoteSeasonStatsEntry);
+
+      const rankIndex = distinctVoteTotals.indexOf(votes);
+      if (rankIndex === 0) entry.manOfTheMatchCount += 1;
+      if (rankIndex >= 0 && rankIndex < rankPoints.length) {
+        entry.points += rankPoints[rankIndex];
+      }
+      entry.totalVotes += votes;
+
+      statsByPlayer.set(playerId, entry);
+    }
+  }
+
+  const entries = [...statsByPlayer.values()].sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.manOfTheMatchCount !== a.manOfTheMatchCount) {
+      return b.manOfTheMatchCount - a.manOfTheMatchCount;
+    }
+    if (b.totalVotes !== a.totalVotes) return b.totalVotes - a.totalVotes;
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    gamesWithVotes: voteCountsByGame.size,
+    entries,
+  };
 }

@@ -521,7 +521,7 @@
 }
 :global(html.dark) .teamPanelBriars {
   border-color: var(--line-strong);
-  background: linear-gradient(160deg, #1e1619 0%, #1c1618 64%, #1d1a14 100%);
+  background: linear-gradient(160deg, #140c10 0%, #120c0e 64%, #11100a 100%);
 }
 :global(html.dark) .teamKicker { color: var(--text-soft); }
 :global(html.dark) .teamName { color: var(--text); }
@@ -555,18 +555,18 @@
   color: var(--text-soft);
 }
 :global(html.dark) .historyDetails { border-color: var(--line); }
-:global(html.dark) .historySummary { color: #2dd4bf; }
+:global(html.dark) .historySummary { color: #00d4ff; }
 :global(html.dark) .historySummary::after { color: var(--text-soft); }
 :global(html.dark) .h2hLastRow {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
   border-color: var(--line);
 }
 :global(html.dark) .h2hLastTeam { color: var(--text-soft); }
-:global(html.dark) .h2hLastWinner { color: #4ade80; }
+:global(html.dark) .h2hLastWinner { color: #00ff87; }
 :global(html.dark) .h2hLastScore {
-  background: rgba(20, 184, 166, 0.12);
-  border-color: #2d6b65;
-  color: #6ee7b7;
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.25);
+  color: #00d4ff;
 }
-:global(html.dark) .h2hLastMeta { color: #6b8c87; }
+:global(html.dark) .h2hLastMeta { color: var(--text-soft); }
 :global(html.dark) .h2hEmpty { color: var(--text-soft); }

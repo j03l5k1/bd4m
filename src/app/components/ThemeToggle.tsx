@@ -36,15 +36,15 @@ export default function ThemeToggle() {
         width: '38px',
         height: '38px',
         borderRadius: '12px',
-        border: isDark ? '1px solid #304540' : '1px solid #b9d5d1',
-        background: isDark ? '#182420' : '#ffffff',
-        color: isDark ? '#8fa89f' : '#0f766e',
+        border: isDark ? '1px solid rgba(0,212,255,0.25)' : '1px solid #b9d5d1',
+        background: isDark ? '#10101e' : '#ffffff',
+        color: isDark ? '#00d4ff' : '#0f766e',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: isDark
-          ? '0 4px 14px rgba(0,0,0,0.4)'
+          ? '0 4px 16px rgba(0,0,0,0.6), 0 0 12px rgba(0,212,255,0.12)'
           : '0 2px 8px rgba(15,23,42,0.12)',
         transition: 'background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.16s ease',
       }}

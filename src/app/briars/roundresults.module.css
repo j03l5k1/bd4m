@@ -199,21 +199,21 @@
 :global(html.dark) .rrTitle { color: var(--text); }
 :global(html.dark) .rrNavBtn {
   border-color: var(--line);
-  color: #2dd4bf;
+  color: #00d4ff;
   background: none;
 }
-:global(html.dark) .rrNavBtn:hover:not(:disabled) { border-color: #2d6b65; }
+:global(html.dark) .rrNavBtn:hover:not(:disabled) { border-color: rgba(0, 212, 255, 0.4); }
 :global(html.dark) .rrNavBtn:disabled {
   color: var(--line-strong);
   border-color: var(--line);
 }
-:global(html.dark) .rrRoundLabel { color: #2dd4bf; }
+:global(html.dark) .rrRoundLabel { color: #00d4ff; }
 :global(html.dark) .rrRow {
   background: var(--surface-soft);
   border-color: var(--line);
 }
 :global(html.dark) .rrTeamName { color: var(--text-soft); }
-:global(html.dark) .rrTeamWinner { color: #4ade80; font-weight: 730; }
+:global(html.dark) .rrTeamWinner { color: #00ff87; font-weight: 730; }
 :global(html.dark) .rrScorePending {
   background: var(--surface-soft);
   color: var(--text-soft);
@@ -222,6 +222,6 @@
   background: var(--surface-soft);
   color: var(--text-soft);
 }
-:global(html.dark) .rrAvailYes { color: #4ade80; }
-:global(html.dark) .rrAvailMaybe { color: #fbbf24; }
-:global(html.dark) .rrAvailNo { color: #f87171; }
+:global(html.dark) .rrAvailYes { color: #00ff87; }
+:global(html.dark) .rrAvailMaybe { color: #ff9500; }
+:global(html.dark) .rrAvailNo { color: #ff2d78; }

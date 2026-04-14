@@ -671,7 +671,7 @@
 /* ── Dark mode overrides ──────────────────────────────────────── */
 
 :global(html.dark) .fixtureTabsWrap::after {
-  background: linear-gradient(to right, transparent, #182420);
+  background: linear-gradient(to right, transparent, #10101e);
 }
 :global(html.dark) .fixtureTab,
 :global(html.dark) .fixtureMore {
@@ -680,14 +680,14 @@
   color: var(--text);
 }
 :global(html.dark) .fixtureTabActive {
-  background: rgba(20, 184, 166, 0.12);
-  border-color: #2d6b65;
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.3);
 }
 :global(html.dark) .fixtureTabTop { color: var(--text-soft); }
 :global(html.dark) .fixtureTabNextPill {
-  background: rgba(37, 99, 235, 0.15);
-  border-color: rgba(37, 99, 235, 0.3);
-  color: #93c5fd;
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
 }
 :global(html.dark) .fixtureMore { color: var(--text-soft); }
 :global(html.dark) .teamLogoWrap {
@@ -696,9 +696,9 @@
 }
 :global(html.dark) .teamLogoFallback { color: var(--text-soft); }
 :global(html.dark) .rankPill {
-  background: rgba(251, 191, 36, 0.15);
-  border-color: rgba(251, 191, 36, 0.3);
-  color: #fcd34d;
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.28);
+  color: #ffd700;
 }
 :global(html.dark) .vsColumn {
   background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
@@ -706,27 +706,27 @@
 }
 :global(html.dark) .vsWord { color: var(--text-soft); }
 :global(html.dark) .vsPill {
-  background: rgba(20, 184, 166, 0.15);
-  border-color: #2d6b65;
-  color: #2dd4bf;
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.28);
+  color: #00d4ff;
 }
 :global(html.dark) .matchNavBtn {
-  background: rgba(37, 99, 235, 0.15);
-  border-color: rgba(37, 99, 235, 0.3);
-  color: #93c5fd;
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
 }
 :global(html.dark) .matchNavBtn:disabled { opacity: 0.3; }
 :global(html.dark) .matchMetaLine { color: var(--text-soft); }
 :global(html.dark) .countdownLine { color: var(--text-soft); }
 :global(html.dark) .matchWeatherDetails {
-  background: rgba(20, 184, 166, 0.1);
-  border-color: #2a5a53;
-  color: #6ee7b7;
+  background: rgba(0, 212, 255, 0.07);
+  border-color: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
 }
 :global(html.dark) .matchWeatherBody {
-  background: rgba(20, 184, 166, 0.07);
-  border-color: #2a5a53;
-  color: #a7f3d0;
+  background: rgba(0, 212, 255, 0.04);
+  border-color: rgba(0, 212, 255, 0.15);
+  color: rgba(0, 212, 255, 0.75);
 }
 :global(html.dark) .formTeamCard {
   background: var(--surface);
@@ -734,21 +734,21 @@
 }
 :global(html.dark) .formTeamName { color: var(--text); }
 :global(html.dark) .formChipRound { color: var(--text-soft); }
-:global(html.dark) .formChipOpp { color: #6b8c87; }
+:global(html.dark) .formChipOpp { color: var(--text-soft); }
 :global(html.dark) .formChipScore { color: var(--text-soft); }
 :global(html.dark) .formChipWin {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.28);
-  color: #4ade80;
+  background: rgba(0, 255, 135, 0.1);
+  border-color: rgba(0, 255, 135, 0.25);
+  color: #00ff87;
 }
 :global(html.dark) .formChipLoss {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.28);
-  color: #f87171;
+  background: rgba(255, 45, 120, 0.1);
+  border-color: rgba(255, 45, 120, 0.25);
+  color: #ff2d78;
 }
 :global(html.dark) .formChipDraw {
-  background: rgba(148, 163, 184, 0.12);
-  border-color: rgba(148, 163, 184, 0.22);
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.2);
   color: var(--text-soft);
 }
 :global(html.dark) .formStatsRow { color: var(--text-soft); }
@@ -757,19 +757,19 @@
   border-color: var(--line);
   color: var(--text);
 }
-:global(html.dark) .formResultScore { color: #2dd4bf; }
+:global(html.dark) .formResultScore { color: #00d4ff; }
 :global(html.dark) .upcomingMoreBtn {
-  background: rgba(20, 184, 166, 0.08);
-  border-color: #2a5a53;
-  color: #2dd4bf;
+  background: rgba(0, 212, 255, 0.06);
+  border-color: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
 }
 :global(html.dark) .fixtureRow {
   background: var(--surface);
   border-color: var(--line);
 }
 :global(html.dark) .fixtureRowActive {
-  background: rgba(20, 184, 166, 0.1);
-  border-color: #2d6b65;
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.25);
 }
 :global(html.dark) .fixtureRowSub { color: var(--text-soft); }
 :global(html.dark) .fixtureMiniStatus { color: var(--text-soft); }

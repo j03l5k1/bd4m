@@ -296,9 +296,9 @@
 /* ── Dark mode overrides ──────────────────────────────────────── */
 
 :global(html.dark) .shell {
-  --briars-maroon: #c45070;
-  --briars-maroon-deep: #d4608a;
-  --briars-yellow: #e8bf3e;
+  --briars-maroon: #ff2d78;
+  --briars-maroon-deep: #ff0080;
+  --briars-yellow: #ffd700;
 }
 
 :global(html.dark) .h1 { color: var(--text); }
@@ -307,9 +307,9 @@
 :global(html.dark) .label { color: var(--text-soft); }
 :global(html.dark) .sectionTitle { color: var(--text); }
 :global(html.dark) .toast {
-  background: rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.25);
-  color: #4ade80;
+  background: rgba(0, 255, 135, 0.08);
+  border-color: rgba(0, 255, 135, 0.22);
+  color: #00ff87;
 }
 :global(html.dark) .pill {
   background: var(--surface-soft);
@@ -317,19 +317,19 @@
   color: var(--text);
 }
 :global(html.dark) .pillGold {
-  background: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.28);
-  color: #fcd34d;
+  background: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.25);
+  color: #ffd700;
 }
 :global(html.dark) .pillBlue {
-  background: rgba(37, 99, 235, 0.15);
-  border-color: rgba(37, 99, 235, 0.3);
-  color: #93c5fd;
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
 }
 :global(html.dark) .pillGreen {
-  background: rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.25);
-  color: #4ade80;
+  background: rgba(0, 255, 135, 0.08);
+  border-color: rgba(0, 255, 135, 0.22);
+  color: #00ff87;
 }
 :global(html.dark) .pillSoft {
   background: var(--surface-soft);

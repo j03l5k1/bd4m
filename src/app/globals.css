@@ -24,21 +24,21 @@
 /* ── Dark mode (manual toggle only — light is the default) ─────── */
 
 html.dark {
-  --bg: #0d1915;
-  --surface: #182420;
-  --surface-soft: #131e1b;
-  --text: #e2ede9;
-  --text-soft: #8fa89f;
-  --line: #253530;
-  --line-strong: #304540;
-  --brand: #2dd4bf;
-  --brand-soft: #0d2925;
-  --accent: #fbbf24;
-  --ok: #4ade80;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --shadow-soft: 0 5px 16px rgba(0, 0, 0, 0.25);
+  --bg: #080810;
+  --surface: #10101e;
+  --surface-soft: #0c0c18;
+  --text: #e8f0ff;
+  --text-soft: #6b7a9e;
+  --line: #1e1e30;
+  --line-strong: #2a2a42;
+  --brand: #00d4ff;
+  --brand-soft: #001522;
+  --accent: #ffd700;
+  --ok: #00ff87;
+  --warn: #ff9500;
+  --danger: #ff2d78;
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 212, 255, 0.04);
+  --shadow-soft: 0 5px 20px rgba(0, 0, 0, 0.5);
 }
 
 html.light {
@@ -77,9 +77,10 @@ body {
 
 html.dark body {
   background:
-    radial-gradient(900px 460px at -10% -10%, rgba(15, 118, 110, 0.1), transparent 55%),
-    radial-gradient(900px 500px at 115% 0%, rgba(217, 119, 6, 0.07), transparent 62%),
-    linear-gradient(180deg, #0d1915 0%, #0a1410 100%);
+    radial-gradient(900px 460px at -10% -10%, rgba(0, 212, 255, 0.06), transparent 55%),
+    radial-gradient(900px 500px at 115% 0%, rgba(255, 215, 0, 0.05), transparent 62%),
+    radial-gradient(700px 500px at 60% 110%, rgba(255, 45, 120, 0.04), transparent 60%),
+    linear-gradient(180deg, #080810 0%, #050509 100%);
 }
 
 * {

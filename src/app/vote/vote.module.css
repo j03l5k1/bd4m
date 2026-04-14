@@ -1121,3 +1121,193 @@
     transition: none;
   }
 }
+
+/* ── Dark mode overrides ──────────────────────────────────────── */
+
+:global(html.dark) .shell {
+  --vote-maroon: #c45070;
+  --vote-maroon-deep: #d4608a;
+  --vote-gold: #e8bf3e;
+  --vote-gold-soft: #f3d46a;
+}
+
+:global(html.dark) .fixturesBtn {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+  color: var(--text);
+}
+:global(html.dark) .sub { color: var(--text-soft); }
+:global(html.dark) .pill {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text);
+}
+:global(html.dark) .pillGold {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fcd34d;
+}
+:global(html.dark) .pillGreen {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+}
+:global(html.dark) .matchCardMuted { color: var(--text-soft); }
+:global(html.dark) .matchEyebrow { color: var(--text-soft); }
+:global(html.dark) .vsColumn {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+}
+:global(html.dark) .vsWord { color: var(--text-soft); }
+:global(html.dark) .vsPill {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: #2d6b65;
+  color: #2dd4bf;
+}
+:global(html.dark) .matchMetaLine { color: var(--text-soft); }
+:global(html.dark) .teamLogoWrap {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+}
+:global(html.dark) .teamLogoFallback { color: var(--text-soft); }
+:global(html.dark) .countdownBar {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.03) 100%);
+  border-top-color: rgba(251, 191, 36, 0.2);
+}
+:global(html.dark) .countdownBarText { color: var(--text-soft); }
+:global(html.dark) .countdownBarLive {
+  background: linear-gradient(180deg, rgba(74, 222, 128, 0.08) 0%, rgba(74, 222, 128, 0.03) 100%);
+  border-top-color: rgba(74, 222, 128, 0.2);
+}
+:global(html.dark) .countdownBarLive .countdownBarText { color: var(--text-soft); }
+:global(html.dark) .noticeError {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+:global(html.dark) .noticeBtn,
+:global(html.dark) .secondaryBtn {
+  background: var(--surface-soft);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+:global(html.dark) .panelText,
+:global(html.dark) .emptyBody,
+:global(html.dark) .voteText,
+:global(html.dark) .sideText { color: var(--text-soft); }
+:global(html.dark) .sidePanel {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.06) 0%, rgba(251, 191, 36, 0.02) 100%);
+}
+:global(html.dark) .sectionReminder {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.08) 0%, rgba(251, 191, 36, 0.03) 100%);
+  border-color: rgba(251, 191, 36, 0.22);
+}
+:global(html.dark) .sectionReminderLabel { color: #fbbf24; }
+:global(html.dark) .sectionReminderValue { color: var(--text); }
+:global(html.dark) .fieldLabel { color: var(--text-soft); }
+:global(html.dark) .input {
+  background: var(--surface-soft);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+:global(html.dark) .nomineeCard {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:global(html.dark) .nomineeCardLocked { background: var(--surface-soft); }
+:global(html.dark) .nomineeCardActive {
+  background: rgba(20, 184, 166, 0.1);
+  border-color: #2d6b65;
+}
+:global(html.dark) .nomineeAvatar {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: #fcd34d;
+}
+:global(html.dark) .nomineeCardActive .nomineeAvatar {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: #2d6b65;
+  color: #2dd4bf;
+}
+:global(html.dark) .nomineeState {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+:global(html.dark) .nomineeStateLocked {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+:global(html.dark) .nomineeSubcopy { color: var(--text-soft); }
+:global(html.dark) .nomineeCardActive .nomineeSubcopy { color: #2dd4bf; }
+:global(html.dark) .sideCallout {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fcd34d;
+}
+:global(html.dark) .infoItemNum {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: #fcd34d;
+}
+:global(html.dark) .thanksIcon {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+:global(html.dark) .resultRow {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:global(html.dark) .resultRowActive {
+  background: rgba(20, 184, 166, 0.1);
+  border-color: #2d6b65;
+}
+:global(html.dark) .resultRank {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+:global(html.dark) .resultRowActive .resultRank {
+  background: #2dd4bf;
+  color: #0a1410;
+}
+:global(html.dark) .resultMeta { color: var(--text-soft); }
+:global(html.dark) .resultBarRail { background: rgba(255, 255, 255, 0.1); }
+:global(html.dark) .emptyTiny { color: var(--text-soft); }
+:global(html.dark) .stickyVoteBar {
+  background: rgba(18, 28, 24, 0.97);
+  border-color: var(--line-strong);
+}
+:global(html.dark) .skeleton {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-soft) 50%, var(--surface) 100%);
+}
+:global(html.dark) .statsText { color: var(--text-soft); }
+:global(html.dark) .statsEmptyState {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+:global(html.dark) .statsTable th {
+  color: var(--text-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .statsTable td {
+  color: var(--text);
+  border-color: var(--line);
+}
+:global(html.dark) .statsTable tbody tr:nth-child(odd) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+:global(html.dark) .statsRowTop td {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%) !important;
+}
+:global(html.dark) .statsRowSecond td {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+:global(html.dark) .statsRowThird td {
+  background: rgba(255, 120, 50, 0.07) !important;
+}
+:global(html.dark) .statsRowPlaceholder td { color: var(--text-soft); }
+:global(html.dark) .statsPlaceholderTag {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+:global(html.dark) .motmCount { color: #fbbf24; }
+:global(html.dark) .statsEmpty { color: var(--text-soft); }

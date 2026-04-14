@@ -185,3 +185,43 @@
     font-size: 0.84rem;
   }
 }
+
+/* ── Dark mode overrides ──────────────────────────────────────── */
+
+:global(html.dark) .rrCard {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:global(html.dark) .rrCard[open] .rrSummary {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .rrTitle { color: var(--text); }
+:global(html.dark) .rrNavBtn {
+  border-color: var(--line);
+  color: #2dd4bf;
+  background: none;
+}
+:global(html.dark) .rrNavBtn:hover:not(:disabled) { border-color: #2d6b65; }
+:global(html.dark) .rrNavBtn:disabled {
+  color: var(--line-strong);
+  border-color: var(--line);
+}
+:global(html.dark) .rrRoundLabel { color: #2dd4bf; }
+:global(html.dark) .rrRow {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .rrTeamName { color: var(--text-soft); }
+:global(html.dark) .rrTeamWinner { color: #4ade80; font-weight: 730; }
+:global(html.dark) .rrScorePending {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+:global(html.dark) .rrLogoWrap {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+:global(html.dark) .rrAvailYes { color: #4ade80; }
+:global(html.dark) .rrAvailMaybe { color: #fbbf24; }
+:global(html.dark) .rrAvailNo { color: #f87171; }

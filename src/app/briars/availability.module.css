@@ -290,3 +290,52 @@
   }
 
 }
+
+/* ── Dark mode overrides ──────────────────────────────────────── */
+
+:global(html.dark) .availabilityBox {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+}
+:global(html.dark) .availGate {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .availHint { color: var(--text-soft); }
+:global(html.dark) .availSaving { color: var(--text-soft); }
+:global(html.dark) .countCard {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .countYes {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.22);
+}
+:global(html.dark) .countMaybe {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.22);
+}
+:global(html.dark) .countNo {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .countLabel { color: var(--text-soft); }
+:global(html.dark) .availSegBtn {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text);
+}
+:global(html.dark) .availSegBtnActive {
+  background: rgba(20, 184, 166, 0.1);
+  border-color: #2d6b65;
+}
+:global(html.dark) .availSegTick { color: var(--text-soft); }
+:global(html.dark) .nameColBody { color: var(--text-soft); }
+:global(html.dark) .skeletonLine {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-soft) 50%, var(--surface) 100%);
+}
+:global(html.dark) .loadStateRow {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}

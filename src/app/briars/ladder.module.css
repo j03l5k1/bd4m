@@ -193,3 +193,38 @@
     grid-template-columns: auto 1fr auto auto auto auto;
   }
 }
+
+/* ── Dark mode overrides ──────────────────────────────────────── */
+
+:global(html.dark) .tallyPill {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+:global(html.dark) .tallyPillStrong {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: #2d6b65;
+  color: #2dd4bf;
+}
+:global(html.dark) .ladderCard {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:global(html.dark) .previewRow { border-bottom-color: var(--line); }
+:global(html.dark) .previewRowBriars { background: rgba(20, 184, 166, 0.08); }
+:global(html.dark) .previewPos { color: var(--text-soft); }
+:global(html.dark) .previewMeta { color: var(--text-soft); }
+:global(html.dark) .previewPts { color: #2dd4bf; }
+:global(html.dark) .ladderTh {
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .ladderTd {
+  border-color: var(--line);
+  color: var(--text);
+}
+:global(html.dark) .ladderBriars td { background: rgba(20, 184, 166, 0.08); }
+:global(html.dark) .ladder tbody tr:hover td { background: rgba(255, 255, 255, 0.04); }
+:global(html.dark) .ladderWrap { border-color: var(--line); }
+:global(html.dark) .tableSummary { color: #2dd4bf; }

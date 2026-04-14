@@ -508,3 +508,65 @@
     padding-bottom: 16px;
   }
 }
+
+/* ── Dark mode overrides ──────────────────────────────────────── */
+
+:global(html.dark) .h2hCard {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+}
+:global(html.dark) .teamPanel {
+  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+}
+:global(html.dark) .teamPanelBriars {
+  border-color: var(--line-strong);
+  background: linear-gradient(160deg, #1e1619 0%, #1c1618 64%, #1d1a14 100%);
+}
+:global(html.dark) .teamKicker { color: var(--text-soft); }
+:global(html.dark) .teamName { color: var(--text); }
+:global(html.dark) .teamFormChip {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+:global(html.dark) .ringPanel {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line);
+}
+:global(html.dark) .ringKicker { color: var(--text-soft); }
+:global(html.dark) .ringValue { color: var(--text); }
+:global(html.dark) .ringText { color: var(--text-soft); }
+:global(html.dark) .ringChart::before {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:global(html.dark) .recordHint { color: var(--text-soft); }
+:global(html.dark) .metricCard {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+}
+:global(html.dark) .metricLabel { color: var(--text-soft); }
+:global(html.dark) .metricRail { background: rgba(255, 255, 255, 0.08); }
+:global(html.dark) .metricBottom { color: var(--text-soft); }
+:global(html.dark) .metricEdge {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+:global(html.dark) .historyDetails { border-color: var(--line); }
+:global(html.dark) .historySummary { color: #2dd4bf; }
+:global(html.dark) .historySummary::after { color: var(--text-soft); }
+:global(html.dark) .h2hLastRow {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+}
+:global(html.dark) .h2hLastTeam { color: var(--text-soft); }
+:global(html.dark) .h2hLastWinner { color: #4ade80; }
+:global(html.dark) .h2hLastScore {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: #2d6b65;
+  color: #6ee7b7;
+}
+:global(html.dark) .h2hLastMeta { color: #6b8c87; }
+:global(html.dark) .h2hEmpty { color: var(--text-soft); }

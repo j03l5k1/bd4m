@@ -292,3 +292,70 @@
     transition: none;
   }
 }
+
+/* ── Dark mode overrides ──────────────────────────────────────── */
+
+:global(html.dark) .shell {
+  --briars-maroon: #c45070;
+  --briars-maroon-deep: #d4608a;
+  --briars-yellow: #e8bf3e;
+}
+
+:global(html.dark) .h1 { color: var(--text); }
+:global(html.dark) .sub { color: var(--text-soft); }
+:global(html.dark) .eyebrow { color: var(--text-soft); }
+:global(html.dark) .label { color: var(--text-soft); }
+:global(html.dark) .sectionTitle { color: var(--text); }
+:global(html.dark) .toast {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+}
+:global(html.dark) .pill {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--text);
+}
+:global(html.dark) .pillGold {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fcd34d;
+}
+:global(html.dark) .pillBlue {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(37, 99, 235, 0.3);
+  color: #93c5fd;
+}
+:global(html.dark) .pillGreen {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.25);
+  color: #4ade80;
+}
+:global(html.dark) .pillSoft {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .btn {
+  background: var(--surface-soft);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+:global(html.dark) .btnPrimary {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  border-color: var(--line-strong);
+}
+:global(html.dark) .btnSoft { background: var(--surface-soft); }
+:global(html.dark) .input {
+  background: var(--surface-soft);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+:global(html.dark) .details {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+:global(html.dark) .details[open] .summary {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:global(html.dark) .summaryRight { color: var(--text-soft); }

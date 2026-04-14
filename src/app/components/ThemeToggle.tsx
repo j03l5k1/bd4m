@@ -7,14 +7,7 @@ export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    const html = document.documentElement;
-    if (html.classList.contains('dark')) {
-      setIsDark(true);
-    } else if (html.classList.contains('light')) {
-      setIsDark(false);
-    } else {
-      setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
+    setIsDark(document.documentElement.classList.contains('dark'));
   }, []);
 
   function toggle() {

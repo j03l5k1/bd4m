@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { type VoteStateResponse } from "@/lib/briars/vote";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import {
   ensureVoteGameId,
   findVotePageGame,
@@ -97,18 +97,10 @@ export async function POST(req: Request) {
       } satisfies VoteStateResponse);
     }
 
-    const sb = getSupabaseAdmin();
-    const { error } = await sb
-      .from("motm_votes")
-      .insert({
-        game_id: gameId,
-        voter_player_id: voter.id,
-        nominee_player_id: nomineePlayerId,
-      });
-
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    }
+    const sql = getSql();
+    await sql`
+      insert into motm_votes (game_id, voter_player_id, nominee_player_id)
+      values (${gameId}, ${voter.id}, ${nomineePlayerId})`;
 
     const results = await getVoteResults(gameId);
     return NextResponse.json({

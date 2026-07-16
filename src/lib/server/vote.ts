@@ -10,7 +10,7 @@ import {
   type VoteSeasonStatsEntry,
 } from "@/lib/briars/vote";
 import { buildSourceKey, normaliseName } from "@/lib/briars/format";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import { cleanInput, findExistingGameId, findMatchingGameIds } from "@/lib/server/availability";
 
 type RawMatch = {
@@ -121,23 +121,17 @@ function mapMatchToVoteGame(match: RawMatch, teamNameByKey: Map<string, string>)
 }
 
 export async function loadBriarsVoteGames() {
-  const sb = getSupabaseAdmin();
+  const sql = getSql();
 
-  const { data: teams, error: teamErr } = await sb
-    .from("teams")
-    .select("team_key,name_full");
-
-  if (teamErr) throw new Error(teamErr.message);
+  const teams = await sql`select team_key, name_full from teams`;
 
   const teamNameByKey = new Map((teams ?? []).map((team: any) => [team.team_key, team.name_full]));
 
-  const { data: matches, error: matchErr } = await sb
-    .from("matches")
-    .select("round_label,kickoff_at,venue,home_team_key,away_team_key")
-    .eq("season", CURRENT_SEASON)
-    .order("kickoff_at", { ascending: true });
-
-  if (matchErr) throw new Error(matchErr.message);
+  const matches = await sql`
+    select round_label, kickoff_at, venue, home_team_key, away_team_key
+    from matches
+    where season = ${CURRENT_SEASON}
+    order by kickoff_at asc`;
 
   const briarsGames = (matches ?? [])
     .map((match) => mapMatchToVoteGame(match as RawMatch, teamNameByKey))
@@ -199,49 +193,40 @@ export async function findVotePageGame(now = new Date()) {
 }
 
 export async function ensureVoteGameId(game: VoteGameSummary) {
-  const sb = getSupabaseAdmin();
+  const sql = getSql();
 
   let gameId = await findExistingGameId(game.sourceKey, game.kickoffISO, game.home, game.away);
   if (gameId) return gameId;
 
-  const { data: row, error } = await sb
-    .from("games")
-    .insert({
-      source_key: game.sourceKey,
-      kickoff_iso: game.kickoffISO,
-      home: game.home,
-      away: game.away,
-      venue: game.venue || null,
-    })
-    .select("id")
-    .single();
+  const rows = await sql`
+    insert into games (source_key, kickoff_iso, home, away, venue)
+    values (${game.sourceKey}, ${game.kickoffISO}, ${game.home}, ${game.away}, ${game.venue || null})
+    returning id`;
 
-  if (error || !row?.id) {
-    throw new Error(error?.message || "Could not create vote game record");
+  if (!rows[0]?.id) {
+    throw new Error("Could not create vote game record");
   }
 
-  gameId = row.id as string;
+  gameId = rows[0].id as string;
   return gameId;
 }
 
 export async function getEligibleVotePlayers(game: VoteGameSummary): Promise<VoteNominee[]> {
-  const sb = getSupabaseAdmin();
+  const sql = getSql();
   const gameIds = await findMatchingGameIds(game.sourceKey);
 
   if (!gameIds.length) return [];
 
-  const { data: rows, error } = await sb
-    .from("availability")
-    .select("player_id,status,players(name)")
-    .eq("status", "yes")
-    .in("game_id", gameIds);
-
-  if (error) throw new Error(error.message);
+  const rows = await sql`
+    select a.player_id, p.name
+    from availability a
+    join players p on p.id = a.player_id
+    where a.status = 'yes' and a.game_id = ANY(${gameIds})`;
 
   const byId = new Map<string, VoteNominee>();
   for (const row of rows || []) {
     const playerId = String((row as any).player_id || "").trim();
-    const name = cleanInput((row as any)?.players?.name || "");
+    const name = cleanInput((row as any)?.name || "");
     if (!playerId || !name || byId.has(playerId)) continue;
     byId.set(playerId, { playerId, name });
   }
@@ -253,14 +238,9 @@ export async function findPlayerByName(playerName: string) {
   const cleaned = cleanInput(playerName);
   if (cleaned.length < 2) return null;
 
-  const sb = getSupabaseAdmin();
-  const { data, error } = await sb
-    .from("players")
-    .select("id,name")
-    .eq("name", cleaned)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
+  const sql = getSql();
+  const rows = await sql`select id, name from players where name = ${cleaned} limit 1`;
+  const data = rows[0];
   if (!data?.id) return null;
 
   return {
@@ -278,26 +258,18 @@ export function isEligibleVoter(
 }
 
 export async function getExistingVote(gameId: string, voterPlayerId: string) {
-  const sb = getSupabaseAdmin();
-  const { data, error } = await sb
-    .from("motm_votes")
-    .select("nominee_player_id")
-    .eq("game_id", gameId)
-    .eq("voter_player_id", voterPlayerId)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  return String(data?.nominee_player_id || "").trim() || null;
+  const sql = getSql();
+  const rows = await sql`
+    select nominee_player_id from motm_votes
+    where game_id = ${gameId} and voter_player_id = ${voterPlayerId}
+    limit 1`;
+  return String(rows[0]?.nominee_player_id || "").trim() || null;
 }
 
 export async function getVoteResults(gameId: string): Promise<VoteResults> {
-  const sb = getSupabaseAdmin();
-  const { data: rows, error } = await sb
-    .from("motm_votes")
-    .select("nominee_player_id")
-    .eq("game_id", gameId);
-
-  if (error) throw new Error(error.message);
+  const sql = getSql();
+  const rows = await sql`
+    select nominee_player_id from motm_votes where game_id = ${gameId}`;
 
   const voteCounts = new Map<string, number>();
   for (const row of rows || []) {
@@ -311,12 +283,7 @@ export async function getVoteResults(gameId: string): Promise<VoteResults> {
     return { totalVotes: 0, entries: [] };
   }
 
-  const { data: players, error: playerErr } = await sb
-    .from("players")
-    .select("id,name")
-    .in("id", nomineeIds);
-
-  if (playerErr) throw new Error(playerErr.message);
+  const players = await sql`select id, name from players where id = ANY(${nomineeIds})`;
 
   const playerNameById = new Map(
     (players ?? []).map((player: any) => [String(player.id), cleanInput(player.name || "")])
@@ -339,7 +306,7 @@ export async function getVoteResults(gameId: string): Promise<VoteResults> {
 }
 
 export async function getSeasonVoteStats(): Promise<VoteSeasonStats> {
-  const sb = getSupabaseAdmin();
+  const sql = getSql();
   const seasonGames = await loadBriarsVoteGames();
 
   const gamePairs = await Promise.all(
@@ -357,26 +324,21 @@ export async function getSeasonVoteStats(): Promise<VoteSeasonStats> {
     return { gamesWithVotes: 0, entries: [] };
   }
 
-  const [{ data: voteRows, error: voteErr }, { data: playerRows, error: playerErr }] =
-    await Promise.all([
-      sb
-        .from("motm_votes")
-        .select("game_id,nominee_player_id")
-        .in("game_id", trackedGameIds),
-      sb
-        .from("availability")
-        .select("player_id,players(name)")
-        .eq("status", "yes")
-        .in("game_id", trackedGameIds),
-    ]);
-
-  if (voteErr) throw new Error(voteErr.message);
-  if (playerErr) throw new Error(playerErr.message);
+  const [voteRows, playerRows] = await Promise.all([
+    sql`
+      select game_id, nominee_player_id from motm_votes
+      where game_id = ANY(${trackedGameIds})`,
+    sql`
+      select a.player_id, p.name
+      from availability a
+      join players p on p.id = a.player_id
+      where a.status = 'yes' and a.game_id = ANY(${trackedGameIds})`,
+  ]);
 
   const playerNameById = new Map<string, string>();
   for (const row of playerRows || []) {
     const playerId = String((row as any).player_id || "").trim();
-    const name = cleanInput((row as any)?.players?.name || "");
+    const name = cleanInput((row as any)?.name || "");
     if (!playerId || !name || playerNameById.has(playerId)) continue;
     playerNameById.set(playerId, name);
   }

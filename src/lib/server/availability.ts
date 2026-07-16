@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 
 export function cleanInput(value: string) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -98,15 +98,10 @@ function buildSydneyKickoffIsoCandidates(dateStr: string, timeStr: string) {
 }
 
 export async function findMatchingGameIds(sourceKey: string) {
-  const sb = getSupabaseAdmin();
-  const exact = await sb
-    .from("games")
-    .select("id")
-    .eq("source_key", sourceKey);
+  const sql = getSql();
+  const exact = await sql`select id from games where source_key = ${sourceKey}`;
 
-  if (exact.error) throw new Error(exact.error.message);
-
-  const ids = new Set<string>((exact.data || []).map((row: any) => row.id));
+  const ids = new Set<string>(exact.map((row: any) => row.id));
 
   const parsed = parseSourceKey(sourceKey);
   if (!parsed) return [...ids];
@@ -115,16 +110,12 @@ export async function findMatchingGameIds(sourceKey: string) {
     const kickoffCandidates = buildSydneyKickoffIsoCandidates(parsed.date, parsed.time);
     if (!kickoffCandidates.length) return [...ids];
 
-    const modernMatch = await sb
-      .from("games")
-      .select("id")
-      .eq("home", parsed.home)
-      .eq("away", parsed.away)
-      .in("kickoff_iso", kickoffCandidates);
+    const modernMatch = await sql`
+      select id from games
+      where home = ${parsed.home} and away = ${parsed.away}
+        and kickoff_iso = ANY(${kickoffCandidates})`;
 
-    if (modernMatch.error) throw new Error(modernMatch.error.message);
-
-    for (const row of modernMatch.data || []) {
+    for (const row of modernMatch) {
       ids.add((row as any).id);
     }
 
@@ -135,25 +126,17 @@ export async function findMatchingGameIds(sourceKey: string) {
   const sourceKeyCandidates = isoCandidates.map((iso) => `${iso}|${parsed.home}|${parsed.away}`);
 
   const [legacy, structured] = await Promise.all([
-    sb
-      .from("games")
-      .select("id")
-      .in("source_key", sourceKeyCandidates),
-    sb
-      .from("games")
-      .select("id")
-      .eq("home", parsed.home)
-      .eq("away", parsed.away)
-      .in("kickoff_iso", isoCandidates),
+    sql`select id from games where source_key = ANY(${sourceKeyCandidates})`,
+    sql`
+      select id from games
+      where home = ${parsed.home} and away = ${parsed.away}
+        and kickoff_iso = ANY(${isoCandidates})`,
   ]);
 
-  if (legacy.error) throw new Error(legacy.error.message);
-  if (structured.error) throw new Error(structured.error.message);
-
-  for (const row of legacy.data || []) {
+  for (const row of legacy) {
     ids.add((row as any).id);
   }
-  for (const row of structured.data || []) {
+  for (const row of structured) {
     ids.add((row as any).id);
   }
 
@@ -166,29 +149,18 @@ export async function findExistingGameId(
   home: string,
   away: string
 ) {
-  const sb = getSupabaseAdmin();
-  const exact = await sb
-    .from("games")
-    .select("id")
-    .eq("source_key", sourceKey)
-    .maybeSingle();
-
-  if (exact.error) throw new Error(exact.error.message);
-  if (exact.data?.id) return exact.data.id as string;
+  const sql = getSql();
+  const exact = await sql`select id from games where source_key = ${sourceKey} limit 1`;
+  if (exact[0]?.id) return exact[0].id as string;
 
   const homeClean = cleanInput(home);
   const awayClean = cleanInput(away);
 
-  const exactFields = await sb
-    .from("games")
-    .select("id")
-    .eq("home", homeClean)
-    .eq("away", awayClean)
-    .eq("kickoff_iso", kickoffISO)
-    .maybeSingle();
-
-  if (exactFields.error) throw new Error(exactFields.error.message);
-  if (exactFields.data?.id) return exactFields.data.id as string;
+  const exactFields = await sql`
+    select id from games
+    where home = ${homeClean} and away = ${awayClean} and kickoff_iso = ${kickoffISO}
+    limit 1`;
+  if (exactFields[0]?.id) return exactFields[0].id as string;
 
   const isoCandidates = new Set<string>(buildLegacyIsoCandidates(kickoffISO));
   const parsed = parseSourceKey(sourceKey);
@@ -201,27 +173,16 @@ export async function findExistingGameId(
   const allIsoCandidates = [...isoCandidates];
   const sourceKeyCandidates = allIsoCandidates.map((iso) => `${iso}|${homeClean}|${awayClean}`);
 
-  const legacy = await sb
-    .from("games")
-    .select("id")
-    .in("source_key", sourceKeyCandidates)
-    .limit(1)
-    .maybeSingle();
+  const legacy = await sql`
+    select id from games where source_key = ANY(${sourceKeyCandidates}) limit 1`;
+  if (legacy[0]?.id) return legacy[0].id as string;
 
-  if (legacy.error) throw new Error(legacy.error.message);
-  if (legacy.data?.id) return legacy.data.id as string;
-
-  const structured = await sb
-    .from("games")
-    .select("id")
-    .eq("home", homeClean)
-    .eq("away", awayClean)
-    .in("kickoff_iso", allIsoCandidates)
-    .limit(1)
-    .maybeSingle();
-
-  if (structured.error) throw new Error(structured.error.message);
-  if (structured.data?.id) return structured.data.id as string;
+  const structured = await sql`
+    select id from games
+    where home = ${homeClean} and away = ${awayClean}
+      and kickoff_iso = ANY(${allIsoCandidates})
+    limit 1`;
+  if (structured[0]?.id) return structured[0].id as string;
 
   return null;
 }

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import { cleanInput, findMatchingGameIds } from "@/lib/server/availability";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const sb = getSupabaseAdmin();
+  const sql = getSql();
 
   const { searchParams } = new URL(req.url);
   const source_key = searchParams.get("source_key");
@@ -20,15 +20,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const { data: player, error: playerErr } = await sb
-      .from("players")
-      .select("id")
-      .eq("name", playerName)
-      .maybeSingle();
-
-    if (playerErr) {
-      return NextResponse.json({ ok: false, error: playerErr.message }, { status: 500 });
-    }
+    const playerRows = await sql`select id from players where name = ${playerName} limit 1`;
+    const player = playerRows[0];
 
     if (!player) {
       return NextResponse.json({ ok: true, status: null });
@@ -40,16 +33,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: true, status: null });
     }
 
-    const { data: rows, error: rowsErr } = await sb
-      .from("availability")
-      .select("status")
-      .eq("player_id", player.id)
-      .in("game_id", gameIds)
-      .limit(1);
-
-    if (rowsErr) {
-      return NextResponse.json({ ok: false, error: rowsErr.message }, { status: 500 });
-    }
+    const rows = await sql`
+      select status from availability
+      where player_id = ${player.id} and game_id = ANY(${gameIds})
+      limit 1`;
 
     return NextResponse.json({
       ok: true,

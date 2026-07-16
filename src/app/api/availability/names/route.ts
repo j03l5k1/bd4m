@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import { cleanInput, findMatchingGameIds } from "@/lib/server/availability";
 
 export async function GET(req: Request) {
@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const sb = getSupabaseAdmin();
+    const sql = getSql();
     const gameIds = await findMatchingGameIds(source_key);
 
     if (!gameIds.length) {
@@ -21,14 +21,11 @@ export async function GET(req: Request) {
       });
     }
 
-    const { data: rows, error: rowsErr } = await sb
-      .from("availability")
-      .select("status, players(name)")
-      .in("game_id", gameIds);
-
-    if (rowsErr) {
-      return NextResponse.json({ ok: false, error: rowsErr.message }, { status: 500 });
-    }
+    const rows = await sql`
+      select a.status, p.name
+      from availability a
+      join players p on p.id = a.player_id
+      where a.game_id = ANY(${gameIds})`;
 
     const names = {
       yes: [] as string[],
@@ -43,7 +40,7 @@ export async function GET(req: Request) {
     };
 
     for (const r of rows || []) {
-      const name = cleanInput((r as any)?.players?.name || "");
+      const name = cleanInput((r as any)?.name || "");
       if (!name) continue;
 
       if (r.status === "yes" && !seen.yes.has(name)) {

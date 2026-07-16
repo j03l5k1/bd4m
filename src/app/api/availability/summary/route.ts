@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import { findMatchingGameIds } from "@/lib/server/availability";
 
 export async function GET(req: Request) {
@@ -11,21 +11,15 @@ export async function GET(req: Request) {
   }
 
   try {
-    const sb = getSupabaseAdmin();
+    const sql = getSql();
     const gameIds = await findMatchingGameIds(source_key);
 
     if (!gameIds.length) {
       return NextResponse.json({ ok: true, counts: { yes: 0, no: 0, maybe: 0 } });
     }
 
-    const { data: rows, error: rowsErr } = await sb
-      .from("availability")
-      .select("status, player_id")
-      .in("game_id", gameIds);
-
-    if (rowsErr) {
-      return NextResponse.json({ ok: false, error: rowsErr.message }, { status: 500 });
-    }
+    const rows = await sql`
+      select status, player_id from availability where game_id = ANY(${gameIds})`;
 
     const counts = { yes: 0, no: 0, maybe: 0 };
     const seen = {

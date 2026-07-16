@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import { cleanInput, findExistingGameId } from "@/lib/server/availability";
 
 type RawBody = {
@@ -104,75 +104,45 @@ export async function POST(req: Request) {
   }
 
   try {
-    const sb = getSupabaseAdmin();
+    const sql = getSql();
     let gameId = await findExistingGameId(source_key, kickoff_iso, home, away);
 
     if (!gameId) {
-      const { data: gameRow, error: gameErr } = await sb
-        .from("games")
-        .insert({
-          source_key,
-          kickoff_iso,
-          home: cleanInput(home),
-          away: cleanInput(away),
-          venue: venue ?? null,
-        })
-        .select("id")
-        .single();
+      const gameRows = await sql`
+        insert into games (source_key, kickoff_iso, home, away, venue)
+        values (${source_key}, ${kickoff_iso}, ${cleanInput(home)}, ${cleanInput(away)}, ${venue ?? null})
+        returning id`;
 
-      if (gameErr || !gameRow) {
-        return NextResponse.json(
-          { ok: false, error: gameErr?.message || "Game insert failed" },
-          { status: 500 }
-        );
+      if (!gameRows[0]?.id) {
+        return NextResponse.json({ ok: false, error: "Game insert failed" }, { status: 500 });
       }
 
-      gameId = gameRow.id;
+      gameId = gameRows[0].id;
     } else {
       // Keep existing row fresh
-      const { error: updateErr } = await sb
-        .from("games")
-        .update({
-          source_key,
-          kickoff_iso,
-          home: cleanInput(home),
-          away: cleanInput(away),
-          venue: venue ?? null,
-        })
-        .eq("id", gameId);
-
-      if (updateErr) {
-        return NextResponse.json({ ok: false, error: updateErr.message }, { status: 500 });
-      }
+      await sql`
+        update games set
+          source_key = ${source_key},
+          kickoff_iso = ${kickoff_iso},
+          home = ${cleanInput(home)},
+          away = ${cleanInput(away)},
+          venue = ${venue ?? null}
+        where id = ${gameId}`;
     }
 
-    const { data: playerRow, error: playerErr } = await sb
-      .from("players")
-      .upsert({ name: playerName }, { onConflict: "name" })
-      .select("id")
-      .single();
+    const playerRows = await sql`
+      insert into players (name) values (${playerName})
+      on conflict (name) do update set name = excluded.name
+      returning id`;
 
-    if (playerErr || !playerRow) {
-      return NextResponse.json(
-        { ok: false, error: playerErr?.message || "Player upsert failed" },
-        { status: 500 }
-      );
+    if (!playerRows[0]?.id) {
+      return NextResponse.json({ ok: false, error: "Player upsert failed" }, { status: 500 });
     }
 
-    const { error: availErr } = await sb
-      .from("availability")
-      .upsert(
-        {
-          game_id: gameId,
-          player_id: playerRow.id,
-          status: body.status,
-        },
-        { onConflict: "game_id,player_id" }
-      );
-
-    if (availErr) {
-      return NextResponse.json({ ok: false, error: availErr.message }, { status: 500 });
-    }
+    await sql`
+      insert into availability (game_id, player_id, status)
+      values (${gameId}, ${playerRows[0].id}, ${body.status})
+      on conflict (game_id, player_id) do update set status = excluded.status`;
 
     return NextResponse.json({ ok: true, saved: { status: body.status } });
   } catch (e: any) {

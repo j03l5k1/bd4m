@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 import { CURRENT_SEASON } from "@/lib/briars/constants";
 
 export const runtime = "nodejs";
@@ -35,31 +35,20 @@ function auTimeFromISO(iso: string) {
 
 export async function GET() {
   try {
-    const sb = getSupabaseAdmin();
+    const sql = getSql();
 
-    const { data: teams, error: teamErr } = await sb
-      .from("teams")
-      .select("team_key,name_full,short_name");
-
-    if (teamErr) {
-      return NextResponse.json({ ok: false, error: teamErr.message }, { status: 500 });
-    }
+    const teams = await sql`select team_key, name_full, short_name from teams`;
 
     const teamNameByKey = new Map(
       (teams ?? []).map((t: any) => [t.team_key, t.name_full])
     );
 
-    const { data: matches, error: matchErr } = await sb
-      .from("matches")
-      .select(
-        "round_label,kickoff_at,venue,home_team_key,away_team_key,home_score,away_score,source_hash"
-      )
-      .eq("season", CURRENT_SEASON)
-      .order("kickoff_at", { ascending: true });
-
-    if (matchErr) {
-      return NextResponse.json({ ok: false, error: matchErr.message }, { status: 500 });
-    }
+    const matches = await sql`
+      select round_label, kickoff_at, venue, home_team_key, away_team_key,
+             home_score, away_score, source_hash
+      from matches
+      where season = ${CURRENT_SEASON}
+      order by kickoff_at asc`;
 
     const allGames = (matches ?? []).map((m: any) => {
       const home = teamNameByKey.get(m.home_team_key) ?? m.home_team_key;
@@ -87,15 +76,11 @@ export async function GET() {
       (g) => String(g.home).toLowerCase().includes("briars") || String(g.away).toLowerCase().includes("briars")
     );
 
-    const { data: ladderRows, error: ladderErr } = await sb
-      .from("ladder_latest")
-      .select("team_key,position,played,wins,draws,losses,gf,ga,gd,points,as_of")
-      .eq("season", CURRENT_SEASON)
-      .order("position", { ascending: true });
-
-    if (ladderErr) {
-      return NextResponse.json({ ok: false, error: ladderErr.message }, { status: 500 });
-    }
+    const ladderRows = await sql`
+      select team_key, position, played, wins, draws, losses, gf, ga, gd, points, as_of
+      from ladder_latest
+      where season = ${CURRENT_SEASON}
+      order by position asc`;
 
     const refreshedAt =
       (ladderRows ?? [])
@@ -128,7 +113,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       team: "Briars",
-      source: "supabase",
+      source: "neon",
       refreshedAt,
       games: briarsGames,
       allGames,

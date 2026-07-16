@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import { CURRENT_SEASON } from "@/lib/briars/constants";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSql } from "@/lib/db";
 
 function clean(s: string) {
   return String(s ?? "").replace(/\s+/g, " ").trim();
@@ -88,7 +88,7 @@ function findIndexByToken(headerTokens: string[], candidates: string[]) {
 }
 
 export async function runLegendsIngest() {
-  const sb = getSupabaseAdmin();
+  const sql = getSql();
   const url = "https://smhockey.com.au/legends";
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
@@ -239,11 +239,20 @@ export async function runLegendsIngest() {
     updated_at: new Date().toISOString(),
   }));
 
-  const { error: teamErr } = await sb.from("teams").upsert(teamsPayload, {
-    onConflict: "team_key",
-  });
-  if (teamErr) {
-    return { ok: false as const, status: 500, error: "teams upsert failed", details: teamErr.message };
+  try {
+    await Promise.all(
+      teamsPayload.map(
+        (t) => sql`
+          insert into teams (team_key, name_full, short_name, updated_at)
+          values (${t.team_key}, ${t.name_full}, ${t.short_name}, ${t.updated_at})
+          on conflict (team_key) do update set
+            name_full = excluded.name_full,
+            short_name = excluded.short_name,
+            updated_at = excluded.updated_at`
+      )
+    );
+  } catch (e: any) {
+    return { ok: false as const, status: 500, error: "teams upsert failed", details: e?.message };
   }
 
   const matchesPayload = matches.map((m) => ({
@@ -251,11 +260,32 @@ export async function runLegendsIngest() {
     updated_at: new Date().toISOString(),
   }));
 
-  const { error: matchErr } = await sb.from("matches").upsert(matchesPayload, {
-    onConflict: "source_hash",
-  });
-  if (matchErr) {
-    return { ok: false as const, status: 500, error: "matches upsert failed", details: matchErr.message };
+  try {
+    await Promise.all(
+      matchesPayload.map(
+        (m) => sql`
+          insert into matches (
+            season, round_label, kickoff_at, venue, home_team_key, away_team_key,
+            home_score, away_score, source_hash, updated_at
+          )
+          values (
+            ${m.season}, ${m.round_label}, ${m.kickoff_at}, ${m.venue}, ${m.home_team_key},
+            ${m.away_team_key}, ${m.home_score}, ${m.away_score}, ${m.source_hash}, ${m.updated_at}
+          )
+          on conflict (source_hash) do update set
+            season = excluded.season,
+            round_label = excluded.round_label,
+            kickoff_at = excluded.kickoff_at,
+            venue = excluded.venue,
+            home_team_key = excluded.home_team_key,
+            away_team_key = excluded.away_team_key,
+            home_score = excluded.home_score,
+            away_score = excluded.away_score,
+            updated_at = excluded.updated_at`
+      )
+    );
+  } catch (e: any) {
+    return { ok: false as const, status: 500, error: "matches upsert failed", details: e?.message };
   }
 
   const as_of = new Date().toISOString();
@@ -274,11 +304,32 @@ export async function runLegendsIngest() {
     as_of,
   }));
 
-  const { error: ladderErr } = await sb.from("ladder_latest").upsert(ladderPayload, {
-    onConflict: "season,team_key",
-  });
-  if (ladderErr) {
-    return { ok: false as const, status: 500, error: "ladder upsert failed", details: ladderErr.message };
+  try {
+    await Promise.all(
+      ladderPayload.map(
+        (r) => sql`
+          insert into ladder_latest (
+            season, team_key, position, played, wins, draws, losses, gf, ga, gd, points, as_of
+          )
+          values (
+            ${r.season}, ${r.team_key}, ${r.position}, ${r.played}, ${r.wins}, ${r.draws},
+            ${r.losses}, ${r.gf}, ${r.ga}, ${r.gd}, ${r.points}, ${r.as_of}
+          )
+          on conflict (season, team_key) do update set
+            position = excluded.position,
+            played = excluded.played,
+            wins = excluded.wins,
+            draws = excluded.draws,
+            losses = excluded.losses,
+            gf = excluded.gf,
+            ga = excluded.ga,
+            gd = excluded.gd,
+            points = excluded.points,
+            as_of = excluded.as_of`
+      )
+    );
+  } catch (e: any) {
+    return { ok: false as const, status: 500, error: "ladder upsert failed", details: e?.message };
   }
 
   return {

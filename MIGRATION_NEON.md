@@ -11,8 +11,12 @@ libraries remain.
       (players 22, availability 166, motm_votes 30, games 14, matches 45, teams 6, ladder 6).
 - [x] **Local dev wired** — `DATABASE_URL` added to `.env.local`.
 - [x] **Vercel env set** — `DATABASE_URL` added to **Production** and **Development**.
-- [x] **Deployed & verified in prod** — `bd4m.vercel.app` serving from Neon
-      (`/api/briars-fixtures` reports `source: neon`; vote + season stats load).
+- [x] **Deployed & verified in prod** — `bd4m.vercel.app` serving from Neon.
+      Full end-to-end test passed: fixtures, ladder, availability names/summary/my-status,
+      vote state, a live write→read cycle, and the scrape→upsert ingest cron.
+- [x] **Fixed a driver regression** — the neon HTTP driver returns `timestamptz` as JS
+      `Date` (supabase-js returned ISO strings), which corrupted `source_key` and crashed
+      the availability lookups. `src/lib/db.ts` now normalizes `Date`→ISO on every row.
 - [ ] **Preview env** — couldn't set via CLI (version bug); add in dashboard if you use
       preview branch deploys (Settings → Env Vars → `DATABASE_URL`, Preview, all branches).
 - [ ] **Rotate the Neon password** — it was shared in plaintext during setup. Neon dashboard

@@ -6,41 +6,33 @@ libraries remain.
 
 ## Status
 
-- [x] **Code migrated** — `@supabase/supabase-js` gone, all queries rewritten as SQL.
+- [x] **Code migrated** — `@supabase/supabase-js` gone, all queries rewritten as SQL. Committed to `main`.
 - [x] **Data copied to Neon** — all 7 tables, verified row-for-row
       (players 22, availability 166, motm_votes 30, games 14, matches 45, teams 6, ladder 6).
-- [x] **Local dev wired** — `DATABASE_URL` added to `.env.local`; app smoke-tested
-      against Neon (reads, joins, season-stats, and availability upserts all green).
-- [ ] **Vercel pointed at Neon** — you (step 1 below).
-- [ ] **Supabase project deleted** — you, after verifying prod (step 2). ← frees the seat.
+- [x] **Local dev wired** — `DATABASE_URL` added to `.env.local`.
+- [x] **Vercel env set** — `DATABASE_URL` added to **Production** and **Development**.
+- [x] **Deployed & verified in prod** — `bd4m.vercel.app` serving from Neon
+      (`/api/briars-fixtures` reports `source: neon`; vote + season stats load).
+- [ ] **Preview env** — couldn't set via CLI (version bug); add in dashboard if you use
+      preview branch deploys (Settings → Env Vars → `DATABASE_URL`, Preview, all branches).
+- [ ] **Rotate the Neon password** — it was shared in plaintext during setup. Neon dashboard
+      → Reset password, then update `DATABASE_URL` in Vercel + `.env.local`.
+- [ ] **Delete the Supabase project** → frees the seat. ← the whole point. See below.
 
 The Neon project is `ep-falling-pine-a7z1be2y` (AWS ap-southeast-2). A full backup
-of the original Supabase data is saved at `scratchpad/briars_backup.sql` if ever needed.
+of the original Supabase data is at `scratchpad/briars_backup.sql` if ever needed.
 
 ---
 
-## 1. Point Vercel at Neon
+## Final teardown
 
-**Vercel → Project → Settings → Environment Variables:**
-- Add `DATABASE_URL` = the Neon connection string (Production + Preview + Development).
-  It's the same value now in your `.env.local`.
-- Redeploy.
+Optional last check — trigger the ingest cron once and confirm `{ ok: true }`
+(this exercises the scrape → Neon upsert path):
+```bash
+curl -s "https://bd4m.vercel.app/api/cron/ingest-legends/$CRON_SECRET"
+```
 
-> The code prefers `DATABASE_URL`, then falls back to the old `POSTGRES_URL*`
-> vars, so nothing breaks during the cutover.
-
-## 2. Verify prod, then tear down Supabase
-
-After redeploy, exercise each surface once:
-- Load `/briars` — fixtures + ladder render (reads `teams`/`matches`/`ladder_latest`).
-- Set your availability for a game, reload — status persists.
-- `/vote` — nominees load; cast a vote during an open window.
-- Trigger the ingest cron once and confirm `{ ok: true }`:
-  ```bash
-  curl -s "https://<your-app>/api/cron/ingest-legends/$CRON_SECRET"
-  ```
-
-Once all green:
+Then:
 1. **Delete the Supabase project** → frees your seat. ✅
 2. In Vercel, remove the now-unused vars: `SUPABASE_*`, `NEXT_PUBLIC_SUPABASE_*`,
    `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_HOST/USER/PASSWORD/DATABASE`,

@@ -1,6 +1,26 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
-let sql: NeonQueryFunction<false, false> | null = null;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+let sql: ((strings: TemplateStringsArray, ...values: unknown[]) => Promise<any[]>) | null = null;
+
+/**
+ * The neon HTTP driver returns `timestamp`/`timestamptz` columns as JS `Date`
+ * objects and ignores the `types` type-parser option. The previous
+ * supabase-js/PostgREST layer returned them as ISO strings, and this codebase
+ * relies on that: several paths interpolate the raw value straight into a
+ * string — e.g. `source_key = ${kickoff_at}|...` — where a `Date` stringifies
+ * to "Mon Feb 23 2026 …" and breaks lookups.
+ *
+ * So we normalize every returned row: any `Date` becomes an ISO string,
+ * matching the old contract exactly with no call-site changes.
+ */
+function normalizeRow(row: Record<string, any>): Record<string, any> {
+  for (const key in row) {
+    if (row[key] instanceof Date) row[key] = row[key].toISOString();
+  }
+  return row;
+}
 
 /**
  * Returns a tagged-template SQL client backed by a standard Postgres
@@ -24,6 +44,12 @@ export function getSql() {
 
   if (!url) throw new Error("Missing DATABASE_URL");
 
-  sql = neon(url);
+  const base: NeonQueryFunction<false, false> = neon(url);
+
+  sql = (strings: TemplateStringsArray, ...values: unknown[]) =>
+    base(strings, ...values).then((rows) =>
+      Array.isArray(rows) ? rows.map((r) => normalizeRow(r as Record<string, any>)) : rows
+    );
+
   return sql;
 }
